@@ -1,0 +1,2165 @@
+TIME NEST
+GUIA DE IMPLEMENTAÇÃO — NOVA ABA "ORGANIZAR"
+Feed unificado de Eventos + Tarefas + Sistema de Projetos
+
+==================================================
+1. OBJETIVO DA ALTERAÇÃO
+==================================================
+
+Substituir a função atual de TasksView.tsx por uma área mais ampla chamada:
+
+ORGANIZAR
+
+A aba Organizar passa a ser a central de consulta e gerenciamento de:
+
+- Tarefas
+- Eventos
+- Projetos
+
+A estrutura principal será composta por dois modos dentro da mesma aba:
+
+1. Feed
+2. Projetos
+
+A troca entre Feed e Projetos deve funcionar de duas formas:
+
+- toque nas tabs superiores;
+- swipe horizontal para esquerda/direita.
+
+IMPORTANTE:
+
+"Projeto" NÃO é um terceiro tipo de item do Feed.
+
+Todo item do Feed continua sendo obrigatoriamente:
+
+- Evento
+OU
+- Tarefa
+
+Projeto é apenas uma organização/pasta à qual uma tarefa ou evento pode pertencer.
+
+Exemplo:
+
+Editar vídeo do projeto
+Tipo: Tarefa
+Projeto: Trabalho
+
+Jantar com cliente
+Tipo: Evento
+Projeto: Trabalho
+
+
+==================================================
+2. CODEBASE EXISTENTE
+==================================================
+
+Stack atual:
+
+Frontend:
+- React 19
+- TypeScript
+- Vite
+
+Estilização:
+- TailwindCSS v4
+- Vanilla CSS
+- Framer Motion
+
+Mobile:
+- Capacitor
+- @capacitor/core
+- @capacitor/android
+- Local Notifications
+
+UI:
+- Lucide React
+- Canvas Confetti
+
+Estrutura relevante:
+
+src/
+  views/
+    TimelineView.tsx
+    TasksView.tsx
+    FocusView.tsx
+    ProfileView.tsx
+
+  components/
+    componentes compartilhados
+    SmartInputOverlay
+    ActiveEventPill
+    navegação inferior
+    FAB
+    modais
+    bottom sheets
+
+  contexts/
+    NavigationContext
+    TimerContext
+
+  utils/
+    áudio
+    datas
+    armazenamento local
+
+
+==================================================
+3. ESTRATÉGIA DE IMPLEMENTAÇÃO
+==================================================
+
+Manter TasksView.tsx inicialmente para evitar quebra de imports e navegação.
+
+Internamente, transformar TasksView.tsx na nova página Organizar.
+
+Pode posteriormente renomear:
+
+TasksView.tsx
+→ OrganizeView.tsx
+
+Mas nesta primeira implementação, caso o rename exija muitas mudanças, manter o nome físico TasksView.tsx e alterar apenas a responsabilidade visual.
+
+Sugestão:
+
+src/views/TasksView.tsx
+  └── renderiza OrganizeView internamente
+
+ou
+
+src/views/OrganizeView.tsx
+
+e atualizar a navegação.
+
+
+==================================================
+4. NOVA ESTRUTURA VISUAL
+==================================================
+
+A tela possui:
+
+Cabeçalho
+↓
+Tabs Feed / Projetos
+↓
+Filtros contextuais
+↓
+Conteúdo atual
+↓
+Bottom Navigation existente
+
+Estrutura:
+
+Organizar
+
+[ Feed        |        Projetos ]
+
+[filtros...]
+
+conteúdo
+
+Bottom Navigation
+
+
+==================================================
+5. CABEÇALHO
+==================================================
+
+Título:
+
+Organizar
+
+No Feed:
+
+Subtítulo:
+"Seu feed completo de eventos e tarefas"
+
+Em Projetos:
+
+Subtítulo:
+"Seus projetos e áreas especiais"
+
+No canto superior direito:
+
+- Pesquisa
+- Filtro
+- Menu de três pontos
+
+Utilizar ícones Lucide:
+
+Search
+SlidersHorizontal ou Funnel
+MoreVertical
+
+
+==================================================
+6. NAVEGAÇÃO FEED / PROJETOS
+==================================================
+
+Criar um segmented control largo.
+
+Layout:
+
+[ ícone lista  Feed      |      pasta  Projetos ]
+
+Estado selecionado:
+
+- fundo lavanda muito suave;
+- texto roxo;
+- ícone roxo.
+
+Estado não selecionado:
+
+- fundo transparente;
+- texto escuro;
+- ícone neutro.
+
+Interação:
+
+Feed → swipe para esquerda → Projetos
+
+Projetos → swipe para direita → Feed
+
+Também permitir clique direto.
+
+Utilizar Framer Motion.
+
+Sugestão:
+
+AnimatePresence
+motion.div
+drag="x"
+
+Criar limite de swipe.
+
+Exemplo conceitual:
+
+const SWIPE_THRESHOLD = 60
+
+Se deslocamento > 60px:
+trocar página.
+
+Evitar swipe acidental durante scroll vertical.
+
+
+==================================================
+7. ARQUITETURA DE COMPONENTES
+==================================================
+
+Sugestão:
+
+src/components/organize/
+
+  OrganizeTabs.tsx
+  OrganizeHeader.tsx
+
+  feed/
+    FeedView.tsx
+    FeedFilters.tsx
+    FeedList.tsx
+    FeedItem.tsx
+    FeedTaskItem.tsx
+    FeedEventItem.tsx
+    ProjectBadge.tsx
+    ItemTypeBadge.tsx
+
+  projects/
+    ProjectsView.tsx
+    ProjectFilters.tsx
+    ProjectCard.tsx
+    ProjectIcon.tsx
+    ProjectProgress.tsx
+
+  shared/
+    FilterChip.tsx
+    SortDropdown.tsx
+
+
+==================================================
+8. MODELOS TYPESCRIPT
+==================================================
+
+Criar um modelo de Projeto.
+
+Exemplo:
+
+interface Project {
+  id: string;
+  name: string;
+  description?: string;
+
+  iconKey: ProjectIconKey;
+  color: string;
+
+  note: string;
+
+  createdAt: string;
+  updatedAt: string;
+
+  status: 'active' | 'completed' | 'archived';
+}
+
+IMPORTANTE:
+
+Cada projeto possui APENAS UM campo de anotação:
+
+note: string
+
+Não criar:
+
+notes: Note[]
+notesCount
+noteCount
+
+Não mostrar contagem de anotações.
+
+
+==================================================
+9. RELAÇÃO TAREFA / PROJETO
+==================================================
+
+Adicionar opcionalmente:
+
+projectId?: string | null
+
+ao modelo Task.
+
+
+Exemplo:
+
+interface Task {
+  id: string;
+  title: string;
+
+  estimatedDuration: number;
+  size: 'small' | 'medium' | 'large';
+
+  projectId?: string | null;
+
+  // demais campos existentes
+}
+
+
+==================================================
+10. RELAÇÃO EVENTO / PROJETO
+==================================================
+
+Adicionar:
+
+projectId?: string | null
+
+ao modelo Event.
+
+
+Exemplo:
+
+interface CalendarEvent {
+  id: string;
+  title: string;
+
+  start: Date;
+  end: Date;
+
+  projectId?: string | null;
+
+  // demais campos existentes
+}
+
+
+==================================================
+11. REGRA FUNDAMENTAL DO FEED
+==================================================
+
+O Feed NÃO deve possuir:
+
+Tipo:
+Projeto
+
+Existem somente:
+
+Tarefa
+Evento
+
+Portanto:
+
+item.type === 'task'
+→ mostrar badge "Tarefa"
+
+item.type === 'event'
+→ mostrar badge "Evento"
+
+Separadamente:
+
+item.projectId
+→ mostrar ProjectBadge
+
+
+==================================================
+12. FEED — VISUAL
+==================================================
+
+O Feed deve reproduzir a composição da imagem aprovada.
+
+Filtros superiores:
+
+Próximos
+Todos
+Eventos
+Tarefas
+Data de criação
+
+
+Exemplo:
+
+[ Próximos ] [ Todos ] [ Eventos ] [ Tarefas ] [ Data de criação ▼ ]
+
+
+==================================================
+13. FILTROS DO FEED
+==================================================
+
+Próximos:
+
+Ordenar por proximidade temporal.
+
+Eventos:
+startDate mais próximo primeiro.
+
+Tarefas com data:
+dueDate mais próxima primeiro.
+
+Tarefas sem data:
+após os itens com prazo.
+
+
+Todos:
+
+Mostrar eventos + tarefas.
+
+
+Eventos:
+
+Mostrar somente eventos.
+
+
+Tarefas:
+
+Mostrar somente tarefas.
+
+
+Data de criação:
+
+Ordenação:
+
+- Mais recentes
+- Mais antigos
+
+
+Adicionar futuramente:
+
+- Prioridade
+- Duração
+- Projeto
+- Concluídos
+
+
+==================================================
+14. AGRUPAMENTO POR DATA
+==================================================
+
+O Feed deve agrupar itens.
+
+Exemplo:
+
+Hoje, 7 de agosto
+
+Amanhã, 8 de agosto
+
+Sexta, 9 de agosto
+
+Sem data
+
+
+==================================================
+15. ITEM DE EVENTO
+==================================================
+
+Evento deve mostrar:
+
+Coluna esquerda:
+
+13:00
+-
+14:00
+
+Barra vertical colorida.
+
+Centro:
+
+Almoço com Carlos
+
+Google Agenda
+
+Direita:
+
+[Evento]
+
+menu ⋮
+
+
+Evento NÃO possui botão play.
+
+
+==================================================
+16. ITEM DE TAREFA
+==================================================
+
+Toda tarefa possui botão PLAY.
+
+Obrigatório.
+
+Mesmo tarefa:
+
+- sem horário;
+- com prazo;
+- dentro de projeto;
+- fora de projeto.
+
+O botão play significa:
+
+"Iniciar tarefa"
+
+E deve integrar com TimerContext / FocusView.
+
+
+Estrutura:
+
+horário opcional
+
+checkbox
+
+Título
+
+duração
+tamanho
+
+badge "Tarefa"
+
+projeto opcional
+
+PLAY
+
+
+==================================================
+17. PLAY DE TAREFA
+==================================================
+
+Ao clicar:
+
+1. definir tarefa ativa;
+2. usar duração estimada;
+3. iniciar TimerContext;
+4. navegar ou abrir FocusView;
+5. registrar startTime.
+
+Pode opcionalmente abrir confirmação:
+
+"Iniciar Editar vídeo?"
+
+45 min estimados
+
+[Cancelar]
+[Iniciar]
+
+
+==================================================
+18. BADGE TAREFA / EVENTO
+==================================================
+
+Sempre mostrar explicitamente o tipo.
+
+Exemplos:
+
+Tarefa
+Evento
+
+Estilo:
+
+pill pequena
+rounded-full
+fonte pequena
+
+Tarefa:
+pode usar cor baseada no projeto ou cor neutra.
+
+Evento:
+lavanda/roxo.
+
+
+==================================================
+19. PROJECT BADGE NO FEED
+==================================================
+
+Se:
+
+projectId !== null
+
+mostrar abaixo ou próximo ao tipo:
+
+[ícone] Trabalho
+
+Exemplo:
+
+Tarefa
+
+💼 Trabalho
+
+
+Esse campo NÃO substitui "Tarefa".
+
+Exemplo correto:
+
+Editar vídeo
+
+45 min   Média
+
+[Tarefa]
+💼 Trabalho
+
+[PLAY]
+
+
+Exemplo ERRADO:
+
+Editar vídeo
+
+45 min
+
+[Trabalho]
+
+sem indicar que é tarefa.
+
+
+==================================================
+20. PROJECT BADGE CLICÁVEL
+==================================================
+
+Ao clicar no badge:
+
+Trabalho
+
+abrir:
+
+ProjectDetailView
+
+do projeto correspondente.
+
+Não abrir filtros.
+
+Não abrir modal intermediário.
+
+
+==================================================
+21. ITENS SEM PROJETO
+==================================================
+
+Se:
+
+projectId === null
+
+não mostrar:
+
+"Sem projeto"
+
+Apenas ocultar o ProjectBadge.
+
+Isso reduz ruído visual.
+
+
+==================================================
+22. CORES DOS ITENS
+==================================================
+
+Cada item pode possuir uma barra vertical colorida.
+
+Se estiver em projeto:
+
+usar preferencialmente a cor do projeto.
+
+Exemplos:
+
+Trabalho:
+azul/laranja dependendo do tema escolhido
+
+Estudos:
+rosa
+
+Casa:
+verde
+
+Cozinha:
+laranja
+
+Academia:
+azul
+
+Viagem:
+roxo
+
+
+==================================================
+23. PROJETOS — LISTA
+==================================================
+
+Ao fazer swipe:
+
+Feed
+→
+Projetos
+
+Mostrar lista de projetos.
+
+Cada projeto será um card.
+
+
+==================================================
+24. CARD DE PROJETO
+==================================================
+
+Estrutura aprovada:
+
+[Ícone]
+
+Nome
+Descrição
+
+X tarefas
+X eventos
+
+pendentes
+barra progresso
+%
+
+→
+
+
+NÃO mostrar:
+
+- notas
+- 1 nota
+- 3 notas
+- contador de notas
+
+
+==================================================
+25. CAMPO ÚNICO DE ANOTAÇÃO
+==================================================
+
+Cada projeto possui exatamente um campo:
+
+note: string
+
+
+A anotação ficará dentro da página do projeto.
+
+Exemplo:
+
+Projeto: Trabalho
+
+Anotações
+
+┌────────────────────────────┐
+│ Escrever anotações...      │
+│                            │
+└────────────────────────────┘
+
+
+Pode funcionar como um mini bloco de notas.
+
+Autosave recomendado.
+
+Debounce:
+
+300–800 ms.
+
+
+==================================================
+26. FILTROS DOS PROJETOS
+==================================================
+
+Filtros visuais:
+
+Todos
+Recentes
+Com prazo
+Ativos
+Nome
+
+
+Todos:
+todos projetos.
+
+Recentes:
+updatedAt ou createdAt mais recente.
+
+Com prazo:
+projetos que possuem itens com prazo próximo.
+
+Ativos:
+status === active.
+
+Nome:
+A-Z / Z-A.
+
+
+Adicionar menu avançado posteriormente:
+
+- Maior progresso
+- Menor progresso
+- Mais tarefas
+- Mais eventos
+- Criado recentemente
+- Atualizado recentemente
+
+
+==================================================
+27. PROGRESSO DOS PROJETOS
+==================================================
+
+Calcular progresso baseado em tarefas.
+
+Sugestão:
+
+completedTasks / totalTasks
+
+Exemplo:
+
+12 tarefas
+9 concluídas
+
+75%
+
+
+Eventos NÃO precisam obrigatoriamente afetar o progresso.
+
+Preferir progresso baseado em tarefas para evitar comportamento imprevisível.
+
+Se projeto sem tarefas:
+
+progress = 0
+
+
+==================================================
+28. PENDÊNCIAS
+==================================================
+
+pendingCount:
+
+tarefas não concluídas.
+
+Exemplo:
+
+12 tarefas
+9 concluídas
+
+3 pendentes
+
+
+Não contar eventos como pendência, salvo se futuramente houver estado de conclusão de evento.
+
+
+==================================================
+29. ÍCONES AUTOMÁTICOS DE PROJETO
+==================================================
+
+O TimeNest deve escolher automaticamente um ícone visualmente coerente com o nome do projeto.
+
+Utilizar Lucide React.
+
+
+Exemplos:
+
+Trabalho
+→ Briefcase
+
+Emprego
+→ Briefcase
+
+Cliente
+→ BriefcaseBusiness
+
+
+Estudos
+→ GraduationCap
+
+Faculdade
+→ GraduationCap
+
+Curso
+→ BookOpen
+
+
+Casa
+→ House
+
+Lar
+→ House
+
+Apartamento
+→ Building
+
+
+Cozinha
+→ ChefHat
+
+Receitas
+→ CookingPot
+
+Comida
+→ Utensils
+
+
+Academia
+→ Dumbbell
+
+Treino
+→ Dumbbell
+
+Fitness
+→ Dumbbell
+
+
+Viagem
+→ Plane
+
+Férias
+→ Plane
+
+Turismo
+→ Map
+
+
+Dinheiro
+→ Wallet
+
+Financeiro
+→ Landmark
+
+Contas
+→ Receipt
+
+
+Saúde
+→ HeartPulse
+
+
+Música
+→ Music
+
+
+Cinema
+→ Clapperboard
+
+
+Fotografia
+→ Camera
+
+
+Vídeo
+→ Video
+
+
+Jogos
+→ Gamepad2
+
+
+Compras
+→ ShoppingBag
+
+
+==================================================
+30. HEURÍSTICA LOCAL DE ÍCONES
+==================================================
+
+Criar:
+
+src/utils/projectIconResolver.ts
+
+
+Exemplo:
+
+const projectIconRules = [
+  {
+    keywords: ['trabalho', 'work', 'empresa', 'cliente'],
+    icon: 'briefcase'
+  },
+
+  {
+    keywords: ['estudo', 'estudos', 'faculdade', 'curso'],
+    icon: 'graduation-cap'
+  },
+
+  {
+    keywords: ['casa', 'lar', 'apartamento'],
+    icon: 'house'
+  },
+
+  {
+    keywords: ['cozinha', 'receita', 'culinária'],
+    icon: 'chef-hat'
+  },
+
+  {
+    keywords: ['academia', 'treino', 'fitness'],
+    icon: 'dumbbell'
+  },
+
+  {
+    keywords: ['viagem', 'férias', 'turismo'],
+    icon: 'plane'
+  }
+];
+
+
+function resolveProjectIcon(title: string): ProjectIconKey
+
+
+Normalizar texto:
+
+- lowercase;
+- remover acentos;
+- remover pontuação;
+- trim.
+
+
+==================================================
+31. FALLBACK DE ÍCONE
+==================================================
+
+Caso nenhuma regra seja encontrada:
+
+usar:
+
+Folder
+
+ou
+
+FolderOpen
+
+
+Nunca deixar o projeto sem ícone.
+
+
+==================================================
+32. USUÁRIO PODE TROCAR ÍCONE
+==================================================
+
+O ícone automático é apenas sugestão inicial.
+
+Na edição do projeto:
+
+Ícone
+
+[ seleção ]
+
+Permitir trocar manualmente.
+
+Após escolha manual:
+
+não substituir automaticamente novamente.
+
+
+Adicionar:
+
+iconSource:
+
+'auto'
+'user'
+
+
+==================================================
+33. CORES AUTOMÁTICAS
+==================================================
+
+Opcionalmente associar cor ao tipo inferido.
+
+Exemplo:
+
+Trabalho:
+roxo/azul
+
+Estudos:
+rosa
+
+Casa:
+verde
+
+Cozinha:
+laranja
+
+Academia:
+azul
+
+Viagem:
+violeta
+
+
+Usuário pode editar posteriormente.
+
+
+==================================================
+34. PROJECT DETAIL VIEW
+==================================================
+
+Criar futuramente:
+
+src/views/ProjectDetailView.tsx
+
+
+Estrutura:
+
+← Trabalho
+
+💼
+
+Trabalho
+
+Projetos profissionais e responsabilidades
+
+
+[Todos]
+[Tarefas]
+[Eventos]
+
+
+Lista de itens
+
+
+ANOTAÇÕES
+
+[campo único]
+
+
+==================================================
+35. FILTROS DENTRO DO PROJETO
+==================================================
+
+Todos
+Tarefas
+Eventos
+
+Além disso:
+
+- Próximos
+- Concluídos
+- Mais recentes
+- Prioridade
+- Data
+
+
+==================================================
+36. CRIAÇÃO DE PROJETO
+==================================================
+
+FAB central existente:
+
++
+
+deve incluir:
+
+Nova tarefa
+Novo evento
+Novo projeto
+
+
+Ao criar projeto:
+
+Nome:
+Trabalho
+
+Após sair do campo:
+
+resolver automaticamente:
+
+ícone
+cor
+
+
+Mostrar preview:
+
+💼 Trabalho
+
+
+Campos:
+
+Nome
+Descrição
+Ícone
+Cor
+
+Criar
+
+
+==================================================
+37. SMART INPUT
+==================================================
+
+SmartInputOverlay pode futuramente interpretar:
+
+"criar projeto cozinha"
+
+→ Projeto
+→ ChefHat
+
+ou:
+
+"adicionar comprar panela no projeto cozinha"
+
+→ Tarefa
+→ projectId Cozinha
+
+
+Não é obrigatório para primeira etapa, mas deixar arquitetura preparada.
+
+
+==================================================
+38. ESTADO / CONTEXT
+==================================================
+
+Não sobrecarregar NavigationContext.
+
+Criar:
+
+ProjectContext
+
+ou preferencialmente store dedicada.
+
+
+Exemplo:
+
+ProjectContext:
+
+projects
+
+createProject()
+updateProject()
+deleteProject()
+
+getProject()
+
+assignTaskToProject()
+assignEventToProject()
+
+updateProjectNote()
+
+
+==================================================
+39. FEED DERIVADO
+==================================================
+
+Não manter uma cópia separada do Feed.
+
+Gerar o Feed combinando:
+
+tasks
++
+events
+
+
+Exemplo:
+
+const feedItems = useMemo(() => {
+
+  const taskItems =
+    tasks.map(task => ({
+      type: 'task',
+      data: task
+    }))
+
+  const eventItems =
+    events.map(event => ({
+      type: 'event',
+      data: event
+    }))
+
+  return [
+    ...taskItems,
+    ...eventItems
+  ]
+
+}, [tasks, events])
+
+
+Depois:
+
+filter
+sort
+group
+
+
+==================================================
+40. TIPO DO FEED
+==================================================
+
+type FeedItem =
+
+  | {
+      type: 'task';
+      task: Task;
+    }
+
+  | {
+      type: 'event';
+      event: CalendarEvent;
+    }
+
+
+Isso impede bugs de tentar usar campos de tarefa em evento.
+
+
+==================================================
+41. SWIPE ENTRE FEED E PROJETOS
+==================================================
+
+Utilizar Framer Motion.
+
+Evitar carousel infinito.
+
+São apenas:
+
+index 0 → Feed
+index 1 → Projetos
+
+
+Estratégia:
+
+const [section, setSection] =
+  useState<'feed' | 'projects'>('feed')
+
+
+motion.div:
+
+drag="x"
+
+
+onDragEnd:
+
+offset.x < -threshold
+→ projects
+
+offset.x > threshold
+→ feed
+
+
+IMPORTANTE:
+
+Se usuário estiver na lista rolando verticalmente:
+
+não interpretar pequenos movimentos horizontais como swipe.
+
+
+==================================================
+42. ANIMAÇÃO DAS TABS
+==================================================
+
+Adicionar indicador animado.
+
+Framer Motion:
+
+layoutId="organize-active-tab"
+
+Duração:
+
+150–250ms
+
+ease-out
+
+
+Não exagerar animações devido ao foco do app em TDAH.
+
+
+==================================================
+43. MOBILE FIRST
+==================================================
+
+A composição das imagens deve ser tratada como referência mobile principal.
+
+Breakpoints:
+
+< 640px:
+layout exatamente mobile.
+
+640–1024px:
+aumentar margens.
+
+Desktop:
+centralizar conteúdo.
+
+
+Sugestão:
+
+max-width:
+520–700px
+
+dependendo da tela.
+
+
+Não desenhar uma moldura física de celular no desktop.
+
+
+==================================================
+44. BOTTOM NAVIGATION
+==================================================
+
+Manter arquitetura existente.
+
+Itens:
+
+Timeline
+
+Organizar
+
+FAB +
+
+Foco
+
+Perfil
+
+
+Substituir texto:
+
+Tarefas
+→ Organizar
+
+
+Ícone sugerido:
+
+ListTree
+ListTodo
+Rows3
+LayoutList
+
+Preferência:
+
+ListTree
+
+ou o mesmo ícone visual aprovado na referência.
+
+
+==================================================
+45. FAB
+==================================================
+
+Manter centralizado.
+
+Não modificar identidade geral.
+
+Ao tocar:
+
+Bottom Sheet:
+
+Criar
+
+Tarefa
+Evento
+Projeto
+
+
+==================================================
+46. ACESSIBILIDADE
+==================================================
+
+Todos os elementos devem possuir:
+
+aria-label
+
+Estados ativos:
+
+aria-selected
+
+Tabs:
+
+role="tablist"
+role="tab"
+
+Feed / Projetos:
+
+teclado também deve funcionar.
+
+
+Project badge:
+
+aria-label:
+"Projeto Trabalho"
+
+
+Play:
+
+aria-label:
+"Iniciar tarefa Editar vídeo"
+
+
+Não depender exclusivamente de cor.
+
+
+==================================================
+47. TDAH / CARGA COGNITIVA
+==================================================
+
+Evitar:
+
+- cards muito densos;
+- informações repetidas;
+- textos longos;
+- efeitos excessivos;
+- excesso de badges.
+
+Prioridade visual do Feed:
+
+1. título
+2. horário / duração
+3. tipo
+4. projeto
+5. ação
+
+
+==================================================
+48. PROJECT BADGE DEVE SER PEQUENO
+==================================================
+
+Projeto é informação secundária.
+
+Não usar um card grande.
+
+Formato:
+
+ícone 16px
+nome 12–14px
+
+Exemplo:
+
+💼 Trabalho
+
+
+==================================================
+49. TIPOGRAFIA
+==================================================
+
+Preservar a tipografia atual do TimeNest.
+
+Hierarquia sugerida:
+
+Título principal:
+28–32px
+
+Nome do item:
+16–18px
+
+Metadados:
+12–14px
+
+Badge:
+11–12px
+
+
+==================================================
+50. ESPAÇAMENTOS
+==================================================
+
+FeedItem:
+
+altura:
+aprox. 88–116px
+
+padding:
+16px
+
+gap:
+8px / 12px
+
+border:
+#ECECF2
+
+background:
+white
+
+
+==================================================
+51. SOMBRAS
+==================================================
+
+Muito discretas.
+
+Evitar aparência de dashboard pesado.
+
+Cards:
+
+box-shadow:
+0 2px 12px rgba(20, 20, 40, 0.04)
+
+
+==================================================
+52. PERSISTÊNCIA LOCAL
+==================================================
+
+Adicionar projects ao armazenamento local.
+
+Exemplo:
+
+timeNest.projects
+
+
+Persistir:
+
+id
+name
+description
+icon
+color
+note
+status
+createdAt
+updatedAt
+
+
+Tasks e events:
+
+persistir projectId.
+
+
+==================================================
+53. MIGRAÇÃO DE DADOS
+==================================================
+
+Tasks existentes:
+
+projectId = null
+
+
+Events existentes:
+
+projectId = null
+
+
+Nunca quebrar dados antigos.
+
+
+==================================================
+54. MOCK DATA
+==================================================
+
+Criar projetos:
+
+Trabalho
+
+icon:
+Briefcase
+
+description:
+"Projetos profissionais e responsabilidades"
+
+
+Estudos
+
+icon:
+GraduationCap
+
+description:
+"Cursos, leituras e desenvolvimento"
+
+
+Casa
+
+icon:
+House
+
+description:
+"Organização e manutenção do lar"
+
+
+Cozinha
+
+icon:
+ChefHat
+
+description:
+"Receitas, compras e planejamento"
+
+
+Academia
+
+icon:
+Dumbbell
+
+description:
+"Treinos, metas e evolução"
+
+
+Viagem
+
+icon:
+Plane
+
+description:
+"Planejamento e roteiros"
+
+
+==================================================
+55. MOCK TASKS
+==================================================
+
+Editar vídeo do projeto
+
+type:
+task
+
+estimatedDuration:
+45
+
+size:
+medium
+
+projectId:
+Trabalho
+
+
+Responder e-mails importantes
+
+task
+
+20 min
+
+small
+
+Trabalho
+
+
+Estudar inglês
+
+task
+
+30 min
+
+medium
+
+Estudos
+
+
+Organizar documentos
+
+task
+
+30 min
+
+medium
+
+Casa
+
+
+Planejar conteúdo da semana
+
+task
+
+60 min
+
+large
+
+Trabalho
+
+
+==================================================
+56. MOCK EVENTS
+==================================================
+
+Almoço com Carlos
+
+13:00–14:00
+
+type:
+event
+
+
+Revisão de projeto
+
+14:30–15:30
+
+event
+
+
+Jantar com Maria
+
+19:00–20:00
+
+event
+
+
+Podem começar sem projectId.
+
+
+==================================================
+57. PROGRESSO DOS MOCK PROJECTS
+==================================================
+
+Trabalho:
+75%
+
+Estudos:
+60%
+
+Casa:
+85%
+
+Cozinha:
+50%
+
+Academia:
+44%
+
+Viagem:
+100%
+
+
+Esses valores devem futuramente ser derivados dos dados reais.
+
+
+==================================================
+58. PERFORMANCE
+==================================================
+
+Usar:
+
+useMemo
+
+para:
+
+feed unificado
+filtros
+ordenamento
+contagem de projetos
+
+
+Não recalcular tudo em cada render.
+
+
+Se lista ficar grande:
+
+considerar virtualização posteriormente.
+
+
+==================================================
+59. NÃO IMPLEMENTAR AGORA
+==================================================
+
+Não precisa nesta fase:
+
+- colaboração;
+- múltiplos usuários por projeto;
+- comentários;
+- múltiplas notas;
+- anexos;
+- subtarefas específicas de projeto;
+- chat dentro do projeto.
+
+
+==================================================
+60. PRINCÍPIOS QUE NÃO PODEM SER QUEBRADOS
+==================================================
+
+REGRA 1
+
+Todo item do Feed é:
+
+Tarefa
+OU
+Evento
+
+
+REGRA 2
+
+Projeto é vínculo adicional.
+
+Nunca substituir o tipo.
+
+
+REGRA 3
+
+Toda tarefa possui PLAY.
+
+
+REGRA 4
+
+Eventos NÃO possuem PLAY.
+
+
+REGRA 5
+
+Projeto só aparece no Feed quando item.projectId existe.
+
+
+REGRA 6
+
+Clicar no projeto abre a página do projeto.
+
+
+REGRA 7
+
+Cada projeto possui apenas UM campo de anotação.
+
+
+REGRA 8
+
+Não mostrar contagem de notas.
+
+
+REGRA 9
+
+Ícone do projeto deve ser sugerido automaticamente com base no nome.
+
+
+REGRA 10
+
+Usuário pode substituir o ícone sugerido.
+
+
+==================================================
+61. ORDEM DE IMPLEMENTAÇÃO
+==================================================
+
+FASE 1
+
+Criar tipos:
+
+Project
+ProjectIconKey
+FeedItem
+
+
+FASE 2
+
+Adicionar projectId em:
+
+Task
+Event
+
+
+FASE 3
+
+Criar ProjectContext/store.
+
+
+FASE 4
+
+Criar mock projects.
+
+
+FASE 5
+
+Transformar TasksView em Organizar.
+
+
+FASE 6
+
+Criar:
+
+Feed / Projetos tabs.
+
+
+FASE 7
+
+Implementar Feed unificado.
+
+
+FASE 8
+
+Implementar filtros do Feed.
+
+
+FASE 9
+
+Implementar FeedTaskItem.
+
+
+FASE 10
+
+Implementar FeedEventItem.
+
+
+FASE 11
+
+Implementar ProjectBadge.
+
+
+FASE 12
+
+Conectar Play ao TimerContext.
+
+
+FASE 13
+
+Criar ProjectsView.
+
+
+FASE 14
+
+Criar ProjectCard.
+
+
+FASE 15
+
+Criar resolver automático de ícones.
+
+
+FASE 16
+
+Implementar filtros de projetos.
+
+
+FASE 17
+
+Implementar swipe horizontal.
+
+
+FASE 18
+
+Criar ProjectDetailView.
+
+
+FASE 19
+
+Criar campo único de anotação.
+
+
+FASE 20
+
+Adicionar "Novo Projeto" ao FAB.
+
+
+FASE 21
+
+Persistência.
+
+
+FASE 22
+
+Responsividade.
+
+
+FASE 23
+
+Acessibilidade.
+
+
+FASE 24
+
+Testes.
+
+
+==================================================
+62. CRITÉRIOS DE ACEITAÇÃO — FEED
+==================================================
+
+[ ] Aba inferior mostra "Organizar".
+
+[ ] Organizar abre no Feed.
+
+[ ] Feed e Projetos possuem tabs.
+
+[ ] Swipe funciona.
+
+[ ] Eventos e tarefas aparecem juntos.
+
+[ ] Todo item possui tipo claramente identificável.
+
+[ ] Evento mostra "Evento".
+
+[ ] Tarefa mostra "Tarefa".
+
+[ ] Tarefa sempre possui Play.
+
+[ ] Evento nunca possui Play.
+
+[ ] Projeto não substitui badge de tipo.
+
+[ ] ProjectBadge aparece somente quando necessário.
+
+[ ] Clicar no ProjectBadge abre projeto.
+
+[ ] Feed pode ser filtrado.
+
+[ ] Feed pode ser ordenado.
+
+[ ] Datas são agrupadas corretamente.
+
+
+==================================================
+63. CRITÉRIOS DE ACEITAÇÃO — PROJETOS
+==================================================
+
+[ ] Lista de projetos segue visual da referência.
+
+[ ] Cada projeto possui ícone coerente.
+
+[ ] Nome gera ícone automaticamente.
+
+[ ] Usuário pode trocar ícone.
+
+[ ] Mostrar número de tarefas.
+
+[ ] Mostrar número de eventos.
+
+[ ] Mostrar pendências.
+
+[ ] Mostrar progresso.
+
+[ ] NÃO mostrar número de notas.
+
+[ ] Projeto possui apenas uma anotação interna.
+
+[ ] Projeto pode ser filtrado.
+
+[ ] Projeto pode ser ordenado.
+
+[ ] Projeto abre ProjectDetailView.
+
+
+==================================================
+64. RESULTADO ESPERADO
+==================================================
+
+A antiga aba "Tarefas" deve evoluir para uma central chamada:
+
+ORGANIZAR
+
+Ela deve funcionar como uma visão estrutural complementar à Timeline.
+
+Timeline:
+"Quando as coisas acontecem."
+
+Organizar:
+"O que existe e como está organizado."
+
+Foco:
+"O que estou fazendo agora."
+
+Perfil:
+"Como o aplicativo funciona para mim."
+
+
+A experiência final deve preservar o DNA visual do TimeNest:
+
+- calma;
+- leve;
+- mobile-first;
+- simples;
+- intuitiva;
+- amigável para TDAH;
+- sem excesso de informação.
+
+O Feed deve permitir compreender tarefas e eventos rapidamente.
+
+Projetos devem funcionar como pastas inteligentes para agrupar tarefas e eventos relacionados.
+
+O vínculo com projeto nunca muda a identidade básica do item:
+
+Tarefa continua sendo tarefa.
+Evento continua sendo evento.
+
+Projeto apenas adiciona contexto.

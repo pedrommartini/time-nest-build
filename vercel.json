@@ -1,0 +1,14 @@
+{
+  "redirects": [
+    {
+      "source": "/apkdownload",
+      "destination": "/timenest.apk",
+      "permanent": false
+    },
+    {
+      "source": "/download",
+      "destination": "/timenest.apk",
+      "permanent": false
+    }
+  ]
+}

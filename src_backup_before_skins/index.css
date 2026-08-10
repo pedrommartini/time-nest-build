@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+  
+  --color-brand-50: #f4f6ff;
+  --color-brand-100: #e9ebfa;
+  --color-brand-200: #d5d9f5;
+  --color-brand-300: #b5bef0;
+  --color-brand-400: #939ae8;
+  --color-brand-500: #787ce1;
+  --color-brand-600: #625dda;
+  --color-brand-700: #524cc2;
+  --color-brand-800: #44409c;
+  --color-brand-900: #3a387e;
+  --color-brand-950: #222149;
+
+  --color-app-bg: var(--bg-primary);
+  --color-card-bg: var(--bg-secondary);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-border-color: var(--border-color);
+
+  --animate-fade-in: fadeIn 0.3s ease-out;
+  --animate-slide-up: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-pulse-slow: pulseSlow 3s infinite ease-in-out;
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  @keyframes pulseSlow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+}
+
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #fdfdfd;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --border-color: #e2e8f0;
+}
+
+.dark {
+  --bg-primary: #0f1115;
+  --bg-secondary: #16181d;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border-color: #272a35;
+}
+
+/* Base resets and fonts */
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar for a cleaner look */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 10px;
+}
+
+/* Visual Texture: Dot paper */
+.dot-pattern {
+  background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Low Stimulation Mode Overrides */
+.low-stim * {
+  transition: none !important;
+  animation: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Fallback solid colors for low stimulation */
+.low-stim {
+  --bg-primary: #faf9f8;
+  --bg-secondary: #f3f2f1;
+  background-color: var(--bg-primary) !important;
+}
+.dark.low-stim {
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #242424;
+}

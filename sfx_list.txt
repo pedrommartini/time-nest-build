@@ -1,0 +1,148 @@
+===============================================================================
+                       TIME NEST - GUIA COMPLETO DE SFX
+                      (Efeitos Sonoros Atuais e Futuros)
+===============================================================================
+
+-------------------------------------------------------------------------------
+1. SFX PARA FUNCIONALIDADES ATUAIS
+-------------------------------------------------------------------------------
+
+1.1. INTERFACE & NAVEGAÇÃO GERAL
+- Clique de Botão / Seleção (UI Tap):
+  * Som: Pop/click curto e grave (estilo madeira leve ou bolha de sabão).
+  * Uso: Toque em botões primários, seletores e opções.
+
+- Troca de Aba (Tab Switch):
+  * Som: Deslize de frequência suave (swoosh sutil de ar).
+  * Uso: Navegação entre Linha do Tempo, Foco, Tarefas e Perfil.
+
+- Abertura e Fechamento de Modais:
+  * Som: Pop sutil ao abrir (expansão), click atenuado ao fechar (retração).
+
+- Troca de Tema (Modo Escuro / Claro):
+  * Som: Clique mecânico suave ou tom metálico aquecido.
+
+1.2. MODO FOCO (POMODORO & CRONÔMETRO)
+- Início do Timer (Start Focus):
+  * Som: Tom ressonante e focado (tigela tibetana ou nota única de piano em E/Mi).
+  * Vibe: Transmite concentração e clareza mental.
+
+- Pausa / Retomar (Pause / Resume):
+  * Som: Frequência que desacelera na pausa e acelera ao retomar.
+
+- Tic-Tac Secundário (Toggleable Ticking):
+  * Som: Batida de relógio minimalista (estilo metrónomo de madeira atenuado).
+
+- Fim do Ciclo de Foco (Pomodoro Done):
+  * Som: Arpejo harmônico ascendente (C5 -> E5 -> G5 -> C6) em marimba ou chime.
+
+- Fim da Pausa Curta / Longa (Break Done):
+  * Som: Duas notas suaves anunciando o retorno ao foco.
+
+- Troca de Modo (Foco <-> Pausa):
+  * Som: Tom de transição fluido (glide sintético).
+
+1.3. GERENCIADOR DE TAREFAS & HÁBITOS
+- Conclusão de Tarefa (Task Complete):
+  * Som: Checkmark chime alegre (duas notas rápidas e agudas, ex: G5 -> C6).
+
+- Desfazer Conclusão (Uncheck Task):
+  * Som: Nota rápida e opaca (tom descendente).
+
+- Incremento de Hábito (+1 dia / +1 repetição):
+  * Som: Clique metálico de catraca ou contador estilo flip clock.
+
+- Criação de Nova Tarefa / Hábito:
+  * Som: Pinhole/Drop aquoso de inserção.
+
+- Exclusão de Tarefa (Delete Item):
+  * Som: Papel amassando ou swoosh rápido de lixeira.
+
+1.4. LINHA DO TEMPO & CALENDÁRIO
+- Ajuste de Horário/Data (Wheel Picker Scroll):
+  * Som: Ticks mecânicos ultracurtos e sequenciais (sensação tátil/háptica).
+
+- Novo Evento Criado:
+  * Som: Nota de confirmação tripla elegante (plink-plink-pluck).
+
+- Disparo de Alarme / Lembrete de Evento:
+  * Som: Notificação suave em loop (ondas senoidais com vibração sutil).
+
+1.5. ENTRADA INTELIGENTE (SMART INPUT NLP & VOZ)
+- Detecção Automática de Tag / Data (NLP Trigger):
+  * Som: Ping cristalino ao reconhecer @hoje, #trabalho ou 14:00.
+
+- Início do Reconhecimento de Voz (Mic On):
+  * Som: Tom duplo receptivo (estilo assistente inteligente).
+
+- Fim do Reconhecimento de Voz (Mic Off):
+  * Som: Tom de encerramento breve.
+
+
+-------------------------------------------------------------------------------
+2. SFX PARA FUNCIONALIDADES FUTURAS (ROADMAP & EXPANSÕES)
+-------------------------------------------------------------------------------
+
+2.1. GAMIFICAÇÃO & CONQUISTAS
+- Subir de Nível (Level Up):
+  * Som: Fanfarra curta minimalista em synth moderno (acorde com reverb).
+
+- Desbloqueio de Conquista / Badge (Achievement Unlocked):
+  * Som: Brilho metálico/cristalino longo (shimmer / glass chime).
+
+- Marco de Streak (7, 30, 100 dias seguidos):
+  * Som: Efeito de chama acendendo (whoosh + crackle) com notas comemorativas.
+
+- Ganho de XP / Moedas:
+  * Som: Moedas retrô/acústicas multiplicando (cling-cling-cling).
+
+2.2. MODO COLABORATIVO & SALAS DE FOCO (NEST SYNC)
+- Entrada de Integrante na Sala:
+  * Som: Campainha suave de porta de madeira abrindo ou tom discreto.
+
+- Envio de Incentivo ("High Five" / "Café Virtual"):
+  * Som: Clap tátil ou choque suave de xícaras de café.
+
+- Meta Coletiva Batida:
+  * Som: Harmonia coral em synth uníssono.
+
+2.3. ASSISTENTE DE IA AVANÇADO
+- IA Processando / Pensando:
+  * Som: Pulso ambiente low-fi contínuo (onda modulada suave).
+
+- Relatório Diário / Resumo Gerado:
+  * Som: Efeito de impressão ou máquina de escrever futurista rápida.
+
+2.4. SOUNDSCAPES AVANÇADOS & BINAURAL BEATS
+- Transição entre Ruídos (Branco, Rosa, Marrom):
+  * Som: Crossfade fluído acompanhado por som de ondas do mar.
+
+- Ativação de Frequências Binaurais (Alfa, Beta, Theta):
+  * Som: Modulação suave de frequência de entrada (drone relaxante de 2s).
+
+2.5. WEARABLES & ESTADO DE FLOW
+- Alerta de Entrada em Flow (Foco Profundo Mantido):
+  * Som: Ressonância sub-grave profunda e reconfortante (sub-bass drop suave).
+
+- Lembrete Discreto de Postura / Descanso Visual:
+  * Som: Gotas d'água ressonantes (drop único).
+
+2.6. RELATÓRIOS & RETROSPECTIVA
+- Abertura da Retrospectiva Semanal:
+  * Som: Dedilhado rápido de harpa ou violão acústico.
+
+- Gráfico no Máximo / Celebração:
+  * Som: Pop-pop-pop de confetes sonoros leves.
+
+
+-------------------------------------------------------------------------------
+3. DIRETRIZES DE DESIGN SONORO E IMPLEMENTAÇÃO TÉCNICA
+-------------------------------------------------------------------------------
+
+- Identidade Sonora: Organic Synth & Minimalist Acoustic (sons senoidais limpos
+  misturados com sons orgânicos de madeira, vidro e água). Evitar tons estidentes.
+- Síntese Procedural: Usar Web Audio API no arquivo src/utils/audio.ts para 
+  efeitos de UI leves sem aumentar o tamanho do app.
+- Arquivos de Áudio: Usar .mp3 / .ogg otimizados para vinhetas complexas e conquistas.
+- Configurações do Usuário: Alternador global de som, controles de volume
+  separados (UI vs Ambiente) e suporte a resposta tátil (Haptic Feedback).

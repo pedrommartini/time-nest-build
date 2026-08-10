@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Revisão de SFX - 5 Opções por Categoria</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; background-color: #fafafa; color: #333; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+    h1 { color: #6E4EFF; text-align: center; margin-bottom: 0.5rem; }
+    .subtitle { text-align: center; color: #666; margin-bottom: 2rem; }
+    .category { background: white; border-radius: 12px; padding: 24px; margin-bottom: 32px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #eee; }
+    .category h2 { margin-top: 0; color: #222; border-bottom: 2px solid #eee; padding-bottom: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 20px; }
+    .video-card { background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .video-card h3 { font-size: 1rem; margin: 0; color: #444; }
+    audio { width: 100%; outline: none; }
+    .timecode-box { display: flex; align-items: center; gap: 6px; background: #fff; padding: 6px; border-radius: 6px; border: 1px solid #ccc; }
+    .timecode-box label { font-size: 0.85rem; font-weight: bold; color: #555; }
+    .timecode-box input { flex: 1; border: none; outline: none; font-size: 0.9rem; width: 50px; }
+    .approve-btn { margin-top: auto; padding: 10px; border: none; background: #6E4EFF; color: white; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.2s; font-size: 0.9rem; }
+    .approve-btn:hover { background: #5a3cdd; }
+    .approve-btn.copied { background: #10b981; }
+  </style>
+</head>
+<body>
+
+  <h1>🎵 Time Nest - Curadoria Foley Real (5 Opções por Categoria)</h1>
+  <p class="subtitle">Arquivos curtos (< 1 min) baixados do Pixabay, YouTube e YouTube Audio Library.<br>Preencha o <b>Timecode</b> onde o som perfeito começa e clique em Aprovar.</p>
+
+  <!-- CATEGORIA 1: UI TAP -->
+  <div class="category">
+    <h2>1. Clique de Interface (ui.tap)</h2>
+    <p>Sons curtos e táteis: caneta, clique mecânico, toque em madeira/vidro.</p>
+    <div class="grid">
+      <div class="video-card">
+        <h3>Opção 1</h3>
+        <audio controls src="../../../public/sounds/candidates/ui_tap_1.mp3"></audio>
+        <div class="timecode-box"><label>Início:</label><input type="text" id="tc_ui_1" placeholder="0:00"></div>
+        <button class="approve-btn" onclick="copyApproval('ui.tap', 'ui_tap_1.mp3', 'tc_ui_1', this)">Aprovar Opção 1</button>
+      </div>
+      <div class="video-card">
+        <h3>Opção 2</h3>
+        <audio controls src="../../../public/sounds/candidates/ui_tap_2.mp3"></audio>
+        <div class="timecode-box"><label>Início:</label><input type="text" id="tc_ui_2" placeholder="0:00"></div>
+        <button class="approve-btn" onclick="copyApproval('ui.tap', 'ui_tap_2.mp3', 'tc_ui_2', this)">Aprovar Opção 2</button>
+      </div>
+      <div class="video-card">
+        <h3>Opção 3</h3>
+        <audio controls src="../../../public/sounds/candidates/ui_tap_3.mp3"></audio>
+        <div class="timecode-box"><label>Início:</label><input type="text" id="tc_ui_3" placeholder="0:00"></div>
+        <button class="approve-btn" onclick="copyApproval('ui.tap', 'ui_tap_3.mp3', 'tc_ui_3', this)">Aprovar Opção 3</button>
+      </div>
+      <div class="video-card">
+        <h3>Opção 4</h3>
+        <audio controls src="../../../public/sounds/candidates/ui_tap_4.mp3"></audio>
+        <div class="timecode-box"><label>Início:</label><input type="text" id="tc_ui_4" placeholder="0:00"></div>
+        <button class="approve-btn" onclick="copyApproval('ui.tap', 'ui_tap_4.mp3', 'tc_ui_4', this)">Aprovar Opção 4</button>
+      </div>
+      <div class="video-card">
+        <h3>Opção 5</h3>
+        <audio controls src="../../../public/sounds/candidates/ui_tap_5.mp3"></audio>
+        <div class="timecode-box"><label>Início:</label><input type="text" id="tc_ui_5" placeholder="0:00"></div>
+        <button class="approve-btn" onclick="copyApproval('ui.tap', 'ui_tap_5.mp3', 'tc_ui_5', this)">Aprovar Opção 5</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORIA 2: FOCUS START -->
+  <div class="category">
+    <h2>2. Início do Foco (focus.start)</h2>
+    <p>Sons de início de foco: cronômetro mecânico, tick-tack, dar corda no relógio.</p>
+    <div class="grid">
+      <div class="video-card">
+        <h3>Opção 1</h3>
+        <audio controls src="../../../public/sounds/candidates/focus_1.mp3"></audio>
+        <div class="timecode-box"><label>Início:</label><input type="text" id="tc_fs_1" placeholder="0:00"></div>
+        <button class="approve-btn" onclick="copyApproval('focus.start', 'focus_1.mp3', 'tc_fs_1', this)">Aprovar Opção 1</button>
+      </div>
+      <div class="video-card">
+        <h3>Opção 2</h3>
+        <audio controls src="../../../public/sounds/candidates/focus_2.mp3"></audio>
+        <div class="timecode-box"><label>Início:</label><input type="text" id="tc_fs_2" placeholder="0:00"></div>
+        <button class="approve-btn" onclick="copyApproval('focus.start', 'focus_2.mp3', 'tc_fs_2', this)">Aprovar Opção 2</button>
+      </div>
+      <div class="video-card">
+        <h3>Opção 3</h3>
+        <audio controls src="../../../public/sounds/candidates/focus_3.mp3"></audio>
+        <div class="timecode-box"><label>Início:</label><input type="text" id="tc_fs_3" placeholder="0:00"></div>
+        <button class="approve-btn" onclick="copyApproval('focus.start', 'focus_3.mp3', 'tc_fs_3', this)">Aprovar Opção 3</button>
+      </div>
+      <div class="video-card">
+        <h3>Opção 4</h3>
+        <audio controls src="../../../public/sounds/candidates/focus_4.mp3"></audio>
+        <div class="timecode-box"><label>Início:</label><input type="text" id="tc_fs_4" placeholder="0:00"></div>
+        <button class="approve-btn" onclick="copyApproval('focus.start', 'focus_4.mp3', 'tc_fs_4', this)">Aprovar Opção 4</button>
+      </div>
+      <div class="video-card">
+        <h3>Opção 5</h3>
+        <audio controls src="../../../public/sounds/candidates/focus_5.mp3"></audio>
+        <div class="timecode-box"><label>Início:</label><input type="text" id="tc_fs_5" placeholder="0:00"></div>
+        <button class="approve-btn" onclick="copyApproval('focus.start', 'focus_5.mp3', 'tc_fs_5', this)">Aprovar Opção 5</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORIA 3: TASK COMPLETE -->
+  <div class="category">
+    <h2>3. Conclusão de Tarefa (task.complete)</h2>
+    <p>Sons gratificantes e dopaminéricos: sino de máquina de escrever, grampeador, sineta de balcão.</p>
+    <div class="grid">
+      <div class="video-card">
+        <h3>Opção 1</h3>
+        <audio controls src="../../../public/sounds/candidates/task_1.mp3"></audio>
+        <div class="timecode-box"><label>Início:</label><input type="text" id="tc_tc_1" placeholder="0:00"></div>
+        <button class="approve-btn" onclick="copyApproval('task.complete', 'task_1.mp3', 'tc_tc_1', this)">Aprovar Opção 1</button>
+      </div>
+      <div class="video-card">
+        <h3>Opção 2</h3>
+        <audio controls src="../../../public/sounds/candidates/task_2.mp3"></audio>
+        <div class="timecode-box"><label>Início:</label><input type="text" id="tc_tc_2" placeholder="0:00"></div>
+        <button class="approve-btn" onclick="copyApproval('task.complete', 'task_2.mp3', 'tc_tc_2', this)">Aprovar Opção 2</button>
+      </div>
+      <div class="video-card">
+        <h3>Opção 3</h3>
+        <audio controls src="../../../public/sounds/candidates/task_3.mp3"></audio>
+        <div class="timecode-box"><label>Início:</label><input type="text" id="tc_tc_3" placeholder="0:00"></div>
+        <button class="approve-btn" onclick="copyApproval('task.complete', 'task_3.mp3', 'tc_tc_3', this)">Aprovar Opção 3</button>
+      </div>
+      <div class="video-card">
+        <h3>Opção 4</h3>
+        <audio controls src="../../../public/sounds/candidates/task_4.mp3"></audio>
+        <div class="timecode-box"><label>Início:</label><input type="text" id="tc_tc_4" placeholder="0:00"></div>
+        <button class="approve-btn" onclick="copyApproval('task.complete', 'task_4.mp3', 'tc_tc_4', this)">Aprovar Opção 4</button>
+      </div>
+      <div class="video-card">
+        <h3>Opção 5</h3>
+        <audio controls src="../../../public/sounds/candidates/task_5.mp3"></audio>
+        <div class="timecode-box"><label>Início:</label><input type="text" id="tc_tc_5" placeholder="0:00"></div>
+        <button class="approve-btn" onclick="copyApproval('task.complete', 'task_5.mp3', 'tc_tc_5', this)">Aprovar Opção 5</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function copyApproval(eventId, fileName, timecodeId, btn) {
+      const tc = document.getElementById(timecodeId).value.trim();
+      const command = `/approve ${eventId} arquivo:${fileName} inicio:${tc || '0:00'}`;
+      navigator.clipboard.writeText(command).then(() => {
+        const originalText = btn.innerText;
+        btn.innerText = "Copiado! Cole no chat.";
+        btn.classList.add("copied");
+        setTimeout(() => {
+          btn.innerText = originalText;
+          btn.classList.remove("copied");
+        }, 3000);
+      });
+    }
+  </script>
+</body>
+</html>
