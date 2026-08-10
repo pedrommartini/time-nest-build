@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { CalendarDays, CheckSquare, Trash2, Check } from 'lucide-react';
 import { getLocalDateString } from '../utils/time';
 import type { Event } from '../utils/time';
@@ -18,8 +17,9 @@ interface TimelineEventProps {
 }
 
 const timeStringToMinutes = (time: string): number => {
+  if (!time || !time.includes(':')) return 0;
   const [h, m] = time.split(':').map(Number);
-  return h * 60 + m;
+  return h * 60 + (m || 0);
 };
 
 const minutesToTimeString = (minutes: number): string => {
@@ -50,10 +50,19 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
   widthPct = 100,
   leftPct = 0
 }) => {
-  const [currentTop, setCurrentTop] = useState(0); 
-  const [isCompleted, setIsCompleted] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
   
+  // Dragging state (Notion-style)
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffsetY, setDragOffsetY] = useState(0);
+  
+  const isDraggingRef = useRef(false);
+  const dragOffsetYRef = useRef(0);
+  const touchStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const longPressTimerRef = useRef<any>(null);
+  const dragStartYRef = useRef(0);
+
   // Inline editing state
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(event.title);
@@ -64,15 +73,21 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
   const resizeStartYRef = useRef(0);
 
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const isCompleted = !!event.completed;
   
-  const eventDurationMins = timeStringToMinutes(event.end) - timeStringToMinutes(event.start);
-  
+  const eventDurationMins = Math.max(15, timeStringToMinutes(event.end) - timeStringToMinutes(event.start));
+
+  useEffect(() => {
+    isDraggingRef.current = isDragging;
+  }, [isDragging]);
+
   useEffect(() => {
     if (isEditing && titleInputRef.current) {
       titleInputRef.current.focus();
     }
   }, [isEditing]);
 
+  // Click outside listener for focus and inline edit cancel
   useEffect(() => {
     const handleClickOutside = () => {
       setIsFocused(false);
@@ -89,7 +104,155 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
     }
   }, [isFocused, isEditing, editTitle, event.title, event.id, onUpdate]);
 
-  // Window-level resize listeners for robustness
+  // Native Non-Passive Touch Event Handlers for Flawless Mobile Touch Dragging
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (resizeMode || isEditing) return;
+      if (e.touches.length !== 1) return;
+
+      const touch = e.touches[0];
+      const startX = touch.clientX;
+      const startY = touch.clientY;
+
+      touchStartPosRef.current = { x: startX, y: startY };
+
+      // Clear any existing timer
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+
+      // Start 250ms long-press timer
+      longPressTimerRef.current = setTimeout(() => {
+        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+          try { navigator.vibrate(40); } catch (err) {}
+        }
+        audio.playClick();
+        setIsDragging(true);
+        isDraggingRef.current = true;
+        dragStartYRef.current = startY;
+        setIsFocused(true);
+      }, 250);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (isEditing || resizeMode) return;
+      if (e.touches.length !== 1) return;
+
+      const touch = e.touches[0];
+
+      if (!isDraggingRef.current) {
+        // Allow up to 25px finger jitter during long-press wait before canceling
+        const dist = Math.hypot(
+          touch.clientX - touchStartPosRef.current.x,
+          touch.clientY - touchStartPosRef.current.y
+        );
+        if (dist > 25) {
+          if (longPressTimerRef.current) {
+            clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+          }
+        }
+      } else {
+        // Dragging is active! Prevent browser vertical scroll completely!
+        if (e.cancelable) e.preventDefault();
+        
+        const deltaY = touch.clientY - dragStartYRef.current;
+        dragOffsetYRef.current = deltaY;
+        setDragOffsetY(deltaY);
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+
+      if (isDraggingRef.current) {
+        setIsDragging(false);
+        isDraggingRef.current = false;
+
+        const deltaY = dragOffsetYRef.current;
+        const offsetMinutes = Math.round((deltaY * (60 / hourHeight)) / 5) * 5;
+        
+        if (offsetMinutes !== 0) {
+          const originalStartMins = timeStringToMinutes(event.start);
+          let newStartMins = originalStartMins + offsetMinutes;
+          if (newStartMins < 0) newStartMins = 0;
+          if (newStartMins + eventDurationMins > 24 * 60) newStartMins = 24 * 60 - eventDurationMins;
+
+          const newEndMins = newStartMins + eventDurationMins;
+          onUpdateTimes(event.id, minutesToTimeString(newStartMins), minutesToTimeString(newEndMins));
+          audio.playChimeDone();
+        }
+        
+        dragOffsetYRef.current = 0;
+        setDragOffsetY(0);
+      }
+    };
+
+    el.addEventListener('touchstart', handleTouchStart, { passive: true });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    el.addEventListener('touchend', handleTouchEnd, { passive: true });
+    el.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+
+    return () => {
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchmove', handleTouchMove);
+      el.removeEventListener('touchend', handleTouchEnd);
+      el.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [hourHeight, event, eventDurationMins, isEditing, resizeMode, onUpdateTimes]);
+
+  // Desktop Mouse Drag Handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    if (resizeMode || isEditing) return;
+
+    setIsFocused(true);
+    setIsDragging(true);
+    isDraggingRef.current = true;
+    dragStartYRef.current = e.clientY;
+
+    const handleMouseMove = (me: MouseEvent) => {
+      const deltaY = me.clientY - dragStartYRef.current;
+      dragOffsetYRef.current = deltaY;
+      setDragOffsetY(deltaY);
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+
+      if (isDraggingRef.current) {
+        setIsDragging(false);
+        isDraggingRef.current = false;
+
+        const deltaY = dragOffsetYRef.current;
+        const offsetMinutes = Math.round((deltaY * (60 / hourHeight)) / 5) * 5;
+        
+        if (offsetMinutes !== 0) {
+          const originalStartMins = timeStringToMinutes(event.start);
+          let newStartMins = originalStartMins + offsetMinutes;
+          if (newStartMins < 0) newStartMins = 0;
+          if (newStartMins + eventDurationMins > 24 * 60) newStartMins = 24 * 60 - eventDurationMins;
+
+          const newEndMins = newStartMins + eventDurationMins;
+          onUpdateTimes(event.id, minutesToTimeString(newStartMins), minutesToTimeString(newEndMins));
+          audio.playChimeDone();
+        }
+        
+        dragOffsetYRef.current = 0;
+        setDragOffsetY(0);
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  // Window-level resize listeners
   useEffect(() => {
     if (!resizeMode) return;
     
@@ -148,65 +311,41 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
     }
   };
 
-  const computedTop = resizeMode === 'start' ? initialTop + resizeDelta : initialTop;
-  const computedHeight = resizeMode === 'start' ? height - resizeDelta : (resizeMode === 'end' ? height + resizeDelta : height);
+  const computedTop = resizeMode === 'start' 
+    ? initialTop + resizeDelta 
+    : (isDragging ? initialTop + dragOffsetY : initialTop);
+    
+  const computedHeight = resizeMode === 'start' 
+    ? height - resizeDelta 
+    : (resizeMode === 'end' ? height + resizeDelta : height);
+    
   const finalHeight = Math.max(computedHeight, 30);
 
   return (
-    <motion.div
-      drag={!resizeMode && !isEditing ? "y" : false}
-      dragMomentum={false}
-      onDragStart={() => setIsFocused(false)}
-      onDrag={(_e, info) => setCurrentTop(info.offset.y)}
-      onDragEnd={(_e, info) => {
-        const offsetPx = info.offset.y;
-        const offsetMinutes = offsetPx * (60 / hourHeight);
-        
-        const originalStartMins = timeStringToMinutes(event.start);
-        let newStartMins = originalStartMins + offsetMinutes;
-        
-        newStartMins = Math.round(newStartMins / 5) * 5;
-        const newEndMins = newStartMins + eventDurationMins;
-        
-        const newStartStr = minutesToTimeString(newStartMins);
-        const newEndStr = minutesToTimeString(newEndMins);
-        
-        onUpdateTimes(event.id, newStartStr, newEndStr);
-        setCurrentTop(0);
-        audio.playChimeDone();
-      }}
-      whileDrag={{ 
-        scale: 1.02, 
-        zIndex: 30, 
-        boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 0 0 2px var(--color-brand-500)",
-        cursor: "grabbing"
-      }}
-      onPointerDown={(e) => { 
-        if (e.button !== 0 && e.pointerType === 'mouse') return;
-        setIsFocused(true); 
-      }}
+    <div
+      ref={containerRef}
+      onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
       onKeyDown={handleKeyDown}
       tabIndex={0}
-      className={`absolute right-4 rounded-xl flex flex-col justify-center transition-all duration-150 z-20 select-none touch-none px-4 py-3 outline-none group
-        ${!resizeMode && !isEditing ? 'cursor-grab shadow-sm hover:shadow-md' : ''}
-        ${isFocused && !resizeMode ? 'ring-2 ring-brand-400/50' : ''}
-        bg-${event.color || 'brand'}-50/70 dark:bg-${event.color || 'brand'}-950/30
+      className={`absolute right-4 rounded-xl flex flex-col justify-center transition-all duration-75 select-none px-4 py-3 outline-none group
+        ${!resizeMode && !isEditing ? 'cursor-grab active:cursor-grabbing' : ''}
+        ${isFocused && !resizeMode && !isDragging ? 'ring-2 ring-brand-400/50' : ''}
+        bg-${event.color || 'brand'}-50/90 dark:bg-${event.color || 'brand'}-950/40
         border-l-[6px] border-${event.color || 'brand'}-400 dark:border-${event.color || 'brand'}-500
         ${isCompleted ? 'opacity-60 grayscale-[0.5]' : ''}
-        ${resizeMode ? 'z-40 shadow-lg opacity-95' : ''}
+        ${isDragging ? 'z-50 shadow-2xl scale-[1.03] ring-2 ring-brand-500 opacity-95 cursor-grabbing' : (resizeMode ? 'z-40 shadow-lg opacity-95' : 'z-20 shadow-sm hover:shadow-md')}
       `}
       style={{ 
         top: computedTop, 
         height: finalHeight,
         width: widthPct === 100 ? 'calc(100% - 108px)' : `calc(${widthPct}% - ${108 / (100/widthPct)}px)`,
         left: leftPct === 0 ? '92px' : `calc(92px + ${leftPct}% - ${108 * (leftPct/100)}px)`,
-        y: currentTop 
+        touchAction: isDragging ? 'none' : 'pan-y'
       }}
-      layout={!resizeMode}
     >
       {/* Top Resize Handle */}
-      {!isEditing && (
+      {!isEditing && !isDragging && (
         <div 
           className="absolute -top-2 left-0 right-0 h-6 cursor-ns-resize z-50 flex items-start justify-center opacity-0 group-hover:opacity-100 transition-opacity"
           onPointerDown={(e) => {
@@ -239,7 +378,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
               type="text"
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
-              onPointerDown={(e) => e.stopPropagation()} // Prevent drag when clicking input
+              onMouseDown={(e) => e.stopPropagation()} // Prevent drag when clicking input
               className="text-[15px] font-semibold text-text-primary bg-white/50 dark:bg-black/20 px-1 py-0.5 rounded outline-none ring-1 ring-brand-500/50 w-full"
             />
           ) : (
@@ -262,49 +401,44 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
           )}
         </div>
         
-        {!resizeMode && (
+        {!resizeMode && !isDragging && (
           <div className="flex items-center gap-2 pointer-events-auto">
-            {/* Delete button appears on hover/focus */}
+            {/* Delete button */}
             <button 
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(event.id);
               }}
               className="p-1.5 rounded-full bg-red-100/0 text-red-600/0 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-600 dark:hover:text-red-400 group-hover:text-red-500/60 group-focus-within:text-red-500/60 transition-all"
+              title="Excluir"
             >
               <Trash2 className="w-4 h-4" />
             </button>
 
-            {event.source !== 'google' && (
-              <button 
-                disabled={!isPastOrPresent(event.date, event.start)}
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  setIsCompleted(!isCompleted);
-                  audio.playClick();
-                }}
-                className={`w-8 h-8 rounded-full border flex items-center justify-center shrink-0 transition-colors
-                  ${!isPastOrPresent(event.date, event.start) ? 'opacity-30 cursor-not-allowed border-border-color/50 bg-transparent' : ''}
-                  ${isCompleted 
-                    ? `bg-${event.color || 'brand'}-500 border-${event.color || 'brand'}-500` 
-                    : 'border-border-color/80 bg-app-bg/50 hover:bg-card-bg'
-                  }`}
-              >
-                {isCompleted && <Check className="w-4 h-4 text-white" />}
-              </button>
-            )}
-            
-            {event.source === 'google' && (
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-${event.color || 'brand'}-100 dark:bg-${event.color || 'brand'}-900/40`}>
-                <Check className={`w-4 h-4 text-${event.color || 'brand'}-500`} />
-              </div>
-            )}
+            {/* Checkmark Toggle */}
+            <button 
+              disabled={!isPastOrPresent(event.date, event.start)}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                audio.playClick();
+                onUpdate(event.id, { completed: !isCompleted });
+              }}
+              className={`w-8 h-8 rounded-full border flex items-center justify-center shrink-0 transition-colors
+                ${!isPastOrPresent(event.date, event.start) ? 'opacity-40 cursor-not-allowed border-border-color/50 bg-transparent' : 'cursor-pointer'}
+                ${isCompleted 
+                  ? `bg-${event.color || 'brand'}-500 border-${event.color || 'brand'}-500` 
+                  : 'border-border-color/80 bg-app-bg/50 hover:bg-card-bg'
+                }`}
+              title={isCompleted ? "Marcar como pendente" : "Marcar como concluído"}
+            >
+              {isCompleted && <Check className="w-4 h-4 text-white" />}
+            </button>
           </div>
         )}
       </div>
 
       {/* Bottom Resize Handle */}
-      {!isEditing && (
+      {!isEditing && !isDragging && (
         <div 
           className="absolute -bottom-2 left-0 right-0 h-6 cursor-ns-resize z-50 flex items-end justify-center opacity-0 group-hover:opacity-100 transition-opacity"
           onPointerDown={(e) => {
@@ -317,6 +451,6 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
            <div className="w-12 h-1.5 mb-2 rounded-full bg-brand-400/80 shadow-sm" />
         </div>
       )}
-    </motion.div>
+    </div>
   );
 };

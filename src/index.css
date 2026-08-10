@@ -2,7 +2,7 @@
 
 @theme {
   --font-sans: var(--app-font, "Outfit", "Nunito Sans", "Inter", system-ui, sans-serif);
-  --font-handwritten: "Handlee", "Kalam", cursive;
+  --font-handwritten: "Caveat", "Dancing Script", "Patrick Hand", "Handlee", cursive;
   
   --color-brand-50: var(--b-50);
   --color-brand-100: var(--b-100);
@@ -224,7 +224,7 @@ body {
 
 /* Handwritten Utility */
 .font-handwritten {
-  font-family: "Patrick Hand", "Caveat", cursive;
+  font-family: "Caveat", "Dancing Script", "Patrick Hand", "Handlee", cursive;
 }
 
 /* Custom Scrollbar for a cleaner look */

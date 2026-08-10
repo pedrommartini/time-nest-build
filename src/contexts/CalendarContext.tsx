@@ -164,8 +164,10 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (savedMargin) setSafetyMargin(Number(savedMargin));
 
     if (Capacitor.isNativePlatform()) {
+      const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '898129156349-qm7fannl6mbgfrhim2ujatddh6tb21sk.apps.googleusercontent.com';
       GoogleAuth.initialize({
-        clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '898129156349-qm7fannl6mbgfrhim2ujatddh6tb21sk.apps.googleusercontent.com',
+        clientId: googleClientId,
+        serverClientId: googleClientId,
         scopes: ['https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/tasks'],
         grantOfflineAccess: true,
       });

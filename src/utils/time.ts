@@ -31,6 +31,7 @@ export interface Event {
   notificationOffset?: number; // minutes before
   alarmEnabled?: boolean;
   projectId?: string;
+  completed?: boolean;
 }
 
 export interface FreeInterval {

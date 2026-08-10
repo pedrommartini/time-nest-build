@@ -70,23 +70,19 @@ export const SmartInputOverlay: React.FC<Props> = ({
       recognition.lang = 'pt-BR';
 
       recognition.onresult = (event: any) => {
-        let currentInterim = '';
         let finalTrans = '';
+        let currentInterim = '';
 
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
+        for (let i = 0; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
-            finalTrans += event.results[i][0].transcript;
+            finalTrans += event.results[i][0].transcript + ' ';
           } else {
             currentInterim += event.results[i][0].transcript;
           }
         }
 
-        if (finalTrans) {
-          setInput(prev => (prev ? `${prev} ${finalTrans}` : finalTrans).trim());
-          setInterimTranscript('');
-        } else {
-          setInterimTranscript(currentInterim);
-        }
+        setInput(finalTrans.trim());
+        setInterimTranscript(currentInterim.trim());
       };
 
       recognition.onerror = (event: any) => {
@@ -339,7 +335,13 @@ export const SmartInputOverlay: React.FC<Props> = ({
 
             {(input || interimTranscript) && (
               <button 
-                onClick={handleSubmit}
+                onClick={() => {
+                  const fullText = `${input} ${interimTranscript}`.trim();
+                  if (fullText) setInput(fullText);
+                  setInterimTranscript('');
+                  setIsVoiceActive(false);
+                  audio.playClick();
+                }}
                 className="flex-1 py-4 btn-primary text-sm flex items-center justify-center gap-2"
               >
                 <Check className="w-4 h-4" />
