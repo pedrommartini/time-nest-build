@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  CalendarDays, X, Check, Trash2, ChevronUp, Clock, BellRing, 
-  AlarmClock, Repeat, AlignLeft, Calendar as CalendarIcon, Sparkles, CheckCircle2, AlertCircle
+  X, Check, Trash2, ChevronUp, Clock, BellRing, 
+  AlarmClock, Repeat, AlignLeft, Calendar as CalendarIcon
 } from 'lucide-react';
 import type { Event, Task } from '../utils/time';
 import { audio } from '../utils/audio';

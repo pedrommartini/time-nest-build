@@ -39,7 +39,7 @@ export const TimelineView: React.FC = () => {
   const { events, freeIntervals, updateEventTimes, updateEvent, deleteEvent } = useCalendar();
   const { tasks, updateTask, deleteTask } = useTasks();
   const { isActive, startTimer } = useFocus();
-  const { setActiveTab, openSmartInput, selectedEventId, selectedTaskId, selectEvent, selectTask, clearSelection } = useNavigation();
+  const { setActiveTab, openSmartInput, selectedEventId, selectedTaskId, selectTask, clearSelection } = useNavigation();
   const { isTestEnvironment, sleepStart, sleepEnd } = usePreferences();
   const { energyLevel } = useProfile();
   
