@@ -167,7 +167,6 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '898129156349-qm7fannl6mbgfrhim2ujatddh6tb21sk.apps.googleusercontent.com';
       GoogleAuth.initialize({
         clientId: googleClientId,
-        serverClientId: googleClientId,
         scopes: ['https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/tasks'],
         grantOfflineAccess: true,
       });
@@ -364,18 +363,26 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     audio.playClick();
     try {
       if (Capacitor.isNativePlatform()) {
-        const user = await GoogleAuth.signIn();
-        if (user && user.authentication && user.authentication.accessToken) {
-          audio.playChimeDone();
-          setGoogleSync({
-            isConnected: true,
-            lastSync: new Date().toISOString(),
-            autoSync: true,
-            accessToken: user.authentication.accessToken,
-            email: user.email || null
+        try {
+          const user = await GoogleAuth.signIn();
+          if (user && user.authentication && user.authentication.accessToken) {
+            audio.playChimeDone();
+            setGoogleSync({
+              isConnected: true,
+              lastSync: new Date().toISOString(),
+              autoSync: true,
+              accessToken: user.authentication.accessToken,
+              email: user.email || null
+            });
+            await syncGoogleNow(user.authentication.accessToken);
+            return user;
+          }
+        } catch (nativeErr: any) {
+          console.warn('Native GoogleAuth failed, falling back to Web OAuth:', nativeErr);
+          return new Promise((resolve, reject) => {
+            webLoginPromise.current = { resolve, reject };
+            webGoogleLogin();
           });
-          await syncGoogleNow(user.authentication.accessToken);
-          return user;
         }
       } else {
         return new Promise((resolve, reject) => {

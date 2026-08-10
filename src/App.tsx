@@ -47,7 +47,7 @@ const AppContent: React.FC = () => {
     requestNotificationPermissions();
   }, []);
 
-  const INSTALLED_VERSION = '2.1.0';
+  const INSTALLED_VERSION = '2.2.0';
 
   React.useEffect(() => {
     const checkUpdate = async () => {
