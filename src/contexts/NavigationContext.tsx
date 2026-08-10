@@ -9,6 +9,11 @@ interface NavigationContextType {
   startWithVoice: boolean;
   openSmartInput: (withVoice?: boolean) => void;
   closeSmartInput: () => void;
+  selectedEventId: string | null;
+  selectedTaskId: string | null;
+  selectEvent: (id: string | null) => void;
+  selectTask: (id: string | null) => void;
+  clearSelection: () => void;
 }
 
 const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
@@ -17,6 +22,9 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [activeTab, setActiveTab] = useState<Tab>('timeline');
   const [isSmartInputOpen, setIsSmartInputOpen] = useState(false);
   const [startWithVoice, setStartWithVoice] = useState(false);
+  
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const openSmartInput = (withVoice = false) => {
     setStartWithVoice(withVoice);
@@ -27,6 +35,21 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setIsSmartInputOpen(false);
   };
 
+  const selectEvent = (id: string | null) => {
+    setSelectedTaskId(null);
+    setSelectedEventId(id);
+  };
+
+  const selectTask = (id: string | null) => {
+    setSelectedEventId(null);
+    setSelectedTaskId(id);
+  };
+
+  const clearSelection = () => {
+    setSelectedEventId(null);
+    setSelectedTaskId(null);
+  };
+
   return (
     <NavigationContext.Provider value={{ 
       activeTab, 
@@ -34,7 +57,12 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       isSmartInputOpen,
       startWithVoice,
       openSmartInput,
-      closeSmartInput
+      closeSmartInput,
+      selectedEventId,
+      selectedTaskId,
+      selectEvent,
+      selectTask,
+      clearSelection
     }}>
       {children}
     </NavigationContext.Provider>

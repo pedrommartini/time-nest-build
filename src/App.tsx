@@ -12,6 +12,8 @@ import { NavigationProvider, useNavigation } from './contexts/NavigationContext'
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ActiveEventPill } from './components/ActiveEventPill';
 import { SmartInputOverlay } from './components/SmartInputOverlay';
+import { AlarmManagerProvider } from './contexts/AlarmManagerContext';
+import { AlarmOverlay } from './components/AlarmOverlay';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '898129156349-qm7fannl6mbgfrhim2ujatddh6tb21sk.apps.googleusercontent.com';
 
@@ -325,11 +327,14 @@ export const App = () => {
                 <FocusProvider>
                   <ProfileProvider>
                     <NavigationProvider>
-                      <div className="w-full h-[100dvh] flex items-center justify-center bg-[#E5DFD3] text-text-primary selection:bg-brand-500/30">
-                        <div className="w-full h-full max-w-[500px] bg-app-bg shadow-[0_20px_50px_rgba(0,0,0,0.15)] relative flex flex-col mx-auto overflow-hidden sm:border-x sm:border-border-color">
-                          <AppContent />
+                      <AlarmManagerProvider>
+                        <div className="w-full h-[100dvh] flex items-center justify-center bg-[#E5DFD3] text-text-primary selection:bg-brand-500/30">
+                          <div className="w-full h-full max-w-[500px] bg-app-bg shadow-[0_20px_50px_rgba(0,0,0,0.15)] relative flex flex-col mx-auto overflow-hidden sm:border-x sm:border-border-color">
+                            <AppContent />
+                            <AlarmOverlay />
+                          </div>
                         </div>
-                      </div>
+                      </AlarmManagerProvider>
                     </NavigationProvider>
                   </ProfileProvider>
                 </FocusProvider>

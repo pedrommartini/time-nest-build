@@ -10,6 +10,7 @@ import { useProfile } from '../contexts/ProfileContext';
 import { Play, Search, Mic, CalendarDays, ChevronUp, Clock, Moon, Sparkles, Sunrise, Battery, BatteryMedium, BatteryFull } from 'lucide-react';
 import { audio } from '../utils/audio';
 import { TimelineEvent } from '../components/TimelineEvent';
+import { EventDetailDrawer } from '../components/EventDetailDrawer';
 import { getLocalDateString } from '../utils/time';
 
 const getDaysDifference = (eventDateStr: string) => {
@@ -36,11 +37,15 @@ const timeToOffsetPx = (timeStr: string, hourHeight: number = 80) => {
 
 export const TimelineView: React.FC = () => {
   const { events, freeIntervals, updateEventTimes, updateEvent, deleteEvent } = useCalendar();
-  const { tasks } = useTasks();
+  const { tasks, updateTask, deleteTask } = useTasks();
   const { isActive, startTimer } = useFocus();
-  const { setActiveTab, openSmartInput } = useNavigation();
+  const { setActiveTab, openSmartInput, selectedEventId, selectedTaskId, selectEvent, selectTask, clearSelection } = useNavigation();
   const { isTestEnvironment, sleepStart, sleepEnd } = usePreferences();
   const { energyLevel } = useProfile();
+  
+  const selectedEvent = events.find(e => e.id === selectedEventId);
+  const selectedTask = tasks.find(t => t.id === selectedTaskId);
+  const hasSelectedItem = !!selectedEvent || !!selectedTask;
   
   const containerRef = useRef<HTMLDivElement>(null);
   
@@ -499,90 +504,111 @@ export const TimelineView: React.FC = () => {
         </button>
       )}
 
-      {/* Collapsible Tasks Drawer */}
+      {/* Collapsible Tasks & Details Drawer */}
       {!isActive && (
         <div 
           className={`absolute bottom-0 left-0 right-0 bg-white dark:bg-card-bg z-40 rounded-t-[44px] shadow-[0_-8px_30px_rgba(40,30,70,0.06)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
-            isDrawerExpanded ? (hasTasks ? 'h-[390px]' : 'h-[290px]') : 'h-[160px]'
+            hasSelectedItem 
+              ? (isDrawerExpanded ? 'h-[480px]' : 'h-[110px]')
+              : (isDrawerExpanded ? (hasTasks ? 'h-[390px]' : 'h-[290px]') : 'h-[160px]')
           }`}
-          onClick={() => { if (!isDrawerExpanded) setIsDrawerExpanded(true); }}
         >
-          <>
-            <div className="w-[56px] h-[5px] bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mt-3 mb-2 shrink-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsDrawerExpanded(!isDrawerExpanded); }}></div>
-            
-            <div className="px-6 pb-2 pt-1 shrink-0 flex items-center justify-between cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsDrawerExpanded(!isDrawerExpanded); }}>
-              <div className="flex items-center gap-2">
-                <h3 className="text-[19px] font-bold text-gray-900 dark:text-gray-100 tracking-tight">Tarefas disponíveis</h3>
-                {!isActive && (
-                  <span className="w-6 h-6 rounded-full bg-[#7C3AED] text-white text-[12px] font-bold flex items-center justify-center shadow-sm ml-0.5">
-                    {tasks.filter(t => t.status === 'pending' && t.estimatedDuration <= availableMinutes).length}
-                  </span>
-                )}
-              </div>
-              <ChevronUp className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isDrawerExpanded ? 'rotate-180' : ''}`} />
-            </div>
-            
-            <div className={`px-6 flex-1 overflow-y-auto custom-scrollbar flex flex-col transition-opacity duration-200 ${
-              isDrawerExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            } ${hasTasks ? 'pb-[95px]' : 'pb-4'}`}>
-              <p className="text-[13px] text-gray-500 dark:text-gray-400 mb-3 shrink-0 font-medium">
-                Escolha o que você quer fazer no seu tempo livre
-              </p>
+          {hasSelectedItem ? (
+            <EventDetailDrawer
+              event={selectedEvent}
+              task={selectedTask}
+              isExpanded={isDrawerExpanded}
+              onToggleExpand={() => setIsDrawerExpanded(!isDrawerExpanded)}
+              onClose={clearSelection}
+              onUpdateEvent={updateEvent}
+              onUpdateEventTimes={updateEventTimes}
+              onDeleteEvent={deleteEvent}
+              onUpdateTask={updateTask}
+              onDeleteTask={deleteTask}
+            />
+          ) : (
+            <>
+              <div className="w-[56px] h-[5px] bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mt-3 mb-2 shrink-0 cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsDrawerExpanded(!isDrawerExpanded); }}></div>
               
-              <div className="flex flex-col border border-gray-100 dark:border-gray-800 rounded-[28px] overflow-hidden bg-white dark:bg-card-bg shadow-sm">
-                {tasks
-                  .filter(t => t.status === 'pending' && t.estimatedDuration <= availableMinutes)
-                  .map((task, index) => (
-                  <div key={task.id} className={`flex items-center justify-between py-3.5 px-4 ${index > 0 ? 'border-t border-gray-100 dark:border-gray-800/60' : ''}`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                        ['bg-[#22C55E]', 'bg-[#EAB308]', 'bg-[#3B82F6]', 'bg-[#8B5CF6]', 'bg-[#F97316]'][index % 5]
-                      }`} />
-                      
-                      <div className="flex flex-col">
-                        <span className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 mb-0.5">{task.title}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[13px] font-medium text-gray-500 flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-gray-400" />
-                            {task.estimatedDuration} min
-                          </span>
-                          <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
-                            task.size === 'Média' ? 'bg-[#F3E8FF] text-[#7E22CE] dark:bg-brand-950/40 dark:text-brand-300' :
-                            task.size === 'Grande' ? 'bg-[#FEE2E2] text-[#B91C1C] dark:bg-red-950/40 dark:text-red-300' :
-                            'bg-[#DCFCE7] text-[#15803D] dark:bg-green-950/40 dark:text-green-300'
-                          }`}>
-                            {task.size}
-                          </span>
+              <div className="px-6 pb-2 pt-1 shrink-0 flex items-center justify-between cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsDrawerExpanded(!isDrawerExpanded); }}>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-[19px] font-bold text-gray-900 dark:text-gray-100 tracking-tight">Tarefas disponíveis</h3>
+                  {!isActive && (
+                    <span className="w-6 h-6 rounded-full bg-[#7C3AED] text-white text-[12px] font-bold flex items-center justify-center shadow-sm ml-0.5">
+                      {tasks.filter(t => t.status === 'pending' && t.estimatedDuration <= availableMinutes).length}
+                    </span>
+                  )}
+                </div>
+                <ChevronUp className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isDrawerExpanded ? 'rotate-180' : ''}`} />
+              </div>
+              
+              <div className={`px-6 flex-1 overflow-y-auto custom-scrollbar flex flex-col transition-opacity duration-200 ${
+                isDrawerExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              } ${hasTasks ? 'pb-[95px]' : 'pb-4'}`}>
+                <p className="text-[13px] text-gray-500 dark:text-gray-400 mb-3 shrink-0 font-medium">
+                  Escolha o que você quer fazer no seu tempo livre
+                </p>
+                
+                <div className="flex flex-col border border-gray-100 dark:border-gray-800 rounded-[28px] overflow-hidden bg-white dark:bg-card-bg shadow-sm">
+                  {tasks
+                    .filter(t => t.status === 'pending' && t.estimatedDuration <= availableMinutes)
+                    .map((task, index) => (
+                    <div 
+                      key={task.id} 
+                      onClick={() => selectTask(task.id)}
+                      className={`flex items-center justify-between py-3.5 px-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors ${index > 0 ? 'border-t border-gray-100 dark:border-gray-800/60' : ''}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                          ['bg-[#22C55E]', 'bg-[#EAB308]', 'bg-[#3B82F6]', 'bg-[#8B5CF6]', 'bg-[#F97316]'][index % 5]
+                        }`} />
+                        
+                        <div className="flex flex-col">
+                          <span className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 mb-0.5">{task.title}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[13px] font-medium text-gray-500 flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-gray-400" />
+                              {task.estimatedDuration} min
+                            </span>
+                            <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
+                              task.size === 'Média' ? 'bg-[#F3E8FF] text-[#7E22CE] dark:bg-brand-950/40 dark:text-brand-300' :
+                              task.size === 'Grande' ? 'bg-[#FEE2E2] text-[#B91C1C] dark:bg-red-950/40 dark:text-red-300' :
+                              'bg-[#DCFCE7] text-[#15803D] dark:bg-green-950/40 dark:text-green-300'
+                            }`}>
+                              {task.size}
+                            </span>
+                          </div>
                         </div>
                       </div>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startTimer(task, task.estimatedDuration);
+                          setActiveTab('focus');
+                        }}
+                        className="w-9 h-9 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-full flex items-center justify-center shrink-0 active:scale-95 transition-transform"
+                      >
+                        <Play className="w-4 h-4 text-[#7C3AED] fill-[#7C3AED] ml-0.5" />
+                      </button>
                     </div>
-                    <button 
-                      onClick={() => {
-                        startTimer(task, task.estimatedDuration);
-                        setActiveTab('focus');
-                      }}
-                      className="w-9 h-9 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-full flex items-center justify-center shrink-0 active:scale-95 transition-transform"
-                    >
-                      <Play className="w-4 h-4 text-[#7C3AED] fill-[#7C3AED] ml-0.5" />
-                    </button>
-                  </div>
-                ))}
-                
-                {tasks.filter(t => t.status === 'pending' && t.estimatedDuration <= availableMinutes).length === 0 && (
-                  <div className="text-center text-sm text-text-secondary py-8">
-                    Nenhuma tarefa cabe neste tempo livre.
-                  </div>
-                )}
-              </div>
+                  ))}
+                  
+                  {tasks.filter(t => t.status === 'pending' && t.estimatedDuration <= availableMinutes).length === 0 && (
+                    <div className="text-center text-sm text-text-secondary py-8">
+                      Nenhuma tarefa cabe neste tempo livre.
+                    </div>
+                  )}
+                </div>
 
-              <button 
-                onClick={() => setActiveTab('tasks')}
-                className="mt-4 w-full py-2 text-[#7C3AED] dark:text-brand-400 font-semibold text-[14px] hover:opacity-80 transition-opacity flex items-center justify-center gap-1.5 shrink-0"
-              >
-                <span className="text-[18px] font-normal">+</span> Ver todas as tarefas
-              </button>
-            </div>
-          </>
+                <button 
+                  onClick={() => setActiveTab('tasks')}
+                  className="mt-4 w-full py-2 text-[#7C3AED] dark:text-brand-400 font-semibold text-[14px] hover:opacity-80 transition-opacity flex items-center justify-center gap-1.5 shrink-0"
+                >
+                  <span className="text-[18px] font-normal">+</span> Ver todas as tarefas
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

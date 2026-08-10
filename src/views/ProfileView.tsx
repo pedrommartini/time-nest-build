@@ -28,6 +28,8 @@ export const ProfileView: React.FC = () => {
     colorBlindMode, setColorBlindMode, fontFamily, setFontFamily, uiScale, setUiScale, 
     sleepStart, setSleepStart, sleepEnd, setSleepEnd, 
     sleepAlarmEnabled, setSleepAlarmEnabled,
+    alarmSound, setAlarmSound,
+    alarmVisual, setAlarmVisual,
     globalAlarmsEnabled, setGlobalAlarmsEnabled, t 
   } = usePreferences();
   const { googleSync, connectGoogle, disconnectGoogle } = useCalendar();
@@ -866,6 +868,59 @@ export const ProfileView: React.FC = () => {
                       className={`w-10 h-6 rounded-full p-1 flex items-center cursor-pointer shrink-0 transition-colors ${globalAlarmsEnabled ? 'bg-brand-500' : 'bg-gray-300 dark:bg-gray-700'}`}
                     >
                       <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${globalAlarmsEnabled ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-4 bg-card-bg p-4 border border-border-color rounded-2xl mt-2">
+                    <h3 className="font-bold text-sm text-text-primary">Estilo do Alarme</h3>
+                    
+                    <div>
+                      <span className="text-[10px] font-bold text-text-secondary uppercase mb-2 block">Som</span>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(['chime', 'rain', 'forest', 'waves'] as const).map(sound => (
+                          <button
+                            key={sound}
+                            onClick={() => { 
+                              audio.playClick(); 
+                              setAlarmSound(sound);
+                              if (sound === 'chime') audio.playChimeDone();
+                              else audio.playAmbient(sound, 0.5);
+                            }}
+                            className={`py-2 rounded-xl border text-xs font-bold transition-all ${
+                              alarmSound === sound ? 'border-brand-500 bg-brand-50 text-brand-600 dark:bg-brand-900/10 dark:text-brand-400' : 'border-border-color bg-app-bg text-text-primary hover:border-brand-300'
+                            }`}
+                          >
+                            {sound === 'chime' ? 'Sino' : sound === 'rain' ? 'Chuva' : sound === 'forest' ? 'Floresta' : 'Ondas'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-2">
+                      <span className="text-[10px] font-bold text-text-secondary uppercase mb-2 block">Visual</span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => { audio.playClick(); setAlarmVisual('minimal'); }}
+                          className={`py-2 px-1 text-center rounded-xl border text-xs font-bold transition-all ${
+                            alarmVisual === 'minimal' ? 'border-brand-500 bg-brand-50 text-brand-600 dark:bg-brand-900/10 dark:text-brand-400' : 'border-border-color bg-app-bg text-text-primary hover:border-brand-300'
+                          }`}
+                        >
+                          Minimalista (Calmo)
+                        </button>
+                        <button
+                          onClick={() => { audio.playClick(); setAlarmVisual('gamified'); }}
+                          className={`py-2 px-1 text-center rounded-xl border text-xs font-bold transition-all ${
+                            alarmVisual === 'gamified' ? 'border-brand-500 bg-brand-50 text-brand-600 dark:bg-brand-900/10 dark:text-brand-400' : 'border-border-color bg-app-bg text-text-primary hover:border-brand-300'
+                          }`}
+                        >
+                          Interativo (Despertar)
+                        </button>
+                      </div>
+                      {alarmVisual === 'gamified' && (
+                        <p className="text-[10px] text-brand-600 dark:text-brand-400 mt-2">
+                          Requer completar um desafio para desligar, ideal para focar ou acordar de vez.
+                        </p>
+                      )}
                     </div>
                   </div>
 

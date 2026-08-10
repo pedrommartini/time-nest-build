@@ -3,6 +3,7 @@ import { CalendarDays, CheckSquare, Trash2, Check } from 'lucide-react';
 import { getLocalDateString } from '../utils/time';
 import type { Event } from '../utils/time';
 import { audio } from '../utils/audio';
+import { useNavigation } from '../contexts/NavigationContext';
 
 interface TimelineEventProps {
   event: Event;
@@ -51,6 +52,8 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
   leftPct = 0
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { selectedEventId, selectEvent } = useNavigation();
+  const isSelected = selectedEventId === event.id;
   const [isFocused, setIsFocused] = useState(false);
   
   // Dragging state (Notion-style)
@@ -328,9 +331,13 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
       onDoubleClick={handleDoubleClick}
       onKeyDown={handleKeyDown}
       tabIndex={0}
+      onClick={(e) => {
+        e.stopPropagation();
+        selectEvent(event.id);
+      }}
       className={`absolute right-4 rounded-xl flex flex-col justify-center transition-all duration-75 select-none px-4 py-3 outline-none group
         ${!resizeMode && !isEditing ? 'cursor-grab active:cursor-grabbing' : ''}
-        ${isFocused && !resizeMode && !isDragging ? 'ring-2 ring-brand-400/50' : ''}
+        ${isSelected ? 'ring-2 ring-brand-500 shadow-md z-30' : (isFocused && !resizeMode && !isDragging ? 'ring-2 ring-brand-400/50' : '')}
         bg-${event.color || 'brand'}-50/90 dark:bg-${event.color || 'brand'}-950/40
         border-l-[6px] border-${event.color || 'brand'}-400 dark:border-${event.color || 'brand'}-500
         ${isCompleted ? 'opacity-60 grayscale-[0.5]' : ''}
