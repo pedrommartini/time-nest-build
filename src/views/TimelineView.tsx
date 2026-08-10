@@ -35,7 +35,7 @@ const timeToOffsetPx = (timeStr: string, hourHeight: number = 80) => {
 };
 
 export const TimelineView: React.FC = () => {
-  const { events, freeIntervals, updateEventTimes, deleteEvent } = useCalendar();
+  const { events, freeIntervals, updateEventTimes, updateEvent, deleteEvent } = useCalendar();
   const { tasks } = useTasks();
   const { isActive, startTimer } = useFocus();
   const { setActiveTab, openSmartInput } = useNavigation();
@@ -418,6 +418,7 @@ export const TimelineView: React.FC = () => {
                   height={height}
                   hourHeight={80}
                   onUpdateTimes={updateEventTimes}
+                  onUpdate={updateEvent}
                   onDelete={deleteEvent}
                   widthPct={widthPct}
                   leftPct={leftPct}
