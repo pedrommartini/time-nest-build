@@ -30,6 +30,8 @@ interface PreferencesContextType {
   sleepEnd: string;
   setSleepEnd: (val: string) => void;
   updateSleepTime: (start: string, end: string) => void;
+  sleepAlarmEnabled: boolean;
+  setSleepAlarmEnabled: (val: boolean) => void;
   globalAlarmsEnabled: boolean;
   setGlobalAlarmsEnabled: (val: boolean) => void;
   t: (key: string) => string;
@@ -81,6 +83,7 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isTestEnvironment, setIsTestEnvironment] = useState<boolean>(false);
   const [sleepStart, setSleepStart] = useState<string>('23:00');
   const [sleepEnd, setSleepEnd] = useState<string>('07:00');
+  const [sleepAlarmEnabled, setSleepAlarmEnabled] = useState<boolean>(false);
   const [globalAlarmsEnabled, setGlobalAlarmsEnabled] = useState<boolean>(false);
 
   // Load from local storage
@@ -101,6 +104,7 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
         if (parsed.isTestEnvironment !== undefined) setIsTestEnvironment(parsed.isTestEnvironment);
         if (parsed.sleepStart) setSleepStart(parsed.sleepStart);
         if (parsed.sleepEnd) setSleepEnd(parsed.sleepEnd);
+        if (parsed.sleepAlarmEnabled !== undefined) setSleepAlarmEnabled(parsed.sleepAlarmEnabled);
         if (parsed.globalAlarmsEnabled !== undefined) setGlobalAlarmsEnabled(parsed.globalAlarmsEnabled);
       }
     } catch(e) {}
@@ -109,9 +113,9 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Save to local storage
   useEffect(() => {
     localStorage.setItem('timenest_preferences', JSON.stringify({
-      theme, skin, language, isLowStimulation, colorBlindMode, fontFamily, uiScale, isTestEnvironment, sleepStart, sleepEnd, globalAlarmsEnabled
+      theme, skin, language, isLowStimulation, colorBlindMode, fontFamily, uiScale, isTestEnvironment, sleepStart, sleepEnd, sleepAlarmEnabled, globalAlarmsEnabled
     }));
-  }, [theme, skin, language, isLowStimulation, colorBlindMode, fontFamily, uiScale, isTestEnvironment, sleepStart, sleepEnd, globalAlarmsEnabled]);
+  }, [theme, skin, language, isLowStimulation, colorBlindMode, fontFamily, uiScale, isTestEnvironment, sleepStart, sleepEnd, sleepAlarmEnabled, globalAlarmsEnabled]);
 
   // Apply theme, skin & accessibility classes to root
   useEffect(() => {
@@ -167,6 +171,7 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
       sleepStart, setSleepStart,
       sleepEnd, setSleepEnd,
       updateSleepTime: (start, end) => { setSleepStart(start); setSleepEnd(end); },
+      sleepAlarmEnabled, setSleepAlarmEnabled,
       globalAlarmsEnabled, setGlobalAlarmsEnabled,
       t
     }}>

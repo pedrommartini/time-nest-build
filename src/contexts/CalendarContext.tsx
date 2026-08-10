@@ -167,7 +167,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '898129156349-qm7fannl6mbgfrhim2ujatddh6tb21sk.apps.googleusercontent.com';
       GoogleAuth.initialize({
         clientId: googleClientId,
-        scopes: ['https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/tasks'],
+        scopes: ['profile', 'email', 'openid', 'https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/tasks'],
         grantOfflineAccess: true,
       });
     }
@@ -365,16 +365,17 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (Capacitor.isNativePlatform()) {
         try {
           const user = await GoogleAuth.signIn();
-          if (user && user.authentication && user.authentication.accessToken) {
+          const token = user?.authentication?.accessToken || user?.authentication?.idToken;
+          if (user && token) {
             audio.playChimeDone();
             setGoogleSync({
               isConnected: true,
               lastSync: new Date().toISOString(),
               autoSync: true,
-              accessToken: user.authentication.accessToken,
+              accessToken: token,
               email: user.email || null
             });
-            await syncGoogleNow(user.authentication.accessToken);
+            await syncGoogleNow(token);
             return user;
           }
         } catch (nativeErr: any) {

@@ -27,6 +27,7 @@ export const ProfileView: React.FC = () => {
     theme, setTheme, skin, setSkin, isLowStimulation, setIsLowStimulation, 
     colorBlindMode, setColorBlindMode, fontFamily, setFontFamily, uiScale, setUiScale, 
     sleepStart, setSleepStart, sleepEnd, setSleepEnd, 
+    sleepAlarmEnabled, setSleepAlarmEnabled,
     globalAlarmsEnabled, setGlobalAlarmsEnabled, t 
   } = usePreferences();
   const { googleSync, connectGoogle, disconnectGoogle } = useCalendar();
@@ -599,6 +600,21 @@ export const ProfileView: React.FC = () => {
                           }}
                           className="px-3 py-2 rounded-xl bg-app-bg border border-border-color text-sm text-text-primary font-bold focus:outline-none focus:ring-2 focus:ring-brand-500/30"
                         />
+                      </div>
+
+                      <div className="h-[1px] bg-border-color w-full my-1"></div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-semibold text-text-primary block">Alarme de Preparação</span>
+                          <span className="text-[10px] text-text-secondary">Avisar 5 min antes de dormir</span>
+                        </div>
+                        <div 
+                          onClick={() => { audio.playClick(); setSleepAlarmEnabled(!sleepAlarmEnabled); }}
+                          className={`w-10 h-6 rounded-full cursor-pointer transition-colors flex items-center p-1 ${sleepAlarmEnabled ? 'bg-brand-500' : 'bg-border-color'}`}
+                        >
+                          <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${sleepAlarmEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                        </div>
                       </div>
                     </div>
                   </div>
