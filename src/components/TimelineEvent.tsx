@@ -74,7 +74,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
   }, [isEditing]);
 
   useEffect(() => {
-    const handleClickOutside = (e: PointerEvent) => {
+    const handleClickOutside = () => {
       setIsFocused(false);
       if (isEditing) {
         setIsEditing(false);
@@ -97,7 +97,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
       setResizeDelta(e.clientY - resizeStartYRef.current);
     };
     
-    const handleUp = (e: PointerEvent) => {
+    const handleUp = () => {
       const offsetMinutes = resizeDelta * (60 / hourHeight);
       let originalStartMins = timeStringToMinutes(event.start);
       let originalEndMins = timeStringToMinutes(event.end);
