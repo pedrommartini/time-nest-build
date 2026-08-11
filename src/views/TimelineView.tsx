@@ -509,7 +509,7 @@ export const TimelineView: React.FC = () => {
         <div 
           className={`absolute bottom-0 left-0 right-0 bg-white dark:bg-card-bg z-40 rounded-t-[44px] shadow-[0_-8px_30px_rgba(40,30,70,0.06)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
             hasSelectedItem 
-              ? (isDrawerExpanded ? 'h-[580px]' : 'h-[340px]')
+              ? (isDrawerExpanded ? 'h-[calc(100%-40px)]' : 'h-[340px]')
               : (isDrawerExpanded ? (hasTasks ? 'h-[390px]' : 'h-[290px]') : 'h-[160px]')
           }`}
         >

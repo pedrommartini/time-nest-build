@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Check, Trash2, ChevronDown, Clock, BellRing, 
-  AlarmClock, AlignLeft, MoreHorizontal
+  AlarmClock, AlignLeft, MoreHorizontal, Plus
 } from 'lucide-react';
 import type { Event, Task } from '../utils/time';
+import { useProfile } from '../contexts/ProfileContext';
 import { audio } from '../utils/audio';
 
 interface EventDetailDrawerProps {
@@ -63,6 +64,7 @@ export const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
   onUpdateTask,
   onDeleteTask,
 }) => {
+  const { profile } = useProfile();
   const item = event || task;
   const isEvent = !!event;
 
@@ -79,7 +81,6 @@ export const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
     item?.alarmEnabled ?? false
   );
   const [isAllDay, setIsAllDay] = useState(false);
-
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Sync state when selected item changes
@@ -310,7 +311,7 @@ export const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
         </div>
       </div>
 
-      {/* Notion-style Quick Sub-bar: Dia todo | Fuso horário | Repetir */}
+      {/* Notion-style Quick Sub-bar: Dia todo | Repetir | Cor */}
       <div className="px-5 pt-2 pb-2 shrink-0 flex items-center gap-2 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setIsAllDay(!isAllDay)}
@@ -356,86 +357,47 @@ export const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
           isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
-        {/* Account / Source Row */}
+        {/* User Profile & Participants Section (Replaces bare email) */}
         <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0" />
-            <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200 truncate max-w-[200px]">
-              {item.source === 'google' ? 'pedrommartini@hotmail.com' : 'TimeNest Local'}
+          <div className="flex items-center gap-3">
+            {/* Circular Profile Avatar */}
+            {profile.avatar ? (
+              <img 
+                src={profile.avatar} 
+                alt={profile.name} 
+                className="w-9 h-9 rounded-full object-cover border border-gray-200 dark:border-gray-700 shadow-2xs" 
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-brand-500 text-white font-bold flex items-center justify-center text-[15px] shadow-2xs">
+                {profile.name ? profile.name.charAt(0).toUpperCase() : 'V'}
+              </div>
+            )}
+
+            <div className="flex flex-col">
+              <span className="text-[14px] font-bold text-gray-900 dark:text-gray-100">
+                {profile.name}
+              </span>
+              <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                {item.source === 'google' ? 'pedrommartini@hotmail.com' : 'Organizador(a)'}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 bg-gray-200/60 dark:bg-gray-700/60 px-2.5 py-1 rounded-full">
+              Ocupado
             </span>
-          </div>
 
-          <div className="flex items-center gap-2 text-[11px] font-semibold text-gray-500 dark:text-gray-400">
-            <span>Ocupado</span>
-            <span>•</span>
-            <span>Padrão</span>
-          </div>
-        </div>
-
-        {/* Reminders / Notice Antecedence */}
-        <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2.5">
-            <BellRing className="w-4 h-4 text-brand-500 shrink-0" />
-            <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200">Lembretes</span>
-          </div>
-
-          <select
-            value={notificationOffset}
-            onChange={(e) => handleNotificationChange(Number(e.target.value))}
-            className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-[12px] font-semibold px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-600 outline-none"
-          >
-            <option value={0}>No horário</option>
-            <option value={5}>5 min antes</option>
-            <option value={15}>15 min antes</option>
-            <option value={30}>30 min antes</option>
-            <option value={60}>1 hora antes</option>
-          </select>
-        </div>
-
-        {/* Fullscreen Alarm Toggle */}
-        <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2.5">
-            <AlarmClock className="w-4 h-4 text-amber-500 shrink-0" />
-            <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200">Alarme em tela cheia</span>
-          </div>
-
-          <button
-            onClick={handleAlarmToggle}
-            className={`w-10 h-5.5 rounded-full transition-colors p-0.5 flex items-center ${
-              alarmEnabled ? 'bg-amber-500 justify-end' : 'bg-gray-300 dark:bg-gray-600 justify-start'
-            }`}
-          >
-            <div className="w-4.5 h-4.5 rounded-full bg-white shadow-sm" />
-          </button>
-        </div>
-
-        {/* Quick Duration Adjust Buttons */}
-        <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
-          <span className="text-[13px] font-medium text-gray-600 dark:text-gray-300">Ajustar duração:</span>
-          <div className="flex items-center gap-1.5">
+            {/* Add Participant Button (+) Placeholder */}
             <button
-              onClick={() => handleDurationAdjust(-15)}
-              className="px-2.5 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-[12px] font-semibold border border-gray-200 dark:border-gray-600 hover:bg-gray-100 active:scale-95 transition-all"
+              onClick={() => {
+                audio.playClick();
+                alert('Em breve: Convidar novos participantes para o evento!');
+              }}
+              className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-950/80 hover:bg-brand-200 text-brand-600 dark:text-brand-300 font-bold flex items-center justify-center text-lg active:scale-95 transition-all shadow-2xs"
+              title="Adicionar participante (+)"
             >
-              -15m
-            </button>
-            <button
-              onClick={() => handleDurationAdjust(15)}
-              className="px-2.5 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-[12px] font-semibold border border-gray-200 dark:border-gray-600 hover:bg-gray-100 active:scale-95 transition-all"
-            >
-              +15m
-            </button>
-            <button
-              onClick={() => handleDurationAdjust(30)}
-              className="px-2.5 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-[12px] font-semibold border border-gray-200 dark:border-gray-600 hover:bg-gray-100 active:scale-95 transition-all"
-            >
-              +30m
-            </button>
-            <button
-              onClick={() => handleDurationAdjust(60)}
-              className="px-2.5 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-[12px] font-semibold border border-gray-200 dark:border-gray-600 hover:bg-gray-100 active:scale-95 transition-all"
-            >
-              +1h
+              <Plus className="w-4 h-4 stroke-[3]" />
             </button>
           </div>
         </div>
@@ -449,10 +411,85 @@ export const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
           <textarea
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
-            placeholder="Adicionar descrição..."
+            placeholder="Adicionar descrição ou notas..."
             rows={2}
             className="w-full bg-white dark:bg-gray-700/60 text-gray-800 dark:text-gray-200 text-[13px] p-2.5 rounded-xl border border-gray-200 dark:border-gray-600 outline-none resize-none"
           />
+        </div>
+
+        {/* AT THE VERY END: Reminders, Alarms & Quick Duration */}
+        <div className="flex flex-col gap-3 pt-1 border-t border-gray-200/60 dark:border-gray-700/60">
+          <span className="text-[12px] font-bold text-gray-400 uppercase tracking-wider px-1">
+            Lembretes & Alarmes
+          </span>
+
+          {/* Notice Antecedence Selector (Reminders) */}
+          <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
+            <div className="flex items-center gap-2.5">
+              <BellRing className="w-4 h-4 text-brand-500 shrink-0" />
+              <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200">Lembrete prévio</span>
+            </div>
+
+            <select
+              value={notificationOffset}
+              onChange={(e) => handleNotificationChange(Number(e.target.value))}
+              className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-[12px] font-semibold px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-600 outline-none"
+            >
+              <option value={0}>No horário</option>
+              <option value={5}>5 min antes</option>
+              <option value={15}>15 min antes</option>
+              <option value={30}>30 min antes</option>
+              <option value={60}>1 hora antes</option>
+            </select>
+          </div>
+
+          {/* Fullscreen Alarm Toggle */}
+          <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
+            <div className="flex items-center gap-2.5">
+              <AlarmClock className="w-4 h-4 text-amber-500 shrink-0" />
+              <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200">Alarme em tela cheia</span>
+            </div>
+
+            <button
+              onClick={handleAlarmToggle}
+              className={`w-10 h-5.5 rounded-full transition-colors p-0.5 flex items-center ${
+                alarmEnabled ? 'bg-amber-500 justify-end' : 'bg-gray-300 dark:bg-gray-600 justify-start'
+              }`}
+            >
+              <div className="w-4.5 h-4.5 rounded-full bg-white shadow-sm" />
+            </button>
+          </div>
+
+          {/* Quick Duration Adjust Buttons */}
+          <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
+            <span className="text-[13px] font-medium text-gray-600 dark:text-gray-300">Ajustar duração:</span>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => handleDurationAdjust(-15)}
+                className="px-2.5 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-[12px] font-semibold border border-gray-200 dark:border-gray-600 hover:bg-gray-100 active:scale-95 transition-all"
+              >
+                -15m
+              </button>
+              <button
+                onClick={() => handleDurationAdjust(15)}
+                className="px-2.5 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-[12px] font-semibold border border-gray-200 dark:border-gray-600 hover:bg-gray-100 active:scale-95 transition-all"
+              >
+                +15m
+              </button>
+              <button
+                onClick={() => handleDurationAdjust(30)}
+                className="px-2.5 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-[12px] font-semibold border border-gray-200 dark:border-gray-600 hover:bg-gray-100 active:scale-95 transition-all"
+              >
+                +30m
+              </button>
+              <button
+                onClick={() => handleDurationAdjust(60)}
+                className="px-2.5 py-1 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-[12px] font-semibold border border-gray-200 dark:border-gray-600 hover:bg-gray-100 active:scale-95 transition-all"
+              >
+                +1h
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
