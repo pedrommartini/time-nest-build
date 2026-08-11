@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Check, Trash2, ChevronDown, Clock, BellRing, 
-  AlarmClock, Repeat, AlignLeft, MoreHorizontal
+  AlarmClock, AlignLeft, MoreHorizontal
 } from 'lucide-react';
 import type { Event, Task } from '../utils/time';
 import { audio } from '../utils/audio';
@@ -78,6 +78,7 @@ export const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
   const [alarmEnabled, setAlarmEnabled] = useState<boolean>(
     item?.alarmEnabled ?? false
   );
+  const [isAllDay, setIsAllDay] = useState(false);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -183,7 +184,6 @@ export const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
     onClose();
   };
 
-  // Color mapping matching TimeNest design system
   const colorMap: Record<string, { bg: string; text: string }> = {
     brand: { bg: 'bg-brand-500', text: 'text-brand-600' },
     blue: { bg: 'bg-blue-500', text: 'text-blue-600' },
@@ -198,10 +198,10 @@ export const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
     : (task?.estimatedDuration || 30);
 
   return (
-    <div className="flex flex-col h-full w-full select-none">
+    <div className="flex flex-col h-full w-full select-none pb-[95px]">
       {/* Handle Drag Pill Bar */}
       <div 
-        className="w-[48px] h-[4px] bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mt-2.5 mb-1 shrink-0 cursor-pointer"
+        className="w-[44px] h-[4px] bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mt-2.5 mb-1 shrink-0 cursor-pointer"
         onClick={onToggleExpand}
       />
 
@@ -211,14 +211,14 @@ export const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
         <div className="flex items-center gap-2">
           <button 
             onClick={onToggleExpand}
-            className="flex items-center gap-1 px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-[13px] font-semibold transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 text-[13px] font-bold transition-colors shadow-2xs"
           >
             <span>{isEvent ? 'Evento' : 'Tarefa'}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
+            <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
           </button>
 
           {item.source === 'google' && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-950/80 dark:text-purple-300">
               Google Agenda
             </span>
           )}
@@ -228,10 +228,10 @@ export const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
         <div className="flex items-center gap-2 relative">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors active:scale-95"
+            className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 flex items-center justify-center transition-colors active:scale-95"
             title="Opções"
           >
-            <MoreHorizontal className="w-4 h-4" />
+            <MoreHorizontal className="w-4.5 h-4.5" />
           </button>
 
           {/* Options Dropdown Menu */}
@@ -242,7 +242,7 @@ export const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
                   handleToggleComplete();
                   setIsMenuOpen(false);
                 }}
-                className="w-full px-4 py-2 text-left text-[13px] font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 flex items-center gap-2"
+                className="w-full px-4 py-2 text-left text-[13px] font-semibold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 flex items-center gap-2"
               >
                 <Check className="w-4 h-4 text-green-500" />
                 {isCompleted ? 'Marcar pendente' : 'Marcar concluído'}
@@ -252,7 +252,7 @@ export const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
                   handleDelete();
                   setIsMenuOpen(false);
                 }}
-                className="w-full px-4 py-2 text-left text-[13px] font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2"
+                className="w-full px-4 py-2 text-left text-[13px] font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
                 Excluir
@@ -263,7 +263,7 @@ export const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
           {/* Close Selection Button */}
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors active:scale-95"
+            className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 flex items-center justify-center transition-colors active:scale-95"
             title="Fechar detalhes"
           >
             <X className="w-4 h-4" />
@@ -277,19 +277,16 @@ export const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
           type="text"
           value={title}
           onChange={(e) => handleTitleChange(e.target.value)}
-          className={`text-[22px] font-bold text-gray-900 dark:text-gray-100 bg-transparent outline-none truncate border-b border-transparent focus:border-brand-500 transition-colors ${
+          className={`text-[23px] font-extrabold text-gray-900 dark:text-gray-100 bg-transparent outline-none truncate border-b border-transparent focus:border-brand-500 transition-colors ${
             isCompleted ? 'line-through opacity-50' : ''
           }`}
           placeholder="Nome do evento..."
         />
       </div>
 
-      {/* Thin Divider Line (Notion Style) */}
-      <div className="mx-5 my-1.5 border-b border-gray-100 dark:border-gray-800/80 shrink-0" />
-
-      {/* Time & Date Property Block */}
-      <div className="px-5 py-1.5 shrink-0 flex flex-col gap-1 cursor-pointer" onClick={onToggleExpand}>
-        <div className="flex items-center gap-3">
+      {/* Time & Date Property Block (Click to toggle expand) */}
+      <div className="px-5 py-1 shrink-0 flex flex-col gap-0.5 cursor-pointer" onClick={onToggleExpand}>
+        <div className="flex items-center gap-2.5">
           <Clock className="w-4 h-4 text-gray-400 shrink-0" />
           <div className="flex items-center gap-2 text-[15px] font-semibold text-gray-900 dark:text-gray-100">
             {isEvent && event ? (
@@ -308,20 +305,113 @@ export const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
         </div>
 
         {/* Date Row */}
-        <div className="pl-7 text-[13px] font-medium text-gray-500 dark:text-gray-400">
+        <div className="pl-6.5 text-[13px] font-medium text-gray-500 dark:text-gray-400">
           {formatDatePortuguese(isEvent ? event?.date : undefined)}
         </div>
       </div>
 
-      {/* Expanded Details Section */}
+      {/* Notion-style Quick Sub-bar: Dia todo | Fuso horário | Repetir */}
+      <div className="px-5 pt-2 pb-2 shrink-0 flex items-center gap-2 overflow-x-auto no-scrollbar">
+        <button
+          onClick={() => setIsAllDay(!isAllDay)}
+          className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-colors ${
+            isAllDay 
+              ? 'bg-brand-500 text-white' 
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+          }`}
+        >
+          Dia todo
+        </button>
+
+        <select
+          value={recurrenceRule}
+          onChange={(e) => handleRecurrenceChange(e.target.value as any)}
+          className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-[12px] font-semibold px-3 py-1 rounded-full outline-none border-none cursor-pointer"
+        >
+          <option value="NONE">Repetir</option>
+          <option value="DAILY">Todos os dias</option>
+          <option value="WEEKLY">Toda semana</option>
+          <option value="MONTHLY">Todo mês</option>
+        </select>
+
+        {isEvent && (
+          <div className="flex items-center gap-1 pl-1">
+            {['brand', 'blue', 'green', 'purple', 'amber', 'red'].map((c) => (
+              <button
+                key={c}
+                onClick={() => handleColorChange(c)}
+                className={`w-4 h-4 rounded-full transition-transform ${colorMap[c]?.bg} ${color === c ? 'ring-2 ring-brand-500 scale-110' : 'opacity-70'}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Thin Divider Line */}
+      <div className="mx-5 my-1 border-b border-gray-100 dark:border-gray-800/80 shrink-0" />
+
+      {/* Expanded Details Section (Notion Calendar Android Layout) */}
       <div 
-        className={`px-5 pb-5 pt-2 flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 transition-opacity duration-200 ${
+        className={`px-5 pb-6 pt-2 flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 transition-opacity duration-200 ${
           isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
+        {/* Account / Source Row */}
+        <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0" />
+            <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200 truncate max-w-[200px]">
+              {item.source === 'google' ? 'pedrommartini@hotmail.com' : 'TimeNest Local'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+            <span>Ocupado</span>
+            <span>•</span>
+            <span>Padrão</span>
+          </div>
+        </div>
+
+        {/* Reminders / Notice Antecedence */}
+        <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-2.5">
+            <BellRing className="w-4 h-4 text-brand-500 shrink-0" />
+            <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200">Lembretes</span>
+          </div>
+
+          <select
+            value={notificationOffset}
+            onChange={(e) => handleNotificationChange(Number(e.target.value))}
+            className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-[12px] font-semibold px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-600 outline-none"
+          >
+            <option value={0}>No horário</option>
+            <option value={5}>5 min antes</option>
+            <option value={15}>15 min antes</option>
+            <option value={30}>30 min antes</option>
+            <option value={60}>1 hora antes</option>
+          </select>
+        </div>
+
+        {/* Fullscreen Alarm Toggle */}
+        <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-2.5">
+            <AlarmClock className="w-4 h-4 text-amber-500 shrink-0" />
+            <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200">Alarme em tela cheia</span>
+          </div>
+
+          <button
+            onClick={handleAlarmToggle}
+            className={`w-10 h-5.5 rounded-full transition-colors p-0.5 flex items-center ${
+              alarmEnabled ? 'bg-amber-500 justify-end' : 'bg-gray-300 dark:bg-gray-600 justify-start'
+            }`}
+          >
+            <div className="w-4.5 h-4.5 rounded-full bg-white shadow-sm" />
+          </button>
+        </div>
+
         {/* Quick Duration Adjust Buttons */}
         <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
-          <span className="text-[13px] font-medium text-gray-600 dark:text-gray-300">Ajustar tempo:</span>
+          <span className="text-[13px] font-medium text-gray-600 dark:text-gray-300">Ajustar duração:</span>
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => handleDurationAdjust(-15)}
@@ -350,90 +440,16 @@ export const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
           </div>
         </div>
 
-        {/* Notice Antecedence Selector */}
-        <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2.5">
-            <BellRing className="w-4 h-4 text-brand-500 shrink-0" />
-            <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200">Aviso prévio</span>
-          </div>
-
-          <select
-            value={notificationOffset}
-            onChange={(e) => handleNotificationChange(Number(e.target.value))}
-            className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-[12px] font-semibold px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-600 outline-none"
-          >
-            <option value={0}>No horário</option>
-            <option value={5}>5 min antes</option>
-            <option value={15}>15 min antes</option>
-            <option value={30}>30 min antes</option>
-            <option value={60}>1 hora antes</option>
-          </select>
-        </div>
-
-        {/* Fullscreen Alarm Toggle */}
-        <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2.5">
-            <AlarmClock className="w-4 h-4 text-amber-500 shrink-0" />
-            <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200">Alarme estilo despertador</span>
-          </div>
-
-          <button
-            onClick={handleAlarmToggle}
-            className={`w-10 h-5.5 rounded-full transition-colors p-0.5 flex items-center ${
-              alarmEnabled ? 'bg-amber-500 justify-end' : 'bg-gray-300 dark:bg-gray-600 justify-start'
-            }`}
-          >
-            <div className="w-4.5 h-4.5 rounded-full bg-white shadow-sm" />
-          </button>
-        </div>
-
-        {/* Recurrence Rule Selector */}
-        <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2.5">
-            <Repeat className="w-4 h-4 text-purple-500 shrink-0" />
-            <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200">Repetição</span>
-          </div>
-
-          <select
-            value={recurrenceRule}
-            onChange={(e) => handleRecurrenceChange(e.target.value as any)}
-            className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-[12px] font-semibold px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-600 outline-none"
-          >
-            <option value="NONE">Não se repete</option>
-            <option value="DAILY">Todos os dias</option>
-            <option value="WEEKLY">Toda semana</option>
-            <option value="MONTHLY">Todo mês</option>
-          </select>
-        </div>
-
-        {/* Color Palette (for events) */}
-        {isEvent && (
-          <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
-            <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200">Cor do bloco</span>
-            <div className="flex items-center gap-2">
-              {['brand', 'blue', 'green', 'amber', 'purple', 'red'].map((c) => (
-                <button
-                  key={c}
-                  onClick={() => handleColorChange(c)}
-                  className={`w-5.5 h-5.5 rounded-full transition-transform active:scale-95 ${
-                    colorMap[c]?.bg || 'bg-gray-400'
-                  } ${color === c ? 'ring-2 ring-offset-2 ring-brand-500 scale-110' : 'opacity-80 hover:opacity-100'}`}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Notes & Description Area */}
+        {/* Notes & Description Textarea */}
         <div className="flex flex-col gap-1.5 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
           <span className="text-[13px] font-medium text-gray-800 dark:text-gray-200 flex items-center gap-2">
             <AlignLeft className="w-4 h-4 text-gray-400" />
-            Notas
+            Descrição
           </span>
           <textarea
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
-            placeholder="Adicionar anotações..."
+            placeholder="Adicionar descrição..."
             rows={2}
             className="w-full bg-white dark:bg-gray-700/60 text-gray-800 dark:text-gray-200 text-[13px] p-2.5 rounded-xl border border-gray-200 dark:border-gray-600 outline-none resize-none"
           />
