@@ -42,6 +42,9 @@ const AppContent: React.FC = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
+    if (window.location.pathname === '/download' || window.location.pathname === '/apkdownload') {
+      window.location.href = '/timenest.apk';
+    }
     if (!localStorage.getItem('timenest_onboarding_completed')) {
       setShowOnboarding(true);
     }
