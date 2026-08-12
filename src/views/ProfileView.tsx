@@ -225,8 +225,11 @@ export const ProfileView: React.FC = () => {
                             if (user.imageUrl || user.photoUrl) newProfile.avatar = user.imageUrl || user.photoUrl;
                             setProfile(newProfile);
                           }
-                        } catch (err) {
+                        } catch (err: any) {
                           console.error('Connection error:', err);
+                          const code = err?.code || err?.error || err?.status || 'ERRO_GOOGLE';
+                          const msg = err?.message || err?.errorMessage || (typeof err === 'string' ? err : JSON.stringify(err));
+                          alert(`[Diagnóstico Google Agenda]\nCódigo: ${code}\nDetalhes: ${msg}`);
                         } finally {
                           setIsSyncing(false);
                         }

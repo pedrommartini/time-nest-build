@@ -376,11 +376,11 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             return user;
           }
         } catch (nativeErr: any) {
-          console.warn('Native GoogleAuth failed, falling back to Web OAuth:', nativeErr);
-          return new Promise((resolve, reject) => {
-            webLoginPromise.current = { resolve, reject };
-            webGoogleLogin();
-          });
+          console.warn('Native GoogleAuth error:', nativeErr);
+          const errCode = nativeErr?.code || nativeErr?.error || 'NATIVE_FAIL';
+          const errMsg = nativeErr?.message || JSON.stringify(nativeErr);
+          alert(`[Erro Google Auth Nativo Android]\nCódigo: ${errCode}\nMensagem: ${errMsg}`);
+          throw nativeErr;
         }
       } else {
         return new Promise((resolve, reject) => {

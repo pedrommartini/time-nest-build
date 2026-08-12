@@ -490,10 +490,10 @@ export const TimelineView: React.FC = () => {
       </div>
 
       {/* Floating Action / Recenter Button */}
-      {!isCentered && (
+      {!isCentered && !isDrawerExpanded && (
         <button 
           onClick={resumeAutoScroll}
-          style={{ bottom: isDrawerExpanded ? (hasTasks ? '406px' : '306px') : '176px' }}
+          style={{ bottom: hasSelectedItem ? '356px' : '176px' }}
           className="absolute right-1/2 translate-x-1/2 bg-app-bg text-brand-600 dark:text-brand-400 px-4 py-2.5 rounded-full shadow-lg border border-border-color text-[11px] font-bold flex items-center gap-2 animate-slide-up z-50 active:scale-95 transition-transform transition-[bottom] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]"
         >
           <span className="relative flex h-2 w-2">
@@ -509,8 +509,8 @@ export const TimelineView: React.FC = () => {
         <div 
           className={`absolute bottom-0 left-0 right-0 bg-white dark:bg-card-bg z-40 rounded-t-[44px] shadow-[0_-8px_30px_rgba(40,30,70,0.06)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
             hasSelectedItem 
-              ? (isDrawerExpanded ? 'h-[calc(100%-40px)]' : 'h-[340px]')
-              : (isDrawerExpanded ? (hasTasks ? 'h-[390px]' : 'h-[290px]') : 'h-[160px]')
+              ? (isDrawerExpanded ? 'h-[calc(100%-20px)]' : 'h-[340px]')
+              : (isDrawerExpanded ? 'h-[calc(100%-20px)]' : 'h-[160px]')
           }`}
         >
           {hasSelectedItem ? (
