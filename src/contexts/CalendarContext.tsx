@@ -332,16 +332,13 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return id;
   };
 
-  const updateEventTimes = (id: string, start: string, end: string) => {
+  const updateEventTimes = (id: string, start: string, end: string, newDate?: string) => {
     setEvents(prev => {
-      const newEvents = prev.map(e => e.id === id ? { ...e, start, end } : e);
+      const newEvents = prev.map(e => e.id === id ? { ...e, start, end, ...(newDate ? { date: newDate } : {}) } : e);
       const updatedEvent = newEvents.find(e => e.id === id);
       if (updatedEvent && googleSync.isConnected) {
          if (id.startsWith('google-')) {
            pushEventToGoogle(updatedEvent, true);
-         } else {
-           // Se for um evento local mas o google está conectado, deveríamos criar lá também?
-           // No contexto dessa função (normalmente resize timeline), melhor atualizar.
          }
       }
       return newEvents;

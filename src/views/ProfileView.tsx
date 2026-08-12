@@ -216,15 +216,20 @@ export const ProfileView: React.FC = () => {
                       onClick={async () => {
                         audio.playClick();
                         setIsSyncing(true);
-                        const user = await connectGoogle();
-                        if (user) {
-                          const newProfile = { ...profile };
-                          if (user.displayName || user.name) newProfile.name = user.displayName || user.name;
-                          if (user.email) newProfile.email = user.email;
-                          if (user.imageUrl || user.photoUrl) newProfile.avatar = user.imageUrl || user.photoUrl;
-                          setProfile(newProfile);
+                        try {
+                          const user = await connectGoogle();
+                          if (user) {
+                            const newProfile = { ...profile };
+                            if (user.displayName || user.name) newProfile.name = user.displayName || user.name;
+                            if (user.email) newProfile.email = user.email;
+                            if (user.imageUrl || user.photoUrl) newProfile.avatar = user.imageUrl || user.photoUrl;
+                            setProfile(newProfile);
+                          }
+                        } catch (err) {
+                          console.error('Connection error:', err);
+                        } finally {
+                          setIsSyncing(false);
                         }
-                        setIsSyncing(false);
                       }} 
                       disabled={isSyncing}
                       className="px-3 py-1.5 rounded-full btn-primary text-[10px] font-bold hover:brightness-105 transition-all disabled:opacity-50"
