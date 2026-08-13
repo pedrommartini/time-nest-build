@@ -54,7 +54,7 @@ const AppContent: React.FC = () => {
     requestNotificationPermissions();
   }, []);
 
-  const INSTALLED_VERSION = '2.2.0';
+  const INSTALLED_VERSION = '2.9.0';
 
   React.useEffect(() => {
     const checkUpdate = async () => {
@@ -74,13 +74,13 @@ const AppContent: React.FC = () => {
       }
     };
 
-    const timer = setTimeout(checkUpdate, 3000);
+    const timer = setTimeout(checkUpdate, 1500);
     return () => clearTimeout(timer);
   }, []);
 
   const handleApplyUpdate = () => {
     localStorage.setItem('timenest_update_dismissed', latestVersion);
-    window.location.href = 'https://time-nest-two.vercel.app';
+    window.location.href = 'https://time-nest-two.vercel.app/download';
   };
 
   const handleDismissUpdate = () => {
