@@ -1,6 +1,37 @@
 import React, { useEffect, useState } from 'react';
 import { useAlarmManager } from '../contexts/AlarmManagerContext';
 import { audio } from '../utils/audio';
+import { Capacitor } from '@capacitor/core';
+
+// Native vibration using Capacitor Haptics (stronger than navigator.vibrate on Android WebView)
+const nativeVibrate = async (pattern: 'normal' | 'critical' | 'task') => {
+  try {
+    if (Capacitor.isNativePlatform()) {
+      const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+      if (pattern === 'critical') {
+        await Haptics.impact({ style: ImpactStyle.Heavy });
+        setTimeout(() => Haptics.impact({ style: ImpactStyle.Heavy }), 150);
+        setTimeout(() => Haptics.impact({ style: ImpactStyle.Heavy }), 300);
+        setTimeout(() => Haptics.impact({ style: ImpactStyle.Heavy }), 450);
+      } else {
+        await Haptics.impact({ style: ImpactStyle.Medium });
+        setTimeout(() => Haptics.impact({ style: ImpactStyle.Medium }), 200);
+      }
+    }
+  } catch (e) {
+    // Fallback to Web Vibration API
+  }
+  // Also trigger Web Vibration API as fallback
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    if (pattern === 'critical') {
+      navigator.vibrate([400, 100, 400, 100, 400, 100, 400]);
+    } else if (pattern === 'task') {
+      navigator.vibrate([300, 100, 300]);
+    } else {
+      navigator.vibrate([250, 100, 250, 100, 250]);
+    }
+  }
+};
 
 export const AlarmOverlay: React.FC = () => {
   const { activeAlarm, dismissAlarm } = useAlarmManager();
@@ -16,11 +47,11 @@ export const AlarmOverlay: React.FC = () => {
       
       const pattern = isCritical ? 'critical' : (isTask ? 'task' : 'normal');
       
-      // Vibrate immediately
-      audio.vibrate(pattern);
+      // Vibrate immediately with native Haptics
+      nativeVibrate(pattern);
       
-      // Repeat vibration every 5s
-      const vibInterval = setInterval(() => audio.vibrate(pattern), 5000);
+      // Repeat vibration every 4s
+      const vibInterval = setInterval(() => nativeVibrate(pattern), 4000);
       
       // Audio
       let audioInterval: any;

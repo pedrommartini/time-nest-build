@@ -598,8 +598,10 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const timeMin = today.toISOString();
+      // Limit to 30 days from now to avoid too many recurring birthday events
+      const timeMax = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
       
-      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(timeMin)}&singleEvents=true&orderBy=startTime`, {
+      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime&maxResults=100`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -607,7 +609,6 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-           // Em vez de desconectar completamente e esquecer a sessão, avisamos e paramos de syncar até o F5 ou re-login.
            setGoogleSync(prev => ({ ...prev, accessToken: null }));
            console.warn('Sessão do Google expirou (401/403). Mantenha a configuração local.');
            return;
@@ -618,7 +619,22 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const data = await response.json();
       
       const newGoogleEvents: Event[] = (data.items || [])
-        .filter((item: any) => item.status !== 'cancelled' && item.start && (item.start.dateTime || item.start.date))
+        .filter((item: any) => {
+          if (item.status === 'cancelled') return false;
+          if (!item.start || (!item.start.dateTime && !item.start.date)) return false;
+          // Filter out birthday/Parabéns all-day events from Google Contacts
+          const isAllDay = !item.start.dateTime && !!item.start.date;
+          if (isAllDay) {
+            const title = (item.summary || '').toLowerCase();
+            // Skip birthday-type events (common in PT-BR and EN)
+            if (title.startsWith('parabéns') || title.startsWith('parabens') || 
+                title.startsWith('aniversário') || title.startsWith('aniversario') ||
+                title.startsWith('birthday') || title.startsWith('happy birthday')) {
+              return false;
+            }
+          }
+          return true;
+        })
         .map((item: any) => {
           const isAllDay = !item.start.dateTime && !!item.start.date;
           let startDate: Date;
@@ -652,12 +668,15 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           } as Event;
         });
 
-      // Deduplicate items returned from Google API by title, date, start, and end
+      // Deduplicate: use google ID as primary key (prevents API returning same event twice)
+      // Also deduplicate by title+date+start+end as secondary key
+      const seenIds = new Set<string>();
       const seenKeys = new Set<string>();
       const uniqueGoogleEvents: Event[] = [];
       for (const gEvent of newGoogleEvents) {
         const dedupeKey = `${gEvent.title.trim().toLowerCase()}_${gEvent.date}_${gEvent.start}_${gEvent.end}`;
-        if (!seenKeys.has(dedupeKey)) {
+        if (!seenIds.has(gEvent.id) && !seenKeys.has(dedupeKey)) {
+          seenIds.add(gEvent.id);
           seenKeys.add(dedupeKey);
           uniqueGoogleEvents.push(gEvent);
         }

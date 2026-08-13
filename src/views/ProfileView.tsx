@@ -475,7 +475,7 @@ export const ProfileView: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-center gap-1 mt-2">
-            <span className="text-[9px] text-text-secondary">Versão 1.0.0</span>
+            <span className="text-[9px] text-text-secondary">Versão 3.0.0</span>
             <span className="text-[9px]">💜</span>
           </div>
 

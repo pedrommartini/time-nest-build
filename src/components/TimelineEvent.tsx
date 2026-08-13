@@ -101,12 +101,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
     } else {
       setIsCleanMode(false);
     }
-
-    if (resizeMode !== null) {
-      setIsResizing(true);
-    } else {
-      setIsResizing(false);
-    }
+    setIsResizing(resizeMode !== null);
   }, [isDragging, resizeMode, setIsCleanMode, setIsResizing]);
 
   // Click outside listener for focus
@@ -122,7 +117,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
 
   // Auto-scroll loop with speed gradient based on edge proximity
   const startAutoScrollLoop = (currentTouchY: number) => {
-    if (resizeMode !== null) return; // Item 3: Stop scroll completely when resizing handles!
+    if (!isDraggingRef.current) return; // Only auto-scroll when actively dragging
 
     const scrollContainer = containerRef.current?.closest('.overflow-y-auto');
     if (!scrollContainer) return;
@@ -448,19 +443,14 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
       {!isDragging && (
         <div 
           className={`absolute -top-3.5 left-0 right-0 h-7 cursor-ns-resize z-50 flex items-center justify-center transition-all ${
-            isSelected ? 'opacity-100 scale-105' : 'opacity-0 group-hover:opacity-100'
+            (isSelected || isFocused) ? 'opacity-100 scale-105' : 'opacity-0 group-hover:opacity-100'
           }`}
+          style={{ touchAction: 'none' }}
           onPointerDown={(e) => {
             e.stopPropagation();
+            e.preventDefault();
             setResizeMode('start');
             resizeStartYRef.current = e.clientY;
-          }}
-          onTouchStart={(e) => {
-            e.stopPropagation();
-            if (e.touches.length === 1) {
-              setResizeMode('start');
-              resizeStartYRef.current = e.touches[0].clientY;
-            }
           }}
         >
           <div className="flex items-center justify-center gap-1 px-3 py-1 rounded-full bg-brand-500 text-white shadow-md border border-white dark:border-gray-800">
@@ -549,19 +539,14 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
       {!isDragging && (
         <div 
           className={`absolute -bottom-3.5 left-0 right-0 h-7 cursor-ns-resize z-50 flex items-center justify-center transition-all ${
-            isSelected ? 'opacity-100 scale-105' : 'opacity-0 group-hover:opacity-100'
+            (isSelected || isFocused) ? 'opacity-100 scale-105' : 'opacity-0 group-hover:opacity-100'
           }`}
+          style={{ touchAction: 'none' }}
           onPointerDown={(e) => {
             e.stopPropagation();
+            e.preventDefault();
             setResizeMode('end');
             resizeStartYRef.current = e.clientY;
-          }}
-          onTouchStart={(e) => {
-            e.stopPropagation();
-            if (e.touches.length === 1) {
-              setResizeMode('end');
-              resizeStartYRef.current = e.touches[0].clientY;
-            }
           }}
         >
           <div className="flex items-center justify-center gap-1 px-3 py-1 rounded-full bg-brand-500 text-white shadow-md border border-white dark:border-gray-800">
