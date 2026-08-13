@@ -2,9 +2,12 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { audio } from '../utils/audio';
+import { reserveUsername, cleanUsernameInput, generateUsernameSuggestions } from '../utils/username';
 
 export interface UserProfile {
+  id: string;
   name: string;
+  username: string;
   email?: string; // URL or base64
   avatar: string;
   joinedAt: string;
@@ -50,16 +53,35 @@ const defaultAchievements: Achievement[] = [
 
 export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [profile, setProfile] = useState<UserProfile>(() => {
-    try {
-      const savedProfile = localStorage.getItem('timenest_profile');
-      if (savedProfile) return JSON.parse(savedProfile);
-    } catch(e) {}
-    return {
+    let initialProfile: UserProfile = {
+      id: 'user_' + Date.now(),
       name: 'Visitante',
+      username: 'visitante',
       email: 'visitante@email.com',
       avatar: '',
       joinedAt: new Date().toISOString()
     };
+
+    try {
+      const savedProfile = localStorage.getItem('timenest_profile');
+      if (savedProfile) {
+        const parsed = JSON.parse(savedProfile);
+        initialProfile = {
+          ...initialProfile,
+          ...parsed,
+          id: parsed.id || ('user_' + (parsed.email || 'local_user'))
+        };
+      }
+    } catch(e) {}
+
+    // Ensure initial username exists and is reserved
+    if (!initialProfile.username) {
+      const suggested = generateUsernameSuggestions(initialProfile.name || initialProfile.email || 'user', initialProfile.id)[0];
+      initialProfile.username = cleanUsernameInput(suggested || 'visitante');
+    }
+    reserveUsername(initialProfile.username, initialProfile.id);
+
+    return initialProfile;
   });
   
   const [achievements, _setAchievements] = useState<Achievement[]>(() => {
@@ -106,6 +128,9 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Save
   useEffect(() => {
+    if (profile.username && profile.id) {
+      reserveUsername(profile.username, profile.id);
+    }
     localStorage.setItem('timenest_profile', JSON.stringify(profile));
   }, [profile]);
   

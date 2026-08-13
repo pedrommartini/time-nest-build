@@ -32,9 +32,9 @@ const AppContent: React.FC = () => {
   const { t } = usePreferences();
   const { isLocked, unlock } = useProfile();
   const { isActive } = useFocus();
-  const { activeTab, setActiveTab, isSmartInputOpen, startWithVoice, openSmartInput, closeSmartInput, isDrawerExpanded, selectedEventId, selectedTaskId } = useNavigation();
+  const { activeTab, setActiveTab, isSmartInputOpen, startWithVoice, openSmartInput, closeSmartInput, isDrawerExpanded, isCleanMode, selectedEventId, selectedTaskId } = useNavigation();
   const hasSelectedItem = !!(selectedEventId || selectedTaskId);
-  const isNavHidden = hasSelectedItem && isDrawerExpanded;
+  const isNavHidden = (hasSelectedItem && isDrawerExpanded) || isCleanMode;
   
   const [passcodeInput, setPasscodeInput] = useState('');
   const [passcodeError, setPasscodeError] = useState(false);

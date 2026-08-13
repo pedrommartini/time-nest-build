@@ -64,7 +64,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
   leftPct = 0
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { selectedEventId, selectEvent } = useNavigation();
+  const { selectedEventId, selectEvent, setIsCleanMode } = useNavigation();
   const isSelected = selectedEventId === event.id;
   const [isFocused, setIsFocused] = useState(false);
   
@@ -93,6 +93,15 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
   useEffect(() => {
     isDraggingRef.current = isDragging;
   }, [isDragging]);
+
+  // Clean mode sync on drag or resize
+  useEffect(() => {
+    if (isDragging || resizeMode !== null) {
+      setIsCleanMode(true);
+    } else {
+      setIsCleanMode(false);
+    }
+  }, [isDragging, resizeMode, setIsCleanMode]);
 
   // Click outside listener for focus
   useEffect(() => {

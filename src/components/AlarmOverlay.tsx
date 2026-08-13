@@ -1,27 +1,41 @@
 import React, { useEffect, useState } from 'react';
 import { useAlarmManager } from '../contexts/AlarmManagerContext';
 import { audio } from '../utils/audio';
-import { Bell, Moon, Pill, Check, Zap } from 'lucide-react';
 
 export const AlarmOverlay: React.FC = () => {
   const { activeAlarm, dismissAlarm } = useAlarmManager();
-  
-  // Gamified state
-  const [sequence, setSequence] = useState<number[]>([]);
-  const targetSequence = [1, 2, 3];
+  const [screen, setScreen] = useState<'main' | 'snooze' | 'difficulty'>('main');
   
   useEffect(() => {
     if (activeAlarm) {
+      setScreen('main'); // Reset screen when new alarm comes in
+      
+      // Start audio and haptics
+      const isCritical = activeAlarm.intent === 'critical';
+      const isTask = activeAlarm.intent === 'task-now';
+      
+      const pattern = isCritical ? 'critical' : (isTask ? 'task' : 'normal');
+      
+      // Vibrate immediately
+      audio.vibrate(pattern);
+      
+      // Repeat vibration every 5s
+      const vibInterval = setInterval(() => audio.vibrate(pattern), 5000);
+      
+      // Audio
+      let audioInterval: any;
       if (activeAlarm.sound === 'chime') {
          audio.playChimeDone();
-         const interval = setInterval(() => audio.playChimeDone(), 3000);
-         return () => clearInterval(interval);
+         audioInterval = setInterval(() => audio.playChimeDone(), isCritical ? 2000 : 4000);
       } else {
-         audio.playAmbient(activeAlarm.sound, 0.5);
-         return () => audio.stopAmbient();
+         audio.playAmbient(activeAlarm.sound, isCritical ? 0.8 : 0.5);
       }
-    } else {
-       audio.stopAmbient();
+      
+      return () => {
+        clearInterval(vibInterval);
+        if (audioInterval) clearInterval(audioInterval);
+        audio.stopAmbient();
+      };
     }
   }, [activeAlarm]);
 
@@ -31,95 +45,191 @@ export const AlarmOverlay: React.FC = () => {
     audio.playClick();
     audio.stopAmbient();
     dismissAlarm();
-    setSequence([]);
   };
 
-  const handleGamifiedClick = (num: number) => {
-    audio.playTick();
-    const newSeq = [...sequence, num];
-    
-    // Check if correct so far
-    let isCorrect = true;
-    for(let i = 0; i < newSeq.length; i++) {
-       if (newSeq[i] !== targetSequence[i]) {
-          isCorrect = false;
-          break;
-       }
-    }
-    
-    if (isCorrect) {
-       setSequence(newSeq);
-       if (newSeq.length === targetSequence.length) {
-          setTimeout(handleDismiss, 300);
-       }
-    } else {
-       // Reset on error
-       setSequence([]);
-    }
+  const handleSnoozeOption = (_mins: number | 'task') => {
+    audio.playClick();
+    audio.stopAmbient();
+    // In a real app, this would schedule a new alarm. For now we just dismiss.
+    dismissAlarm();
   };
 
-  const Icon = activeAlarm.type === 'sleep' ? Moon : Pill;
+  const handleDifficultyOption = (_reason: string) => {
+    audio.playClick();
+    audio.stopAmbient();
+    // In a real app, this would trigger specific flows. For now we just dismiss.
+    dismissAlarm();
+  };
 
-  return (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-app-bg/95 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-sm modal-standard overflow-hidden animate-scale-in">
+  // Determine styles based on intent
+  let bgClass = 'bg-brand-900';
+  let badgeClass = 'bg-brand-800 text-brand-100';
+  let badgeText = 'ALERTA';
+  let ctaText = 'Confirmar';
+  let secondaryText = '+5 min';
+  let tertiaryText = 'Dispensar';
+
+  switch(activeAlarm.intent) {
+    case 'pre-event':
+      bgClass = 'bg-[#6D5D8A]'; // Lavanda escuro
+      badgeClass = 'bg-[#8F7BAE] text-white';
+      badgeText = 'EM 15 MIN'; // Or dynamic based on time
+      ctaText = 'Vou me preparar agora';
+      break;
+    case 'task-now':
+      bgClass = 'bg-[#4B5563]'; // Slate dark
+      badgeClass = 'bg-[#6B7280] text-white';
+      badgeText = 'AGORA';
+      ctaText = 'Começar foco agora';
+      tertiaryText = 'Pular por enquanto';
+      break;
+    case 'critical':
+      bgClass = 'bg-orange-600';
+      badgeClass = 'bg-orange-500 text-white';
+      badgeText = 'URGENTE';
+      ctaText = 'Estou saindo agora';
+      tertiaryText = 'Não posso ir';
+      break;
+    case 'test':
+      bgClass = 'bg-brand-600';
+      badgeClass = 'bg-brand-500 text-white';
+      badgeText = 'TESTE';
+      ctaText = 'Ok, entendi';
+      break;
+  }
+
+  // --- Screens ---
+  
+  if (screen === 'snooze') {
+    return (
+      <div className={`fixed inset-0 z-[500] flex flex-col p-8 ${bgClass} text-white animate-fade-in`}>
+        <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
+          <div className="inline-block px-3 py-1 rounded-full text-xs font-bold tracking-wider mb-6 self-start bg-white/20">
+            ADIAR
+          </div>
+          <h1 className="text-4xl font-black mb-2 leading-tight tracking-tight">Precisa de mais tempo?</h1>
+          <p className="text-lg opacity-80 mb-1">{activeAlarm.title}</p>
+          {activeAlarm.metadata && <p className="text-sm opacity-60 mb-10">{activeAlarm.metadata}</p>}
+          
+          <div className="flex flex-col gap-3">
+            <button onClick={() => handleSnoozeOption(5)} className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl font-bold text-lg text-left px-6 transition-colors">
+              + 5 minutos
+            </button>
+            <button onClick={() => handleSnoozeOption(10)} className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl font-bold text-lg text-left px-6 transition-colors">
+              + 10 minutos
+            </button>
+            <button onClick={() => handleSnoozeOption(15)} className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl font-bold text-lg text-left px-6 transition-colors">
+              + 15 minutos
+            </button>
+            <button onClick={() => handleSnoozeOption('task')} className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl font-bold text-lg text-left px-6 transition-colors border border-white/20">
+              Quando eu terminar a tarefa atual
+            </button>
+          </div>
+        </div>
         
-        {/* Header Graphic */}
-        <div className={`relative h-48 flex items-center justify-center overflow-hidden transition-colors duration-500 ${
-          activeAlarm.visual === 'gamified' ? 'bg-orange-500' : 'bg-brand-600'
-        }`}>
-          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '16px 16px' }}></div>
-          
-          <div className="relative z-10 w-24 h-24 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 shadow-lg animate-pulse-slow">
-             <Icon className="w-12 h-12 text-white" />
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-8 flex flex-col items-center text-center">
-          <div className="flex items-center gap-2 mb-3">
-             <Bell className={`w-5 h-5 ${activeAlarm.visual === 'gamified' ? 'text-orange-500' : 'text-brand-500'} animate-wiggle`} />
-             <h2 className="text-xl font-bold text-text-primary">Alarme</h2>
-          </div>
-          
-          <p className="text-base font-bold text-text-secondary mb-8 leading-relaxed">
-             {activeAlarm.title}
-          </p>
-
-          {activeAlarm.visual === 'gamified' ? (
-             <div className="w-full flex flex-col items-center">
-                <p className="text-[11px] font-bold text-orange-500 mb-5 uppercase tracking-widest flex items-center gap-1.5 bg-orange-50 dark:bg-orange-950/30 px-3 py-1.5 rounded-full">
-                   <Zap className="w-3.5 h-3.5" /> Pressione em ordem
-                </p>
-                <div className="flex gap-4">
-                   {[1, 2, 3].map(num => {
-                      const isPressed = sequence.includes(num);
-                      return (
-                        <button 
-                           key={num}
-                           onClick={() => !isPressed && handleGamifiedClick(num)}
-                           className={`w-14 h-14 rounded-full text-xl font-black transition-all duration-300 flex items-center justify-center shadow-sm ${
-                             isPressed ? 'bg-green-500 text-white scale-90 border-transparent' : 'bg-card-bg border-2 border-border-color text-text-primary hover:border-orange-500 hover:text-orange-500 active:scale-95'
-                           }`}
-                        >
-                           {isPressed ? <Check className="w-6 h-6" /> : num}
-                        </button>
-                      );
-                   })}
-                </div>
-             </div>
-          ) : (
-             <div className="w-full flex flex-col gap-3 mt-4">
-                <button 
-                  onClick={handleDismiss}
-                  className="w-full py-4 btn-primary text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-shadow"
-                >
-                  Desligar Alarme
-                </button>
-             </div>
-          )}
-        </div>
+        <button onClick={() => setScreen('main')} className="py-4 opacity-60 hover:opacity-100 font-bold mt-auto transition-opacity">
+          Voltar
+        </button>
       </div>
+    );
+  }
+
+  if (screen === 'difficulty') {
+    return (
+      <div className={`fixed inset-0 z-[500] flex flex-col p-8 ${bgClass} text-white animate-fade-in`}>
+        <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
+          <h1 className="text-4xl font-black mb-2 leading-tight tracking-tight">O que está dificultando?</h1>
+          <p className="text-lg opacity-80 mb-10">{activeAlarm.title}</p>
+          
+          <div className="flex flex-col gap-3">
+            <button onClick={() => handleDifficultyOption('no-start')} className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl font-bold text-lg text-left px-6 transition-colors">
+              Não sei por onde começar
+            </button>
+            <button onClick={() => handleDifficultyOption('finishing-other')} className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl font-bold text-lg text-left px-6 transition-colors">
+              Estou terminando outra coisa
+            </button>
+            <button onClick={() => handleDifficultyOption('tired')} className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl font-bold text-lg text-left px-6 transition-colors">
+              Estou cansado
+            </button>
+            <button onClick={() => handleDifficultyOption('distracted')} className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl font-bold text-lg text-left px-6 transition-colors">
+              Me distraí
+            </button>
+          </div>
+        </div>
+        
+        <button onClick={() => setScreen('main')} className="py-4 opacity-60 hover:opacity-100 font-bold mt-auto transition-opacity">
+          Voltar
+        </button>
+      </div>
+    );
+  }
+
+  // --- Main Screen ---
+  return (
+    <div className={`fixed inset-0 z-[500] flex flex-col p-8 ${bgClass} text-white overflow-hidden animate-fade-in`}>
+      
+      {/* Radial Effects Background */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-[150vw] h-[150vw] max-w-[800px] max-h-[800px] rounded-full bg-white/5 animate-pulse-slow blur-3xl"></div>
+        <div className="absolute w-[100vw] h-[100vw] max-w-[500px] max-h-[500px] rounded-full bg-white/10 animate-ping-slow blur-2xl opacity-50"></div>
+      </div>
+      
+      <div className="relative z-10 flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
+        <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold tracking-wider mb-8 self-start ${badgeClass}`}>
+          {badgeText}
+        </div>
+        
+        <h1 className="text-5xl font-black mb-3 leading-tight tracking-tight drop-shadow-md">
+          {activeAlarm.title}
+        </h1>
+        
+        {activeAlarm.durationOrTime && (
+          <h2 className="text-4xl font-bold opacity-90 mb-2 drop-shadow-sm">
+            {activeAlarm.durationOrTime}
+          </h2>
+        )}
+        
+        {activeAlarm.metadata && (
+          <p className="text-sm font-medium opacity-70 mt-2 flex items-center gap-1.5">
+            {activeAlarm.metadata}
+          </p>
+        )}
+      </div>
+
+      <div className="relative z-10 flex flex-col gap-4 mt-auto max-w-md mx-auto w-full pb-6">
+        <button 
+          onClick={handleDismiss}
+          className="w-full py-5 bg-white text-black rounded-full font-black text-lg shadow-[0_8px_30px_rgba(255,255,255,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-transform"
+        >
+          {ctaText}
+        </button>
+        
+        <button 
+          onClick={() => setScreen('snooze')}
+          className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-full font-bold text-base transition-colors"
+        >
+          {secondaryText}
+        </button>
+        
+        {activeAlarm.intent === 'task-now' && (
+          <button 
+            onClick={() => setScreen('difficulty')}
+            className="w-full py-4 opacity-70 hover:opacity-100 font-bold text-sm transition-opacity"
+          >
+            Não consigo começar
+          </button>
+        )}
+        
+        {activeAlarm.intent !== 'task-now' && (
+          <button 
+            onClick={handleDismiss}
+            className="w-full py-4 opacity-60 hover:opacity-100 font-bold text-sm transition-opacity"
+          >
+            {tertiaryText}
+          </button>
+        )}
+      </div>
+      
     </div>
   );
 };

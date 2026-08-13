@@ -9,6 +9,7 @@ import { useNotifications } from '../contexts/NotificationContext';
 import { useFocus } from '../contexts/FocusContext';
 import { useMedication } from '../contexts/MedicationContext';
 import { useGamification } from '../contexts/GamificationContext';
+import { useAlarmManager } from '../contexts/AlarmManagerContext';
 import { audio } from '../utils/audio';
 import { runTests } from '../utils/tests';
 import type { TestResult as UTResult } from '../utils/tests';
@@ -18,8 +19,15 @@ import {
   User, Calendar as CalendarIcon, Settings, Bell, ChevronRight, ArrowLeft,
   Shield, Info, Moon, Palette, Check,
   Plus, Volume2, Globe, Crown, Cloud, Download, LogOut,
-  Flame, Clock, Star, X, Pill, Trash2, Trophy, Coins
+  Flame, Clock, Star, X, Pill, Trash2, Trophy, Coins, Sparkles, AlertCircle
 } from 'lucide-react';
+import { 
+  cleanUsernameInput, 
+  validateUsernameFormat, 
+  isUsernameAvailable, 
+  generateUsernameSuggestions, 
+  reserveUsername 
+} from '../utils/username';
 
 export const ProfileView: React.FC = () => {
   const { profile, setProfile, achievements, security, setSecurity, wipeAllData } = useProfile();
@@ -38,14 +46,77 @@ export const ProfileView: React.FC = () => {
   const { stats } = useFocus();
   const { medications, addMedication, deleteMedication } = useMedication();
   const { nests, level } = useGamification();
+  const { testAlarm } = useAlarmManager();
 
   const [activeSubScreen, setActiveSubScreen] = useState<string | null>(null);
+  const [isTestingAlarm, setIsTestingAlarm] = useState<boolean>(false);
   const [testResults, setTestResults] = useState<UTResult[] | null>(null);
   const [isRunningTests, setIsRunningTests] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   
   const [newMedName, setNewMedName] = useState('');
   const [newMedTime, setNewMedTime] = useState('08:00');
+
+  // Edit Profile States
+  const [editName, setEditName] = useState(profile.name);
+  const [editUsername, setEditUsername] = useState(profile.username || '');
+  const [editAvatar, setEditAvatar] = useState(profile.avatar);
+  const [editUsernameError, setEditUsernameError] = useState<string | null>(null);
+  const [editUsernameValid, setEditUsernameValid] = useState<boolean>(true);
+
+  const handleOpenEditProfile = () => {
+    setEditName(profile.name);
+    const currClean = cleanUsernameInput(profile.username || '');
+    setEditUsername(currClean);
+    setEditAvatar(profile.avatar);
+    setEditUsernameError(null);
+    setEditUsernameValid(true);
+    setActiveSubScreen('edit-profile');
+  };
+
+  const handleEditUsernameChange = (val: string) => {
+    const cleaned = cleanUsernameInput(val);
+    setEditUsername(cleaned);
+    
+    if (!cleaned) {
+      setEditUsernameValid(false);
+      setEditUsernameError('O username não pode ficar vazio.');
+      return;
+    }
+    const format = validateUsernameFormat(cleaned);
+    if (!format.isValid) {
+      setEditUsernameValid(false);
+      setEditUsernameError(format.error);
+      return;
+    }
+    const avail = isUsernameAvailable(cleaned, profile.id);
+    if (!avail.available) {
+      setEditUsernameValid(false);
+      setEditUsernameError(avail.reason || 'Username indisponível.');
+      return;
+    }
+    setEditUsernameValid(true);
+    setEditUsernameError(null);
+  };
+
+  const handleSaveProfile = () => {
+    if (!editUsernameValid || !editName.trim()) return;
+    const cleanedUser = cleanUsernameInput(editUsername);
+    const reserved = reserveUsername(cleanedUser, profile.id, profile.username);
+    if (!reserved) {
+      setEditUsernameValid(false);
+      setEditUsernameError('Não foi possível reservar este username.');
+      return;
+    }
+    setProfile({
+      ...profile,
+      name: editName.trim(),
+      username: cleanedUser,
+      avatar: editAvatar
+    });
+    audio.playChimeDone();
+    setActiveSubScreen(null);
+  };
 
   const handleRunTests = () => {
     setIsRunningTests(true);
@@ -97,7 +168,10 @@ export const ProfileView: React.FC = () => {
 
         {/* User Card */}
         <div className="px-5 mb-6">
-          <div className="rounded-3xl p-5 border border-brand-200/50 dark:border-brand-800/30 bg-gradient-to-br from-brand-50 to-white dark:from-brand-900/20 dark:to-card-bg shadow-sm relative overflow-hidden group cursor-pointer hover:border-brand-300 transition-colors">
+          <div 
+            onClick={() => { audio.playClick(); handleOpenEditProfile(); }}
+            className="rounded-3xl p-5 border border-brand-200/50 dark:border-brand-800/30 bg-gradient-to-br from-brand-50 to-white dark:from-brand-900/20 dark:to-card-bg shadow-sm relative overflow-hidden group cursor-pointer hover:border-brand-300 transition-colors"
+          >
             {/* Soft decorative blur */}
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand-200/40 dark:bg-brand-500/10 rounded-full blur-2xl pointer-events-none"></div>
             
@@ -111,7 +185,8 @@ export const ProfileView: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <h2 className="font-bold text-text-primary text-base">{googleSync.isConnected ? profile.name : 'Visitante'}</h2>
+                  <h2 className="font-bold text-text-primary text-base">{profile.name || 'Visitante'}</h2>
+                  <p className="text-[11px] font-mono font-bold text-brand-600 dark:text-brand-400">@{profile.username || 'visitante'}</p>
                   <p className="text-[10px] text-text-secondary mb-1.5">{googleSync.isConnected ? (profile.email || 'usuario@email.com') : 'Modo Local'}</p>
                   <div className="flex gap-2 mt-1.5">
                     <div className="inline-flex items-center gap-1 bg-brand-100/60 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 px-2 py-0.5 rounded-full text-[9px] font-bold">
@@ -271,7 +346,7 @@ export const ProfileView: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center"><Bell className="w-4 h-4" /></div>
                   <div className="text-left">
-                    <p className="text-xs font-bold text-text-primary">Notificações</p>
+                    <p className="text-xs font-bold text-text-primary">Alarmes e Notificações</p>
                     <p className="text-[10px] text-text-secondary">Configurar lembretes e alertas</p>
                   </div>
                 </div>
@@ -412,6 +487,113 @@ export const ProfileView: React.FC = () => {
         <div className="absolute inset-0 bg-app-bg z-30 animate-slide-up flex flex-col">
           <div className="flex-1 overflow-y-auto custom-scrollbar px-5 pt-8 pb-20">
             
+            {/* SUB: EDIT PROFILE */}
+            {activeSubScreen === 'edit-profile' && (
+              <>
+                {renderSubScreenHeader('Editar Perfil')}
+                <div className="flex flex-col gap-5 max-w-sm mx-auto">
+                  
+                  {/* Avatar Section */}
+                  <div className="flex flex-col items-center justify-center mb-2">
+                    <div className="w-20 h-20 rounded-full border-4 border-brand-500/20 shadow-md overflow-hidden bg-brand-100 flex items-center justify-center mb-2 relative">
+                      {editAvatar ? (
+                        <img src={editAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-10 h-10 text-brand-500" />
+                      )}
+                    </div>
+                    <span className="text-[10px] text-text-secondary">Perfil do Usuário</span>
+                  </div>
+
+                  {/* Nome de Exibição */}
+                  <div className="card-standard p-4 rounded-2xl">
+                    <label className="block text-[10px] font-bold text-text-secondary uppercase mb-1">Nome de Exibição</label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Seu nome"
+                      className="w-full bg-app-bg text-text-primary px-3 py-2 rounded-xl border border-border-color text-xs focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+
+                  {/* Username Exclusivo */}
+                  <div className="card-standard p-4 rounded-2xl">
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-[10px] font-bold text-text-secondary uppercase">Username (@username)</label>
+                      <span className="text-[9px] text-text-secondary font-mono">{editUsername.length}/20</span>
+                    </div>
+                    
+                    <div className={`relative flex items-center bg-app-bg rounded-xl border transition-colors px-3 py-2 ${
+                      editUsernameError ? 'border-red-500 bg-red-50/10' : editUsernameValid && editUsername ? 'border-green-500 bg-green-50/10' : 'border-border-color focus-within:border-brand-500'
+                    }`}>
+                      <span className="text-brand-500 font-bold text-xs mr-1">@</span>
+                      <input
+                        type="text"
+                        value={editUsername}
+                        onChange={(e) => handleEditUsernameChange(e.target.value)}
+                        placeholder="seu_username"
+                        className="w-full bg-transparent text-text-primary font-mono text-xs focus:outline-none"
+                        maxLength={20}
+                      />
+                      {editUsernameValid && editUsername && (
+                        <Check className="w-4 h-4 text-green-500 ml-1 shrink-0" />
+                      )}
+                      {editUsernameError && (
+                        <AlertCircle className="w-4 h-4 text-red-500 ml-1 shrink-0" />
+                      )}
+                    </div>
+
+                    {editUsernameError && (
+                      <p className="text-[10px] text-red-500 font-medium mt-1.5 flex items-center gap-1">
+                        {editUsernameError}
+                      </p>
+                    )}
+                    {editUsernameValid && editUsername && (
+                      <p className="text-[10px] text-green-600 dark:text-green-400 font-medium mt-1.5">
+                        ✓ Username reservado exclusivamente para você!
+                      </p>
+                    )}
+
+                    {/* Auto suggestions */}
+                    <div className="mt-3 pt-3 border-t border-border-color/50">
+                      <span className="text-[10px] font-bold text-text-secondary mb-1.5 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-amber-500" />
+                        Sugestões baseadas no seu nome:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {generateUsernameSuggestions(editName || profile.email || 'user', profile.id).map(sugg => (
+                          <button
+                            key={sugg}
+                            type="button"
+                            onClick={() => handleEditUsernameChange(sugg)}
+                            className={`text-[9px] font-bold px-2.5 py-1 rounded-full border transition-all ${
+                              editUsername === cleanUsernameInput(sugg)
+                                ? 'bg-brand-500 text-white border-brand-500'
+                                : 'bg-app-bg text-text-secondary border-border-color hover:border-brand-400 hover:text-brand-500'
+                            }`}
+                          >
+                            {sugg}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <button
+                    onClick={handleSaveProfile}
+                    disabled={!editUsernameValid || !editName.trim()}
+                    className="w-full py-3 rounded-2xl bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-bold shadow-lg shadow-brand-500/30 transition-all flex items-center justify-center gap-2 text-xs disabled:opacity-50 disabled:pointer-events-none mt-2"
+                  >
+                    <Check className="w-4 h-4" />
+                    Salvar Alterações
+                  </button>
+
+                </div>
+              </>
+            )}
+
             {/* SUB: APPEARANCE & SKINS */}
             {activeSubScreen === 'appearance' && (
               <>
@@ -863,20 +1045,44 @@ export const ProfileView: React.FC = () => {
             {/* Notifications Subscreen is simpler, just placeholder logic for now */}
             {activeSubScreen === 'notifications' && (
               <>
-                {renderSubScreenHeader('Notificações')}
+                {renderSubScreenHeader('Alarmes e Notificações')}
                 <div className="flex flex-col gap-3">
                   
-                  <div className="p-4 bg-card-bg border border-border-color rounded-2xl flex items-center justify-between mb-2">
-                    <div>
-                      <p className="text-sm font-bold text-text-primary">Alarmes em Tela Cheia</p>
-                      <p className="text-[10px] text-text-secondary max-w-[200px]">Ativar alarme automático para eventos e tarefas com horário fixo</p>
+                  <div className="p-4 bg-card-bg border border-border-color rounded-2xl flex flex-col gap-4 mb-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-text-primary">Alarmes em Tela Cheia</p>
+                        <p className="text-[10px] text-text-secondary max-w-[200px]">Ativar alarme automático para eventos e tarefas com horário fixo</p>
+                      </div>
+                      <div 
+                        onClick={() => { audio.playClick(); setGlobalAlarmsEnabled(!globalAlarmsEnabled); }}
+                        className={`w-10 h-6 rounded-full p-1 flex items-center cursor-pointer shrink-0 transition-colors ${globalAlarmsEnabled ? 'bg-brand-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+                      >
+                        <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${globalAlarmsEnabled ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                      </div>
                     </div>
-                    <div 
-                      onClick={() => { audio.playClick(); setGlobalAlarmsEnabled(!globalAlarmsEnabled); }}
-                      className={`w-10 h-6 rounded-full p-1 flex items-center cursor-pointer shrink-0 transition-colors ${globalAlarmsEnabled ? 'bg-brand-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+                    
+                    <button 
+                      onClick={() => {
+                        if (!isTestingAlarm) {
+                          audio.playClick();
+                          setIsTestingAlarm(true);
+                          testAlarm();
+                          setTimeout(() => setIsTestingAlarm(false), 10000);
+                        }
+                      }}
+                      disabled={isTestingAlarm}
+                      className="w-full py-2.5 rounded-xl border border-brand-200 text-brand-600 text-xs font-bold flex items-center justify-center gap-2 hover:bg-brand-50 transition-colors disabled:opacity-50"
                     >
-                      <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${globalAlarmsEnabled ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                    </div>
+                      {isTestingAlarm ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-brand-600 border-t-transparent rounded-full animate-spin"></div>
+                          Testando em 10s...
+                        </>
+                      ) : (
+                        'Simular Alarme (10s)'
+                      )}
+                    </button>
                   </div>
 
                   <div className="flex flex-col gap-4 bg-card-bg p-4 border border-border-color rounded-2xl mt-2">

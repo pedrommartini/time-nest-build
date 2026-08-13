@@ -4,8 +4,11 @@ import { useMedication } from './MedicationContext';
 
 export interface ActiveAlarm {
   id: string;
-  type: 'sleep' | 'medication';
+  type: 'sleep' | 'medication' | 'event' | 'task' | 'test';
+  intent: 'pre-event' | 'task-now' | 'critical' | 'test';
   title: string;
+  metadata?: string;
+  durationOrTime?: string;
   sound: 'chime' | 'rain' | 'forest' | 'waves';
   visual: 'minimal' | 'gamified';
 }
@@ -13,6 +16,7 @@ export interface ActiveAlarm {
 interface AlarmManagerContextType {
   activeAlarm: ActiveAlarm | null;
   dismissAlarm: () => void;
+  testAlarm: () => void;
 }
 
 const AlarmManagerContext = createContext<AlarmManagerContextType | undefined>(undefined);
@@ -23,6 +27,22 @@ export const AlarmManagerProvider: React.FC<{ children: React.ReactNode }> = ({ 
   
   const [activeAlarm, setActiveAlarm] = useState<ActiveAlarm | null>(null);
   const [lastTriggeredMinute, setLastTriggeredMinute] = useState<string>('');
+
+  const testAlarm = () => {
+    // Fire test alarm in 10 seconds
+    setTimeout(() => {
+      setActiveAlarm({
+        id: 'test-' + Date.now(),
+        type: 'test',
+        intent: 'test',
+        title: 'Teste de Alarme',
+        metadata: 'Este é apenas um teste de 10s',
+        durationOrTime: 'Agora',
+        sound: alarmSound,
+        visual: alarmVisual
+      });
+    }, 10000);
+  };
 
   useEffect(() => {
     const checkAlarms = () => {
@@ -53,7 +73,10 @@ export const AlarmManagerProvider: React.FC<{ children: React.ReactNode }> = ({ 
           setActiveAlarm({
             id: 'sleep-' + Date.now(),
             type: 'sleep',
-            title: 'Prepare-se para dormir em 5 minutos',
+            intent: 'pre-event',
+            title: 'Preparação para dormir',
+            durationOrTime: `Em 5 min (${sleepStart})`,
+            metadata: 'Rotina de Sono',
             sound: alarmSound,
             visual: alarmVisual
           });
@@ -69,7 +92,10 @@ export const AlarmManagerProvider: React.FC<{ children: React.ReactNode }> = ({ 
           setActiveAlarm({
             id: 'med-' + med.id + '-' + Date.now(),
             type: 'medication',
-            title: `Hora do medicamento: ${med.name}`,
+            intent: 'critical', // medications are usually important
+            title: med.name,
+            durationOrTime: med.time,
+            metadata: 'Lembrete de Medicamento',
             sound: alarmSound,
             visual: alarmVisual
           });
@@ -89,7 +115,7 @@ export const AlarmManagerProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   return (
-    <AlarmManagerContext.Provider value={{ activeAlarm, dismissAlarm }}>
+    <AlarmManagerContext.Provider value={{ activeAlarm, dismissAlarm, testAlarm }}>
       {children}
     </AlarmManagerContext.Provider>
   );

@@ -652,9 +652,20 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           } as Event;
         });
 
+      // Deduplicate items returned from Google API by title, date, start, and end
+      const seenKeys = new Set<string>();
+      const uniqueGoogleEvents: Event[] = [];
+      for (const gEvent of newGoogleEvents) {
+        const dedupeKey = `${gEvent.title.trim().toLowerCase()}_${gEvent.date}_${gEvent.start}_${gEvent.end}`;
+        if (!seenKeys.has(dedupeKey)) {
+          seenKeys.add(dedupeKey);
+          uniqueGoogleEvents.push(gEvent);
+        }
+      }
+
       setEvents(prev => {
         const localEvents = prev.filter(e => e.source !== 'google');
-        return [...localEvents, ...newGoogleEvents];
+        return [...localEvents, ...uniqueGoogleEvents];
       });
 
       setGoogleSync(prev => ({

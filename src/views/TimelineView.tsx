@@ -39,7 +39,7 @@ export const TimelineView: React.FC = () => {
   const { events, freeIntervals, updateEventTimes, updateEvent, deleteEvent } = useCalendar();
   const { tasks, updateTask, deleteTask } = useTasks();
   const { isActive, startTimer } = useFocus();
-  const { setActiveTab, openSmartInput, selectedEventId, selectedTaskId, selectTask, clearSelection, isDrawerExpanded, setIsDrawerExpanded } = useNavigation();
+  const { setActiveTab, openSmartInput, selectedEventId, selectedTaskId, selectTask, clearSelection, isDrawerExpanded, setIsDrawerExpanded, isCleanMode, setIsCleanMode } = useNavigation();
   const { isTestEnvironment, sleepStart, sleepEnd } = usePreferences();
   const { energyLevel } = useProfile();
   
@@ -151,16 +151,22 @@ export const TimelineView: React.FC = () => {
     audio.playClick();
     setIsAutoScrolling(true);
     setIsCentered(true);
+    setIsCleanMode(true);
     
     if (containerRef.current && currentTimeStr) {
       isProgrammaticScroll.current = true;
       clearTimeout(scrollTimeout.current);
       scrollTimeout.current = setTimeout(() => {
         isProgrammaticScroll.current = false;
-      }, 1000);
-
+        setIsCleanMode(false);
+      }, 700);
+      
+      const offset = timeToOffsetPx(currentTimeStr);
+      const clientHeight = containerRef.current.clientHeight;
+      const targetScrollTop = offset - (clientHeight - 85) / 2;
+      
       containerRef.current.scrollTo({
-        top: timeToOffsetPx(currentTimeStr) - (containerRef.current.clientHeight - 85) / 2,
+        top: targetScrollTop,
         behavior: 'smooth'
       });
     }
@@ -171,7 +177,9 @@ export const TimelineView: React.FC = () => {
     <div className="relative h-full flex flex-col bg-app-bg overflow-hidden animate-fade-in">
       
       {/* Floating Top Header (No background strip) */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-[290px] flex items-center gap-2 pointer-events-none">
+      <div className={`absolute top-4 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-[290px] flex items-center gap-2 transition-opacity duration-300 ${
+        isCleanMode ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-none'
+      }`}>
         {/* Floating Search & Quick Input Pill */}
         <div 
           onClick={() => { openSmartInput(false); }}
@@ -211,7 +219,9 @@ export const TimelineView: React.FC = () => {
       <div 
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto custom-scrollbar relative pt-16 pb-32"
+        className={`flex-1 custom-scrollbar relative pt-16 pb-32 transition-colors ${
+          isCleanMode ? 'overflow-y-hidden touch-none' : 'overflow-y-auto'
+        }`}
       >
         <div className="relative w-full" style={{ height: '1403520px' }}>
           
@@ -493,7 +503,9 @@ export const TimelineView: React.FC = () => {
         <button 
           onClick={resumeAutoScroll}
           style={{ bottom: hasSelectedItem ? '356px' : '176px' }}
-          className="absolute right-1/2 translate-x-1/2 bg-app-bg text-brand-600 dark:text-brand-400 px-4 py-2.5 rounded-full shadow-lg border border-border-color text-[11px] font-bold flex items-center gap-2 animate-slide-up z-50 active:scale-95 transition-transform transition-[bottom] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]"
+          className={`absolute right-1/2 translate-x-1/2 bg-app-bg text-brand-600 dark:text-brand-400 px-4 py-2.5 rounded-full shadow-lg border border-border-color text-[11px] font-bold flex items-center gap-2 animate-slide-up z-50 active:scale-95 transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
+            isCleanMode ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
+          }`}
         >
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
@@ -507,6 +519,8 @@ export const TimelineView: React.FC = () => {
       {!isActive && (
         <div 
           className={`absolute bottom-0 left-0 right-0 bg-white dark:bg-card-bg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
+            isCleanMode ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
+          } ${
             hasSelectedItem 
               ? (isDrawerExpanded ? 'h-full rounded-t-none z-[60] pt-2' : 'h-[340px] rounded-t-[44px] z-40 shadow-[0_-8px_30px_rgba(40,30,70,0.06)]')
               : (isDrawerExpanded ? 'h-[390px] rounded-t-[44px] z-40 shadow-[0_-8px_30px_rgba(40,30,70,0.06)]' : 'h-[160px] rounded-t-[44px] z-40 shadow-[0_-8px_30px_rgba(40,30,70,0.06)]')

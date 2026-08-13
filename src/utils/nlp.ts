@@ -70,10 +70,10 @@ export function parseNLPInput(text: string, referenceDate: Date = new Date()): P
     /\b(\d{1,2})\s*h(?:oras?)?\b/i,
   ];
   
-  // Date Regexes (amanha, hoje, dia 15, proxima segunda, etc.)
+  // Date Regexes (amanha, amanhã, hoje, dia 15, proxima segunda, etc.)
   const dateRegexes = [
-    /\b(?:para\s+)?amanhã\b/i,
-    /\b(?:para\s+)?hoje\b/i,
+    /(?:^|\s|\b)(?:para\s+)?amanh[aã](?:\b|\s|$)/i,
+    /(?:^|\s|\b)(?:para\s+)?hoje(?:\b|\s|$)/i,
     /\b(?:na\s+)?(?:próxima\s+)?(segunda|terça|quarta|quinta|sexta|sábado|domingo)(?:-feira)?\b/i,
     /\bdia\s+(\d{1,2})(?:\s+de\s+(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro))?\b/i
   ];

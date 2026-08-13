@@ -4,12 +4,23 @@ import { parseNLPInput, normalizeTitle, getSimilarity, estimateDuration } from '
 import { calculateFreeIntervals, timeStringToMinutes, minutesToTimeString } from './time';
 import type { Event } from './time';
 import { validateAndParseBackup, exportTasksToCSV } from './backup';
+import { validateUsernameFormat, isUsernameAvailable, reserveUsername } from './username';
 
 export interface TestResult {
   category: string;
   name: string;
   success: boolean;
   errorMessage?: string;
+}
+
+if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+  const memoryStore: Record<string, string> = {};
+  (globalThis as any).localStorage = {
+    getItem: (key: string) => memoryStore[key] || null,
+    setItem: (key: string, value: string) => { memoryStore[key] = String(value); },
+    removeItem: (key: string) => { delete memoryStore[key]; },
+    clear: () => { Object.keys(memoryStore).forEach(k => delete memoryStore[k]); }
+  };
 }
 
 export function runTests(): TestResult[] {
@@ -140,6 +151,43 @@ export function runTests(): TestResult[] {
     if (!parsed || parsed.tasks.length !== 1) {
       throw new Error('Valid backup rejected by parser');
     }
+  });
+
+  // 4. Username System Tests
+  test('Username System', 'Validates valid usernames correctly', () => {
+    const res = validateUsernameFormat('pedro_martini');
+    if (!res.isValid) throw new Error(`Expected valid, got error: ${res.error}`);
+    if (res.formatted !== '@pedro_martini') throw new Error(`Unexpected format: ${res.formatted}`);
+  });
+
+  test('Username System', 'Rejects short or invalid character usernames', () => {
+    const resShort = validateUsernameFormat('ab');
+    if (resShort.isValid) throw new Error('Expected invalid for short length');
+
+    const resInvalidChar = validateUsernameFormat('pedro@martini!');
+    if (resInvalidChar.isValid && resInvalidChar.formatted.includes('@martini!')) {
+      throw new Error('Expected invalid for special characters');
+    }
+  });
+
+  test('Username System', 'Rejects reserved usernames', () => {
+    const resAdmin = validateUsernameFormat('admin');
+    if (resAdmin.isValid) throw new Error('Expected reserved username "admin" to be rejected');
+  });
+
+  test('Username System', 'Enforces username registry uniqueness', () => {
+    const uName = 'usr_' + String(Date.now()).slice(-8);
+    const userA = 'user_A_123';
+    const userB = 'user_B_456';
+
+    const reservedA = reserveUsername(uName, userA);
+    if (!reservedA) throw new Error('Failed to reserve username for userA');
+
+    const availB = isUsernameAvailable(uName, userB);
+    if (availB.available) throw new Error('Username should be unavailable for userB');
+
+    const availA = isUsernameAvailable(uName, userA);
+    if (!availA.available) throw new Error('Username should remain available for owner userA');
   });
 
   return results;

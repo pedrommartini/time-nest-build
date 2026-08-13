@@ -113,6 +113,18 @@ class AudioSystem {
     this.activeOscillators = [];
   }
 
+  public vibrate(pattern: 'normal' | 'critical' | 'task' = 'normal') {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      if (pattern === 'normal') {
+        navigator.vibrate([200, 100, 200]); // buzz - pause - buzz
+      } else if (pattern === 'task') {
+        navigator.vibrate([200, 50, 200]); // buzz buzz
+      } else if (pattern === 'critical') {
+        navigator.vibrate([300, 100, 300, 100, 300]); // buzz - buzz - buzz
+      }
+    }
+  }
+
   public playAmbient(type: 'rain' | 'waves' | 'cafe' | 'forest', volume: number = 0.3) {
     this.stopAmbient();
     if (!this.enabled || !this.ctx || !this.masterGain || volume <= 0) return;
