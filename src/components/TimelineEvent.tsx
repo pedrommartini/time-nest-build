@@ -64,7 +64,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
   leftPct = 0
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { selectedEventId, selectEvent, setIsCleanMode } = useNavigation();
+  const { selectedEventId, selectEvent, setIsCleanMode, setIsResizing } = useNavigation();
   const isSelected = selectedEventId === event.id;
   const [isFocused, setIsFocused] = useState(false);
   
@@ -94,14 +94,20 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
     isDraggingRef.current = isDragging;
   }, [isDragging]);
 
-  // Clean mode sync on drag or resize
+  // Clean mode & Resize mode sync
   useEffect(() => {
     if (isDragging || resizeMode !== null) {
       setIsCleanMode(true);
     } else {
       setIsCleanMode(false);
     }
-  }, [isDragging, resizeMode, setIsCleanMode]);
+
+    if (resizeMode !== null) {
+      setIsResizing(true);
+    } else {
+      setIsResizing(false);
+    }
+  }, [isDragging, resizeMode, setIsCleanMode, setIsResizing]);
 
   // Click outside listener for focus
   useEffect(() => {
@@ -468,26 +474,35 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
         <div className={`absolute -left-[24px] top-4 w-[9px] h-[9px] rounded-full bg-${event.color || 'brand'}-400 dark:bg-${event.color || 'brand'}-500 shadow-sm z-0`}></div>
       )}
 
-      <div className="flex items-center justify-between gap-2 h-full pointer-events-none">
-        <div className="flex flex-col min-w-0 flex-1 justify-center gap-1 pointer-events-auto">
-          {finalHeight >= 40 && (
-            <span className={`text-[11px] font-medium text-${event.color || 'brand'}-600 dark:text-${event.color || 'brand'}-400`}>
-              {event.start} – {event.end}
+      <div className="flex items-center justify-between gap-2.5 h-full pointer-events-none">
+        {/* Left Side Time Badge Column */}
+        <div className={`flex flex-col items-center justify-center shrink-0 pr-2.5 border-r border-${event.color || 'brand'}-300/60 dark:border-${event.color || 'brand'}-700/60 pointer-events-auto`}>
+          <span className={`font-mono font-bold leading-none ${finalHeight < 40 ? 'text-[10px]' : 'text-[12px]'} text-${event.color || 'brand'}-700 dark:text-${event.color || 'brand'}-300`}>
+            {event.start}
+          </span>
+          {finalHeight >= 48 && (
+            <span className={`font-mono text-[9px] font-semibold leading-tight opacity-75 mt-0.5 text-${event.color || 'brand'}-600 dark:text-${event.color || 'brand'}-400`}>
+              {event.end}
             </span>
           )}
-          
-          <span className={`text-[15px] font-semibold text-text-primary truncate transition-all ${isCompleted ? 'line-through text-text-secondary opacity-70' : ''}`}>
+        </div>
+
+        {/* Title & Metadata Column (Middle) */}
+        <div className="flex flex-col min-w-0 flex-1 justify-center pointer-events-auto pr-1">
+          <span className={`font-semibold text-text-primary truncate transition-all ${
+            finalHeight < 36 ? 'text-xs' : finalHeight < 55 ? 'text-sm' : 'text-base'
+          } ${isCompleted ? 'line-through text-text-secondary opacity-70' : ''}`}>
             {event.title}
           </span>
           
-          {finalHeight >= 60 && (
+          {finalHeight >= 62 && (
             <div className="flex items-center gap-1.5 mt-0.5">
               {event.source === 'google' ? (
-                <CalendarDays className="w-3.5 h-3.5 text-text-secondary/70" />
+                <CalendarDays className="w-3 h-3 text-text-secondary/70 shrink-0" />
               ) : (
-                <CheckSquare className="w-3.5 h-3.5 text-text-secondary/70" />
+                <CheckSquare className="w-3 h-3 text-text-secondary/70 shrink-0" />
               )}
-              <span className="text-[11px] font-medium text-text-secondary/70">
+              <span className="text-[10px] font-medium text-text-secondary/70 truncate">
                 {event.source === 'google' ? 'Google Agenda' : 'Tarefa Local'}
               </span>
             </div>
@@ -495,7 +510,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
         </div>
         
         {!resizeMode && !isDragging && (
-          <div className="flex items-center gap-2 pointer-events-auto">
+          <div className="flex items-center gap-1.5 pointer-events-auto shrink-0">
             {/* Delete button */}
             <button 
               onClick={(e) => {
@@ -505,7 +520,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
               className="p-1.5 rounded-full bg-red-100/0 text-red-600/0 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-600 dark:hover:text-red-400 group-hover:text-red-500/60 group-focus-within:text-red-500/60 transition-all"
               title="Excluir"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
 
             {/* Checkmark Toggle */}
@@ -516,7 +531,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
                 audio.playClick();
                 onUpdate(event.id, { completed: !isCompleted });
               }}
-              className={`w-8 h-8 rounded-full border flex items-center justify-center shrink-0 transition-colors
+              className={`w-7 h-7 md:w-8 md:h-8 rounded-full border flex items-center justify-center shrink-0 transition-colors
                 ${!isPastOrPresent(event.date, event.start) ? 'opacity-40 cursor-not-allowed border-border-color/50 bg-transparent' : 'cursor-pointer'}
                 ${isCompleted 
                   ? `bg-${event.color || 'brand'}-500 border-${event.color || 'brand'}-500` 
@@ -524,7 +539,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
                 }`}
               title={isCompleted ? "Marcar como pendente" : "Marcar como concluído"}
             >
-              {isCompleted && <Check className="w-4 h-4 text-white" />}
+              {isCompleted && <Check className="w-3.5 h-3.5 text-white" />}
             </button>
           </div>
         )}

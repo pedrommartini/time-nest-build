@@ -39,7 +39,7 @@ export const TimelineView: React.FC = () => {
   const { events, freeIntervals, updateEventTimes, updateEvent, deleteEvent } = useCalendar();
   const { tasks, updateTask, deleteTask } = useTasks();
   const { isActive, startTimer } = useFocus();
-  const { setActiveTab, openSmartInput, selectedEventId, selectedTaskId, selectTask, clearSelection, isDrawerExpanded, setIsDrawerExpanded, isCleanMode, setIsCleanMode } = useNavigation();
+  const { setActiveTab, openSmartInput, selectedEventId, selectedTaskId, selectTask, clearSelection, isDrawerExpanded, setIsDrawerExpanded, isCleanMode, setIsCleanMode, isResizing } = useNavigation();
   const { isTestEnvironment, sleepStart, sleepEnd } = usePreferences();
   const { energyLevel } = useProfile();
   
@@ -220,7 +220,7 @@ export const TimelineView: React.FC = () => {
         ref={containerRef}
         onScroll={handleScroll}
         className={`flex-1 custom-scrollbar relative pt-16 pb-32 transition-colors ${
-          isCleanMode ? 'overflow-y-hidden touch-none' : 'overflow-y-auto'
+          isResizing ? 'overflow-y-hidden touch-none' : 'overflow-y-auto'
         }`}
       >
         <div className="relative w-full" style={{ height: '1403520px' }}>

@@ -15,6 +15,8 @@ interface NavigationContextType {
   setIsDrawerExpanded: (expanded: boolean) => void;
   isCleanMode: boolean;
   setIsCleanMode: (clean: boolean) => void;
+  isResizing: boolean;
+  setIsResizing: (resizing: boolean) => void;
   selectEvent: (id: string | null) => void;
   selectTask: (id: string | null) => void;
   clearSelection: () => void;
@@ -31,6 +33,7 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
   const [isCleanMode, setIsCleanMode] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
 
   const openSmartInput = (withVoice = false) => {
     setStartWithVoice(withVoice);
@@ -73,6 +76,8 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setIsDrawerExpanded,
       isCleanMode,
       setIsCleanMode,
+      isResizing,
+      setIsResizing,
       selectEvent,
       selectTask,
       clearSelection
