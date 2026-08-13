@@ -11,6 +11,8 @@ interface NavigationContextType {
   closeSmartInput: () => void;
   selectedEventId: string | null;
   selectedTaskId: string | null;
+  isDrawerExpanded: boolean;
+  setIsDrawerExpanded: (expanded: boolean) => void;
   selectEvent: (id: string | null) => void;
   selectTask: (id: string | null) => void;
   clearSelection: () => void;
@@ -25,6 +27,7 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
 
   const openSmartInput = (withVoice = false) => {
     setStartWithVoice(withVoice);
@@ -38,16 +41,19 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const selectEvent = (id: string | null) => {
     setSelectedTaskId(null);
     setSelectedEventId(id);
+    if (!id) setIsDrawerExpanded(false);
   };
 
   const selectTask = (id: string | null) => {
     setSelectedEventId(null);
     setSelectedTaskId(id);
+    if (!id) setIsDrawerExpanded(false);
   };
 
   const clearSelection = () => {
     setSelectedEventId(null);
     setSelectedTaskId(null);
+    setIsDrawerExpanded(false);
   };
 
   return (
@@ -60,6 +66,8 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       closeSmartInput,
       selectedEventId,
       selectedTaskId,
+      isDrawerExpanded,
+      setIsDrawerExpanded,
       selectEvent,
       selectTask,
       clearSelection

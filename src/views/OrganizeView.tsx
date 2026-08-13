@@ -9,6 +9,7 @@ import { useFocus } from '../contexts/FocusContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RichTextEditor } from '../components/RichTextEditor';
+import { EventDetailDrawer } from '../components/EventDetailDrawer';
 
 const iconMap: Record<string, any> = {
   Briefcase, GraduationCap, Home, ChefHat, Dumbbell, Plane, Folder,
@@ -16,8 +17,8 @@ const iconMap: Record<string, any> = {
 };
 
 export const OrganizeView: React.FC = () => {
-  const { tasks, updateTaskStatus, updateTask } = useTasks();
-  const { events, updateEvent } = useCalendar();
+  const { tasks, updateTaskStatus, updateTask, deleteTask } = useTasks();
+  const { events, updateEvent, updateEventTimes, deleteEvent } = useCalendar();
   const { projects, addProject, updateProject } = useProjects();
   const { startTimer } = useFocus();
   const { setActiveTab: setGlobalActiveTab, openSmartInput } = useNavigation();
@@ -33,6 +34,7 @@ export const OrganizeView: React.FC = () => {
   const [editingProjectDesc, setEditingProjectDesc] = useState<string | null>(null);
   const [draftDescription, setDraftDescription] = useState('');
   const [todosSortOrder, setTodosSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [detailItem, setDetailItem] = useState<{ type: 'event' | 'task', id: string } | null>(null);
 
   const handlePlay = (task: any) => {
     audio.playClick();
@@ -92,10 +94,16 @@ export const OrganizeView: React.FC = () => {
         className={`group flex items-center justify-between p-3.5 mb-2 card-standard ${
           isCompleted 
             ? 'opacity-60 grayscale !border-transparent !shadow-none' 
-            : 'hover:border-brand-300 dark:hover:border-brand-700'
+            : 'hover:border-brand-300 dark:hover:border-brand-700 cursor-pointer'
         }`}
       >
-        <div className="flex items-start gap-3 flex-1 min-w-0">
+        <div 
+          className="flex items-start gap-3 flex-1 min-w-0 cursor-pointer"
+          onClick={() => {
+            audio.playClick();
+            setDetailItem({ type: isTask ? 'task' : 'event', id: item.id });
+          }}
+        >
           {/* Timeline indicator or Checkbox */}
           {isTask ? (
             <button 
@@ -568,6 +576,23 @@ export const OrganizeView: React.FC = () => {
         </AnimatePresence>
       </div>
 
+      {/* Full Screen Item Detail Modal (Item 3.1) */}
+      {detailItem && (
+        <div className="fixed inset-0 bg-white dark:bg-card-bg z-[200] flex flex-col animate-slide-up">
+          <EventDetailDrawer
+            event={detailItem.type === 'event' ? events.find(e => e.id === detailItem.id) || null : null}
+            task={detailItem.type === 'task' ? tasks.find(t => t.id === detailItem.id) || null : null}
+            isExpanded={true}
+            onToggleExpand={() => setDetailItem(null)}
+            onClose={() => setDetailItem(null)}
+            onUpdateEvent={updateEvent}
+            onUpdateEventTimes={updateEventTimes}
+            onDeleteEvent={(id) => { deleteEvent(id); setDetailItem(null); }}
+            onUpdateTask={updateTask}
+            onDeleteTask={(id) => { deleteTask(id); setDetailItem(null); }}
+          />
+        </div>
+      )}
     </div>
   );
 };

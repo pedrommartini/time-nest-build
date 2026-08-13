@@ -39,7 +39,7 @@ export const TimelineView: React.FC = () => {
   const { events, freeIntervals, updateEventTimes, updateEvent, deleteEvent } = useCalendar();
   const { tasks, updateTask, deleteTask } = useTasks();
   const { isActive, startTimer } = useFocus();
-  const { setActiveTab, openSmartInput, selectedEventId, selectedTaskId, selectTask, clearSelection } = useNavigation();
+  const { setActiveTab, openSmartInput, selectedEventId, selectedTaskId, selectTask, clearSelection, isDrawerExpanded, setIsDrawerExpanded } = useNavigation();
   const { isTestEnvironment, sleepStart, sleepEnd } = usePreferences();
   const { energyLevel } = useProfile();
   
@@ -54,8 +54,6 @@ export const TimelineView: React.FC = () => {
   const [isAutoScrolling, setIsAutoScrolling] = useState(true);
   const [isCentered, setIsCentered] = useState(true);
   const [visibleRange, setVisibleRange] = useState({ start: 8750, end: 8790 });
-  
-  const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
 
   const isProgrammaticScroll = useRef(false);
   const scrollTimeout = useRef<any>(null);
@@ -425,6 +423,7 @@ export const TimelineView: React.FC = () => {
                   onUpdateTimes={updateEventTimes}
                   onUpdate={updateEvent}
                   onDelete={deleteEvent}
+                  onExpandDrawer={() => setIsDrawerExpanded(true)}
                   widthPct={widthPct}
                   leftPct={leftPct}
                 />
@@ -507,10 +506,10 @@ export const TimelineView: React.FC = () => {
       {/* Collapsible Tasks & Details Drawer */}
       {!isActive && (
         <div 
-          className={`absolute bottom-0 left-0 right-0 bg-white dark:bg-card-bg z-40 rounded-t-[44px] shadow-[0_-8px_30px_rgba(40,30,70,0.06)] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
+          className={`absolute bottom-0 left-0 right-0 bg-white dark:bg-card-bg flex flex-col transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
             hasSelectedItem 
-              ? (isDrawerExpanded ? 'h-[calc(100%-20px)]' : 'h-[340px]')
-              : (isDrawerExpanded ? 'h-[calc(100%-20px)]' : 'h-[160px]')
+              ? (isDrawerExpanded ? 'h-full rounded-t-none z-[60] pt-2' : 'h-[340px] rounded-t-[44px] z-40 shadow-[0_-8px_30px_rgba(40,30,70,0.06)]')
+              : (isDrawerExpanded ? 'h-[390px] rounded-t-[44px] z-40 shadow-[0_-8px_30px_rgba(40,30,70,0.06)]' : 'h-[160px] rounded-t-[44px] z-40 shadow-[0_-8px_30px_rgba(40,30,70,0.06)]')
           }`}
         >
           {hasSelectedItem ? (

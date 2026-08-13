@@ -13,6 +13,7 @@ interface TimelineEventProps {
   onUpdateTimes: (id: string, newStart: string, newEnd: string, newDate?: string) => void;
   onUpdate: (id: string, updates: Partial<Event>) => void;
   onDelete: (id: string) => void;
+  onExpandDrawer?: () => void;
   widthPct?: number; // For overlapping events
   leftPct?: number;
 }
@@ -58,6 +59,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
   onUpdateTimes,
   onUpdate,
   onDelete,
+  onExpandDrawer,
   widthPct = 100,
   leftPct = 0
 }) => {
@@ -103,7 +105,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
     }
   }, [isFocused]);
 
-  // Auto-scroll loop with speed gradient based on edge proximity (very close to top/bottom edges)
+  // Auto-scroll loop with speed gradient based on edge proximity
   const startAutoScrollLoop = (currentTouchY: number) => {
     if (resizeMode !== null) return; // Item 3: Stop scroll completely when resizing handles!
 
@@ -119,13 +121,13 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
 
     let scrollSpeed = 0;
 
-    // Item 1: Top Speed Gradient (Close to top edge: 0-20px 75%, 20-40px 45%, 40-60px 25%)
+    // Top Speed Gradient (0-20px 75%, 20-40px 45%, 40-60px 25%)
     if (distFromTop > 0 && distFromTop <= 60) {
       if (distFromTop <= 20) scrollSpeed = -18;
       else if (distFromTop <= 40) scrollSpeed = -10;
       else scrollSpeed = -4;
     }
-    // Item 1: Bottom Speed Gradient (Close to bottom edge: 0-25px 75%, 25-50px 45%, 50-80px 25%)
+    // Bottom Speed Gradient (0-25px 75%, 25-50px 45%, 50-80px 25%)
     else if (distFromBottom > 0 && distFromBottom <= 80) {
       if (distFromBottom <= 25) scrollSpeed = 18;
       else if (distFromBottom <= 50) scrollSpeed = 10;
@@ -169,7 +171,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
 
       if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
 
-      // Item 2: 300ms long-press timer to separate click vs drag
+      // 280ms long-press timer to separate click vs drag
       longPressTimerRef.current = setTimeout(() => {
         if (typeof window !== 'undefined' && 'vibrate' in navigator) {
           try { navigator.vibrate(35); } catch (err) {}
@@ -186,8 +188,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
         }
         currentScrollDeltaRef.current = 0;
         setIsFocused(true);
-        selectEvent(event.id);
-      }, 300);
+      }, 280);
     };
 
     const handleTouchMove = (e: TouchEvent) => {
@@ -201,7 +202,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
           touch.clientX - touchStartPosRef.current.x,
           touch.clientY - touchStartPosRef.current.y
         );
-        if (dist > 15) {
+        if (dist > 12) {
           if (longPressTimerRef.current) {
             clearTimeout(longPressTimerRef.current);
             longPressTimerRef.current = null;
@@ -271,7 +272,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
       el.removeEventListener('touchcancel', handleTouchEnd);
       stopAutoScrollLoop();
     };
-  }, [hourHeight, event, eventDurationMins, resizeMode, onUpdateTimes, selectEvent]);
+  }, [hourHeight, event, eventDurationMins, resizeMode, onUpdateTimes]);
 
   // Desktop Mouse Drag Handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -282,15 +283,16 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
     setIsDragging(true);
     isDraggingRef.current = true;
     dragStartYRef.current = e.clientY;
+    didDragRef.current = false;
     
     const scrollContainer = containerRef.current?.closest('.overflow-y-auto');
     if (scrollContainer) {
       initialScrollTopRef.current = scrollContainer.scrollTop;
     }
     currentScrollDeltaRef.current = 0;
-    selectEvent(event.id);
 
     const handleMouseMove = (me: MouseEvent) => {
+      didDragRef.current = true;
       const deltaY = (me.clientY - dragStartYRef.current) + currentScrollDeltaRef.current;
       dragOffsetYRef.current = deltaY;
       setDragOffsetY(deltaY);
@@ -340,11 +342,12 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
     window.addEventListener('mouseup', handleMouseUp);
   };
 
-  // Item 3: Pointer & Touch Resize Listeners - Stop scroll completely during handle manipulation!
+  // Pointer & Touch Resize Listeners - Stop scroll completely during handle manipulation!
   useEffect(() => {
     if (!resizeMode) return;
 
     stopAutoScrollLoop(); // Stop any auto-scroll
+    didDragRef.current = true;
     
     const handleMove = (e: PointerEvent) => {
       e.preventDefault();
@@ -399,11 +402,18 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
       tabIndex={0}
       onClick={(e) => {
         e.stopPropagation();
-        if (!didDragRef.current) {
-          selectEvent(event.id);
-        }
+        // Item 1.1: Do NOT trigger click selection if user was dragging or resizing!
+        if (didDragRef.current || resizeMode !== null) return;
+        selectEvent(event.id);
       }}
-      className={`absolute right-4 rounded-2xl flex flex-col justify-center transition-all duration-75 select-none px-4 py-3 outline-none group
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        // Item 1.5: Double click selects event and opens/expands drawer to full screen!
+        selectEvent(event.id);
+        if (onExpandDrawer) onExpandDrawer();
+      }}
+      className={`absolute right-4 rounded-2xl flex flex-col justify-center select-none px-4 py-3 outline-none group
+        ${isDragging || resizeMode ? 'transition-none duration-0' : 'transition-all duration-150'}
         ${!resizeMode ? 'cursor-grab active:cursor-grabbing' : ''}
         ${isSelected ? 'ring-3 ring-brand-500 shadow-lg z-30' : (isFocused && !resizeMode && !isDragging ? 'ring-2 ring-brand-400/50' : '')}
         bg-${event.color || 'brand'}-50/90 dark:bg-${event.color || 'brand'}-950/40
@@ -419,7 +429,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
         touchAction: isDragging || resizeMode !== null ? 'none' : 'pan-y'
       }}
     >
-      {/* Item 3: Top Mobile/Desktop Resize Handle (Setinha superior) */}
+      {/* Top Mobile/Desktop Resize Handle */}
       {!isDragging && (
         <div 
           className={`absolute -top-3.5 left-0 right-0 h-7 cursor-ns-resize z-50 flex items-center justify-center transition-all ${
@@ -511,7 +521,7 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
         )}
       </div>
 
-      {/* Item 3: Bottom Mobile/Desktop Resize Handle (Setinha inferior) */}
+      {/* Bottom Mobile/Desktop Resize Handle */}
       {!isDragging && (
         <div 
           className={`absolute -bottom-3.5 left-0 right-0 h-7 cursor-ns-resize z-50 flex items-center justify-center transition-all ${

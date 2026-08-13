@@ -32,7 +32,9 @@ const AppContent: React.FC = () => {
   const { t } = usePreferences();
   const { isLocked, unlock } = useProfile();
   const { isActive } = useFocus();
-  const { activeTab, setActiveTab, isSmartInputOpen, startWithVoice, openSmartInput, closeSmartInput } = useNavigation();
+  const { activeTab, setActiveTab, isSmartInputOpen, startWithVoice, openSmartInput, closeSmartInput, isDrawerExpanded, selectedEventId, selectedTaskId } = useNavigation();
+  const hasSelectedItem = !!(selectedEventId || selectedTaskId);
+  const isNavHidden = hasSelectedItem && isDrawerExpanded;
   
   const [passcodeInput, setPasscodeInput] = useState('');
   const [passcodeError, setPasscodeError] = useState(false);
@@ -188,7 +190,9 @@ const AppContent: React.FC = () => {
       )}
 
       {/* Bottom Navigation */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[420px] h-[82px] bg-white dark:bg-card-bg shadow-[0_8px_30px_rgba(40,30,70,0.08),0_2px_8px_rgba(40,30,70,0.04)] border border-gray-100 dark:border-border-color rounded-[40px] px-1 z-50 flex items-center justify-between pb-[env(safe-area-inset-bottom)]">
+      <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[420px] h-[82px] bg-white dark:bg-card-bg shadow-[0_8px_30px_rgba(40,30,70,0.08),0_2px_8px_rgba(40,30,70,0.04)] border border-gray-100 dark:border-border-color rounded-[40px] px-1 z-50 flex items-center justify-between pb-[env(safe-area-inset-bottom)] transition-opacity duration-300 ${
+        isNavHidden ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'
+      }`}>
         <div className="w-full h-full grid grid-cols-5 items-center relative">
           
           {/* Timeline Tab */}

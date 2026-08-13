@@ -27,3 +27,5 @@ dist-ssr
 android-sdk/
 mingit/
 capture_timeline_web.cjs
+.chrome-gcp-profile/
+gcp_cdp_automation*

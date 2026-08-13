@@ -618,24 +618,37 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const data = await response.json();
       
       const newGoogleEvents: Event[] = (data.items || [])
-        .filter((item: any) => item.status !== 'cancelled' && item.start && item.start.dateTime)
+        .filter((item: any) => item.status !== 'cancelled' && item.start && (item.start.dateTime || item.start.date))
         .map((item: any) => {
-          const startDate = new Date(item.start.dateTime);
-          const endDate = new Date(item.end.dateTime);
+          const isAllDay = !item.start.dateTime && !!item.start.date;
+          let startDate: Date;
+          let endDate: Date;
+          let eventDate: string;
+
+          if (isAllDay) {
+            eventDate = item.start.date;
+            const [sy, sm, sd] = item.start.date.split('-').map(Number);
+            startDate = new Date(sy, sm - 1, sd, 8, 0, 0);
+            endDate = new Date(sy, sm - 1, sd, 18, 0, 0);
+          } else {
+            startDate = new Date(item.start.dateTime);
+            endDate = new Date(item.end?.dateTime || item.start.dateTime);
+            eventDate = getLocalDateString(startDate);
+          }
           
           const startStr = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`;
           const endStr = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
-          const eventDate = getLocalDateString(startDate);
 
           return {
             id: `google-${item.id}`,
-            title: item.summary || 'Evento Sem Título',
-            start: startStr,
-            end: endStr,
+            title: item.summary || (isAllDay ? '📅 Dia Inteiro' : 'Evento Sem Título'),
+            start: isAllDay ? '00:00' : startStr,
+            end: isAllDay ? '23:59' : endStr,
             date: eventDate,
             source: 'google',
             color: 'purple',
-            isFixed: true
+            isFixed: true,
+            description: item.description || (isAllDay ? 'Evento de Dia Inteiro do Google Agenda' : '')
           } as Event;
         });
 
