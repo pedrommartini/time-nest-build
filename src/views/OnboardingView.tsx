@@ -50,6 +50,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
   const prevStep = () => {
     if (step > 0) {
       audio.playClick();
+      setPage([step - 1, -1]);
       setStep(prev => prev - 1);
     }
   };
