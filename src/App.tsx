@@ -8,7 +8,7 @@ import { MedicationProvider } from './contexts/MedicationContext';
 import { GamificationProvider } from './contexts/GamificationContext';
 import { FocusProvider, useFocus } from './contexts/FocusContext';
 import { ProfileProvider, useProfile } from './contexts/ProfileContext';
-import { NavigationProvider, useNavigation } from './contexts/NavigationContext';
+import { NavigationProvider, useNavigation, useBackHandler } from './contexts/NavigationContext';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ActiveEventPill } from './components/ActiveEventPill';
 import { SmartInputOverlay } from './components/SmartInputOverlay';
@@ -24,7 +24,8 @@ import { ProfileView } from './views/ProfileView';
 import { OnboardingView } from './views/OnboardingView';
 import { UpdateOverlay } from './components/UpdateOverlay';
 
-import { Clock, User, Plus, List, Target } from 'lucide-react';
+import { SyncProvider, useSync } from './contexts/SyncContext';
+import { Clock, User, Plus, List, Target, WifiOff, Check } from 'lucide-react';
 import { audio } from './utils/audio';
 import { requestNotificationPermissions } from './utils/notifications';
 
@@ -32,7 +33,9 @@ const AppContent: React.FC = () => {
   const { t } = usePreferences();
   const { isLocked, unlock } = useProfile();
   const { isActive } = useFocus();
-  const { activeTab, setActiveTab, isSmartInputOpen, startWithVoice, openSmartInput, closeSmartInput, isDrawerExpanded, isCleanMode, selectedEventId, selectedTaskId } = useNavigation();
+  const { activeTab, setActiveTab, isSmartInputOpen, startWithVoice, openSmartInput, closeSmartInput, isDrawerExpanded, isCleanMode, selectedEventId, selectedTaskId, exitToastVisible } = useNavigation();
+  const { isOffline, syncState } = useSync();
+  
   const hasSelectedItem = !!(selectedEventId || selectedTaskId);
   const isNavHidden = (hasSelectedItem && isDrawerExpanded) || isCleanMode;
   
@@ -41,17 +44,33 @@ const AppContent: React.FC = () => {
   const [showUpdateOverlay, setShowUpdateOverlay] = useState(false);
   const [latestVersion, setLatestVersion] = useState('');
   
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingState, setOnboardingState] = useState<{ open: boolean; isManualReplay?: boolean }>({ open: false });
+
+  useBackHandler(() => {
+    if (showUpdateOverlay) {
+      handleDismissUpdate();
+      return true;
+    }
+    return false;
+  }, showUpdateOverlay, 100);
 
   useEffect(() => {
     if (window.location.pathname === '/download' || window.location.pathname === '/apkdownload') {
-      window.location.href = '/timenest.apk';
+      window.location.href = '/timenest_v3.1.0.apk';
     }
     if (!localStorage.getItem('timenest_onboarding_completed')) {
-      setShowOnboarding(true);
+      setOnboardingState({ open: true, isManualReplay: false });
     }
     // Request notification permissions natively on load if in app context
     requestNotificationPermissions();
+  }, []);
+
+  useEffect(() => {
+    const handleOpenManual = () => {
+      setOnboardingState({ open: true, isManualReplay: true });
+    };
+    window.addEventListener('open_manual_onboarding', handleOpenManual);
+    return () => window.removeEventListener('open_manual_onboarding', handleOpenManual);
   }, []);
 
   const INSTALLED_VERSION = '2.9.0';
@@ -89,8 +108,13 @@ const AppContent: React.FC = () => {
   };
 
   // --- Onboarding ---
-  if (showOnboarding) {
-    return <OnboardingView onComplete={() => setShowOnboarding(false)} />;
+  if (onboardingState.open) {
+    return (
+      <OnboardingView 
+        onComplete={() => setOnboardingState({ open: false })} 
+        isManualReplay={onboardingState.isManualReplay}
+      />
+    );
   }
 
   // --- Lock Screen ---
@@ -317,6 +341,35 @@ const AppContent: React.FC = () => {
           onDismiss={handleDismissUpdate} 
         />
       )}
+
+      {/* Sync Status Banner Toast */}
+      {syncState === 'syncing' && (
+        <div className="fixed bottom-26 left-1/2 -translate-x-1/2 z-[60] bg-brand-600/95 text-white text-[11px] font-bold px-4 py-2 rounded-full shadow-lg backdrop-blur-md flex items-center gap-2 animate-fade-in pointer-events-none border border-white/10">
+          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          <span>Sincronizando...</span>
+        </div>
+      )}
+      {syncState === 'synced' && (
+        <div className="fixed bottom-26 left-1/2 -translate-x-1/2 z-[60] bg-emerald-600/95 text-white text-[11px] font-bold px-4 py-2 rounded-full shadow-lg backdrop-blur-md flex items-center gap-2 animate-fade-in pointer-events-none border border-white/10">
+          <Check className="w-4 h-4 stroke-[2.5]" />
+          <span>Sincronizado!</span>
+        </div>
+      )}
+
+      {/* Subtle Offline Watermark below navigation bar */}
+      {isOffline && (
+        <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 z-40 text-[9px] font-semibold tracking-widest text-text-secondary/40 uppercase pointer-events-none select-none flex items-center gap-1">
+          <WifiOff className="w-2.5 h-2.5 opacity-40" />
+          <span>Modo Offline</span>
+        </div>
+      )}
+
+      {/* Android Exit Toast */}
+      {exitToastVisible && (
+        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[9999] bg-[#1E1B2E]/95 dark:bg-[#2D284D]/95 text-white text-xs font-semibold px-5 py-2.5 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.3)] backdrop-blur-md animate-fade-in pointer-events-none flex items-center gap-2 border border-white/10 tracking-wide">
+          <span>Pressione voltar novamente para sair</span>
+        </div>
+      )}
     </div>
   );
 };
@@ -331,20 +384,22 @@ export const App = () => {
               <MedicationProvider>
                 <GamificationProvider>
                   <TasksProvider>
-                <FocusProvider>
-                  <ProfileProvider>
-                    <NavigationProvider>
-                      <AlarmManagerProvider>
-                        <div className="w-full h-[100dvh] flex items-center justify-center bg-[#E5DFD3] text-text-primary selection:bg-brand-500/30">
-                          <div className="w-full h-full max-w-[500px] bg-app-bg shadow-[0_20px_50px_rgba(0,0,0,0.15)] relative flex flex-col mx-auto overflow-hidden sm:border-x sm:border-border-color">
-                            <AppContent />
-                            <AlarmOverlay />
-                          </div>
-                        </div>
-                      </AlarmManagerProvider>
-                    </NavigationProvider>
-                  </ProfileProvider>
-                </FocusProvider>
+                    <FocusProvider>
+                      <ProfileProvider>
+                        <SyncProvider>
+                          <NavigationProvider>
+                            <AlarmManagerProvider>
+                              <div className="w-full h-[100dvh] flex items-center justify-center bg-[#E5DFD3] text-text-primary selection:bg-brand-500/30">
+                                <div className="w-full h-full max-w-[500px] bg-app-bg shadow-[0_20px_50px_rgba(0,0,0,0.15)] relative flex flex-col mx-auto overflow-hidden sm:border-x sm:border-border-color">
+                                  <AppContent />
+                                  <AlarmOverlay />
+                                </div>
+                              </div>
+                            </AlarmManagerProvider>
+                          </NavigationProvider>
+                        </SyncProvider>
+                      </ProfileProvider>
+                    </FocusProvider>
                   </TasksProvider>
                 </GamificationProvider>
               </MedicationProvider>

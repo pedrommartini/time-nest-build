@@ -3,7 +3,8 @@ import { usePreferences } from '../contexts/PreferencesContext';
 import { useCalendar } from '../contexts/CalendarContext';
 import { useProfile } from '../contexts/ProfileContext';
 import { useMedication } from '../contexts/MedicationContext';
-import { ChevronLeft, ChevronRight, Check, Pill, Plus, Trash2, AlertCircle, Sparkles } from 'lucide-react';
+import { useBackHandler } from '../contexts/NavigationContext';
+import { ChevronLeft, ChevronRight, Check, Pill, Plus, Trash2, AlertCircle, Sparkles, ArrowLeft } from 'lucide-react';
 import { audio } from '../utils/audio';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
@@ -16,15 +17,19 @@ import {
   reserveUsername 
 } from '../utils/username';
 
+import { useSync } from '../contexts/SyncContext';
+
 interface OnboardingViewProps {
   onComplete: () => void;
+  isManualReplay?: boolean;
 }
 
-export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) => {
+export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isManualReplay = false }) => {
   const { sleepStart, sleepEnd, updateSleepTime, sleep5MinAlarmEnabled, setSleep5MinAlarmEnabled } = usePreferences();
   const { googleSync, connectGoogle } = useCalendar();
   const { profile, setProfile } = useProfile();
   const { medications, addMedication, deleteMedication } = useMedication();
+  const { hasCloudDataForAccount, hydrateAccountFromCloud, saveCloudBackup } = useSync();
 
   const [step, setStep] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -41,6 +46,25 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
   const [showMedicationModal, setShowMedicationModal] = useState(false);
   const [medName, setMedName] = useState('');
   const [medTime, setMedTime] = useState('08:00');
+
+  const prevStep = () => {
+    if (step > 0) {
+      audio.playClick();
+      setStep(prev => prev - 1);
+    }
+  };
+
+  // Close medication modal if open
+  useBackHandler(() => {
+    setShowMedicationModal(false);
+    return true;
+  }, showMedicationModal, 20);
+
+  // Go to previous step if step > 0
+  useBackHandler(() => {
+    prevStep();
+    return true;
+  }, step > 0 && !showMedicationModal, 10);
 
   // Swipe gesture state
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -120,14 +144,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
     }
   };
 
-  const prevStep = () => {
-    if (step > 0) {
-      audio.playClick();
-      setStep(prev => prev - 1);
-    }
-  };
-
-  const handleFinish = () => {
+  const handleFinish = async () => {
     audio.playChimeDone();
     updateSleepTime(tempStart, tempEnd);
     if (tempUsername && usernameValid) {
@@ -135,6 +152,26 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
       setProfile({ ...profile, username: tempUsername });
     }
     localStorage.setItem('timenest_onboarding_completed', 'true');
+    
+    const currEmail = googleSync.email || profile.email;
+    if (currEmail) {
+      saveCloudBackup(currEmail);
+    }
+    
+    // Request native alarm permissions on first run
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        const { registerPlugin } = await import('@capacitor/core');
+        const NativeAlarm = registerPlugin<any>('NativeAlarm');
+        if (NativeAlarm && NativeAlarm.requestPermissions) {
+          await NativeAlarm.requestPermissions();
+        }
+      }
+    } catch (e) {
+      console.warn('Could not request native permissions on onboard finish', e);
+    }
+
     onComplete();
   };
 
@@ -206,6 +243,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
                     setIsSyncing(true);
                     const user = await connectGoogle();
                     if (user) {
+                      const userEmail = user.email || googleSync.email;
                       const newProfile = { ...profile };
                       if (user.displayName || user.name) newProfile.name = user.displayName || user.name;
                       if (user.email) newProfile.email = user.email;
@@ -218,6 +256,15 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
                         setTempUsername(cleanSugg);
                       }
                       setProfile(newProfile);
+
+                      // If account already has data in cloud and this is NOT a manual replay, skip to timeline!
+                      if (!isManualReplay && userEmail && hasCloudDataForAccount(userEmail)) {
+                        hydrateAccountFromCloud(userEmail);
+                        localStorage.setItem('timenest_onboarding_completed', 'true');
+                        setIsSyncing(false);
+                        onComplete();
+                        return;
+                      }
                     }
                     setIsSyncing(false);
                   }}
@@ -522,6 +569,20 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
       onTouchEnd={handleTouchEnd}
       className="fixed inset-0 z-[100] flex flex-col bg-app-bg dot-pattern text-text-primary overflow-hidden"
     >
+      {/* Top Bar with Back Button */}
+      {step > 0 && (
+        <div className="absolute top-4 left-4 z-30 animate-fade-in">
+          <button
+            type="button"
+            onClick={() => paginate(-1)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-card-bg/90 border border-border-color shadow-sm text-text-primary text-xs font-semibold hover:bg-card-bg active:scale-95 transition-all"
+          >
+            <ArrowLeft className="w-4 h-4 text-brand-500" />
+            <span>Voltar</span>
+          </button>
+        </div>
+      )}
+
       <div className="flex-1 relative flex items-center justify-center overflow-hidden">
         
         {/* Content Area with Animation */}

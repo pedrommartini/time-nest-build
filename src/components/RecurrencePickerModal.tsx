@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Repeat, CalendarSync, CalendarCheck, CalendarRange } from 'lucide-react';
 import { audio } from '../utils/audio';
 import { WheelPicker } from './WheelPicker';
+import { useBackHandler } from '../contexts/NavigationContext';
 
 type RecurrenceType = 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
 
@@ -14,6 +15,11 @@ interface RecurrencePickerModalProps {
 
 export const RecurrencePickerModal: React.FC<RecurrencePickerModalProps> = ({ isOpen, onClose, value, onChange }) => {
   const [currentValue, setCurrentValue] = useState<RecurrenceType>(value);
+
+  useBackHandler(() => {
+    onClose();
+    return true;
+  }, isOpen, 50);
 
   if (!isOpen) return null;
 

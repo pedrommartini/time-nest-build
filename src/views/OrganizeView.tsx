@@ -6,7 +6,7 @@ import { formatDurationFriendly } from '../utils/time';
 import { Search, Filter, MoreVertical, Clock, Play, Calendar as CalendarIcon, CheckSquare, ChevronRight, Briefcase, GraduationCap, Home, ChefHat, Dumbbell, Plane, Folder, ChevronLeft, ArrowLeft, Plus, Edit3, ArrowUpDown, PersonStanding, Code, Music, Palette, Camera, ShoppingCart, Users, Car, Gamepad2, Heart, Coffee } from 'lucide-react';
 import { audio } from '../utils/audio';
 import { useFocus } from '../contexts/FocusContext';
-import { useNavigation } from '../contexts/NavigationContext';
+import { useNavigation, useBackHandler } from '../contexts/NavigationContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RichTextEditor } from '../components/RichTextEditor';
 import { EventDetailDrawer } from '../components/EventDetailDrawer';
@@ -35,6 +35,30 @@ export const OrganizeView: React.FC = () => {
   const [draftDescription, setDraftDescription] = useState('');
   const [todosSortOrder, setTodosSortOrder] = useState<'desc' | 'asc'>('desc');
   const [detailItem, setDetailItem] = useState<{ type: 'event' | 'task', id: string } | null>(null);
+
+  // Close detail drawer if open
+  useBackHandler(() => {
+    setDetailItem(null);
+    return true;
+  }, !!detailItem, 25);
+
+  // Close project creation modal if open
+  useBackHandler(() => {
+    setIsCreatingProject(false);
+    return true;
+  }, isCreatingProject, 20);
+
+  // Back from project detail to projects list
+  useBackHandler(() => {
+    setSelectedProject(null);
+    return true;
+  }, !!selectedProject, 15);
+
+  // Back from projects tab to feed tab
+  useBackHandler(() => {
+    setActiveTab('feed');
+    return true;
+  }, activeTab === 'projects' && !selectedProject && !isCreatingProject, 10);
 
   const handlePlay = (task: any) => {
     audio.playClick();

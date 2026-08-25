@@ -10,6 +10,7 @@ import { useFocus } from '../contexts/FocusContext';
 import { useMedication } from '../contexts/MedicationContext';
 import { useGamification } from '../contexts/GamificationContext';
 import { useAlarmManager } from '../contexts/AlarmManagerContext';
+import { useBackHandler } from '../contexts/NavigationContext';
 import { audio } from '../utils/audio';
 import { runTests } from '../utils/tests';
 import type { TestResult as UTResult } from '../utils/tests';
@@ -49,6 +50,17 @@ export const ProfileView: React.FC = () => {
   const { testAlarm } = useAlarmManager();
 
   const [activeSubScreen, setActiveSubScreen] = useState<string | null>(null);
+
+  // Close subscreen when Android back button is pressed
+  useBackHandler(() => {
+    if (activeSubScreen) {
+      audio.playClick();
+      setActiveSubScreen(null);
+      return true;
+    }
+    return false;
+  }, !!activeSubScreen, 15);
+
   const [isTestingAlarm, setIsTestingAlarm] = useState<boolean>(false);
   const [testResults, setTestResults] = useState<UTResult[] | null>(null);
   const [isRunningTests, setIsRunningTests] = useState<boolean>(false);
@@ -475,7 +487,7 @@ export const ProfileView: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-center gap-1 mt-2">
-            <span className="text-[9px] text-text-secondary">Versão 3.0.0</span>
+            <span className="text-[9px] text-text-secondary">Versão 3.1.0</span>
             <span className="text-[9px]">💜</span>
           </div>
 
@@ -1015,14 +1027,12 @@ export const ProfileView: React.FC = () => {
                       
                       <button 
                         onClick={() => {
-                          if (confirm('Isto fará a tela de boas-vindas aparecer novamente no próximo recarregamento. Deseja continuar?')) {
-                            localStorage.removeItem('timenest_onboarding_completed');
-                            window.location.reload();
-                          }
+                          audio.playClick();
+                          window.dispatchEvent(new CustomEvent('open_manual_onboarding'));
                         }}
                         className="py-2.5 btn-secondary text-xs mt-2"
                       >
-                        Re-exibir Tela de Onboarding
+                        Rever Onboarding Completo
                       </button>
                       
                       <button 

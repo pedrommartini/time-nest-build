@@ -6,6 +6,7 @@ import {
 import type { Event, Task } from '../utils/time';
 import { useProfile } from '../contexts/ProfileContext';
 import { audio } from '../utils/audio';
+import { useBackHandler } from '../contexts/NavigationContext';
 
 interface EventDetailDrawerProps {
   event?: Event | null;
@@ -82,6 +83,24 @@ export const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({
   );
   const [isAllDay, setIsAllDay] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Close context menu if open
+  useBackHandler(() => {
+    setIsMenuOpen(false);
+    return true;
+  }, isMenuOpen, 35);
+
+  // Collapse drawer if expanded
+  useBackHandler(() => {
+    onToggleExpand();
+    return true;
+  }, isExpanded && !isMenuOpen, 25);
+
+  // Close drawer if open
+  useBackHandler(() => {
+    onClose();
+    return true;
+  }, !!item && !isExpanded && !isMenuOpen, 15);
 
   // Sync state when selected item changes
   useEffect(() => {

@@ -28,9 +28,27 @@ export const AlarmManagerProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [activeAlarm, setActiveAlarm] = useState<ActiveAlarm | null>(null);
   const [lastTriggeredMinute, setLastTriggeredMinute] = useState<string>('');
 
-  const testAlarm = () => {
-    // Fire test alarm in 10 seconds
-    setTimeout(() => {
+  const testAlarm = async () => {
+    // Fire native test alarm in 10 seconds so the screen wakes up
+    const scheduledTime = new Date(Date.now() + 10000);
+    
+    // We import scheduleEventAlarm locally to avoid circular dependencies if any
+    try {
+      const { scheduleEventAlarm } = await import('../utils/alarms');
+      await scheduleEventAlarm('test-task', 'Teste de Alarme', scheduledTime, 'Este é apenas um teste de 10s', 'test');
+    } catch (e) {
+      console.error('Failed to schedule native test alarm', e);
+    }
+
+    // Still fire the web overlay in 10 seconds if app is open on WEB
+    setTimeout(async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (Capacitor.isNativePlatform()) return; // Native alarm takes over
+      } catch (e) {
+        console.error(e);
+      }
+
       setActiveAlarm({
         id: 'test-' + Date.now(),
         type: 'test',

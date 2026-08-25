@@ -2,18 +2,18 @@
   "redirects": [
     {
       "source": "/download",
-      "destination": "/timenest.apk",
+      "destination": "/timenest_v3.1.0.apk",
       "permanent": false
     },
     {
       "source": "/apkdownload",
-      "destination": "/timenest.apk",
+      "destination": "/timenest_v3.1.0.apk",
       "permanent": false
     }
   ],
   "rewrites": [
     {
-      "source": "/((?!timenest.apk|.*\\.).*)",
+      "source": "/((?!.*\\.apk|.*\\.).*)",
       "destination": "/index.html"
     }
   ]

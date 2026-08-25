@@ -10,6 +10,8 @@ import { audio } from '../utils/audio';
 import { parseNLPInput } from '../utils/nlp';
 import { getLocalDateString } from '../utils/time';
 
+import { useBackHandler } from '../contexts/NavigationContext';
+
 const iconMap: Record<string, any> = {
   Briefcase, GraduationCap, Home, ChefHat, Dumbbell, Plane, Folder,
   PersonStanding, Code, Music, Palette, Camera, ShoppingCart, Users, Car, Gamepad2, Heart, Coffee
@@ -55,6 +57,34 @@ export const SmartInputOverlay: React.FC<Props> = ({
   const [isConfirmDiscardOpen, setIsConfirmDiscardOpen] = useState(false);
   const [isConflictDialogOpen, setIsConflictDialogOpen] = useState(false);
   const [pendingEventData, setPendingEventData] = useState<any>(null);
+
+  const isAnyPickerOpen = isDatePickerOpen || isTimePickerOpen || isRecurrencePickerOpen;
+  const isAnyModalOpen = isConfirmDiscardOpen || isConflictDialogOpen;
+
+  // Handle pickers back button
+  useBackHandler(() => {
+    setIsDatePickerOpen(false);
+    setIsTimePickerOpen(false);
+    setIsRecurrencePickerOpen(false);
+    return true;
+  }, isAnyPickerOpen, 40);
+
+  // Handle discard/conflict dialogs back button
+  useBackHandler(() => {
+    setIsConfirmDiscardOpen(false);
+    setIsConflictDialogOpen(false);
+    return true;
+  }, isAnyModalOpen, 30);
+
+  // Handle main overlay back button
+  useBackHandler(() => {
+    if (input.trim().length > 0) {
+      setIsConfirmDiscardOpen(true);
+      return true;
+    }
+    onClose();
+    return true;
+  }, isOpen && !isAnyPickerOpen && !isAnyModalOpen, 20);
 
   const recognitionRef = useRef<any>(null);
 

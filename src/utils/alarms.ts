@@ -1,23 +1,32 @@
 import { registerPlugin } from '@capacitor/core';
 
 export interface NativeAlarmPlugin {
-  scheduleAlarm(options: { title: string; message: string; timestamp: number; id?: number }): Promise<{ success: boolean; id: number }>;
+  scheduleAlarm(options: { title: string; message: string; timestamp: number; id?: number; intentType?: string }): Promise<{ success: boolean; id: number }>;
   cancelAlarm(options: { id: number }): Promise<{ success: boolean }>;
+  requestPermissions(): Promise<{ success: boolean; exactAlarmRequested?: boolean }>;
 }
 
 const NativeAlarm = registerPlugin<NativeAlarmPlugin>('NativeAlarm');
 
-export const scheduleEventAlarm = async (taskId: string, title: string, scheduledDate: Date, message: string) => {
+export const scheduleEventAlarm = async (taskId: string, title: string, scheduledDate: Date, message: string, intentType: string = 'pre-event') => {
   try {
     const timestamp = scheduledDate.getTime();
     if (timestamp <= Date.now()) return; // Past
 
+    // Always request exact alarm & notification permissions before scheduling
+    try {
+      await NativeAlarm.requestPermissions();
+    } catch (e) {
+      console.warn('NativeAlarm.requestPermissions not available or failed', e);
+    }
+
     const id = Math.abs(hashCode(taskId));
     await NativeAlarm.scheduleAlarm({
-      title: 'TimeNest: ' + title,
+      title: title,
       message,
       timestamp,
-      id
+      id,
+      intentType
     });
     console.log(`Scheduled lock-screen alarm for ${title} at ${scheduledDate}`);
   } catch (error) {

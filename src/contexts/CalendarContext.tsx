@@ -198,11 +198,17 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Only schedule lock screen alarm if globally enabled OR explicitly enabled for this event
       const shouldAlarm = globalAlarmsEnabled || event.alarmEnabled;
 
-      if (shouldAlarm && alarmDate.getTime() > Date.now()) {
-        scheduleEventAlarm(event.id, event.title, alarmDate, `O evento começará em 5 minutos!`);
-      } else if (!shouldAlarm && alarmDate.getTime() > Date.now()) {
+      let finalAlarmDate = alarmDate;
+      // If the 5-min prep time has already passed, but the event hasn't started yet, fire it immediately (in 5s)
+      if (alarmDate.getTime() <= Date.now() && startDate.getTime() > Date.now()) {
+        finalAlarmDate = new Date(Date.now() + 5000);
+      }
+
+      if (shouldAlarm && finalAlarmDate.getTime() > Date.now()) {
+        scheduleEventAlarm(event.id, event.title, finalAlarmDate, `O evento começará em breve!`);
+      } else if (!shouldAlarm && finalAlarmDate.getTime() > Date.now()) {
         // Fallback to standard notification if alarm is not enabled
-        scheduleTaskNotification(event.id + "_start", event.title, alarmDate, `O evento começará em 5 minutos!`);
+        scheduleTaskNotification(event.id + "_start", event.title, finalAlarmDate, `O evento começará em breve!`);
       }
       
       if (notificationDate.getTime() > Date.now()) {

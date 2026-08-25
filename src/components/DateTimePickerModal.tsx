@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, CalendarDays, Clock } from 'lucide-react';
 import { audio } from '../utils/audio';
 import { WheelPicker } from './WheelPicker';
+import { useBackHandler } from '../contexts/NavigationContext';
 
 interface DateTimePickerModalProps {
   isOpen: boolean;
@@ -12,6 +13,10 @@ interface DateTimePickerModalProps {
 }
 
 export const DateTimePickerModal: React.FC<DateTimePickerModalProps> = ({ isOpen, onClose, type, initialValue, onSave }) => {
+  useBackHandler(() => {
+    onClose();
+    return true;
+  }, isOpen, 50);
   
   // For time
   const [hour, setHour] = useState('15');

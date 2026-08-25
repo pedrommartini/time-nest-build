@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useFocus } from '../contexts/FocusContext';
 import { useTasks } from '../contexts/TasksContext';
+import { useBackHandler } from '../contexts/NavigationContext';
 import { Play, Pause, Square, Headphones, Volume2, CloudRain, Waves, Coffee, TreePine, Clock, X, Check, AlertCircle, Sparkles, Utensils, Edit2, CheckCircle2, Flame, TrendingUp } from 'lucide-react';
 import { audio } from '../utils/audio';
 
@@ -19,6 +20,18 @@ export const FocusView: React.FC = () => {
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const [durationInput, setDurationInput] = useState<number>(30);
   const [conflictError, setConflictError] = useState<string | null>(null);
+
+  // Close task selector modal if open
+  useBackHandler(() => {
+    setShowTaskSelector(false);
+    return true;
+  }, showTaskSelector, 20);
+
+  // Switch back to 'foco' tab if in 'sessoes' or 'sons'
+  useBackHandler(() => {
+    setActiveTab('foco');
+    return true;
+  }, activeTab !== 'foco' && !showTaskSelector, 10);
 
   useEffect(() => {
     if (!showTaskSelector) {

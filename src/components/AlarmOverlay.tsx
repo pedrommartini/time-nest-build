@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAlarmManager } from '../contexts/AlarmManagerContext';
+import { useBackHandler } from '../contexts/NavigationContext';
 import { audio } from '../utils/audio';
 import { Capacitor } from '@capacitor/core';
 
@@ -37,6 +38,18 @@ export const AlarmOverlay: React.FC = () => {
   const { activeAlarm, dismissAlarm } = useAlarmManager();
   const [screen, setScreen] = useState<'main' | 'snooze' | 'difficulty'>('main');
   
+  // Return to main alarm screen if on snooze/difficulty
+  useBackHandler(() => {
+    setScreen('main');
+    return true;
+  }, !!activeAlarm && screen !== 'main', 60);
+
+  // Dismiss alarm if at main alarm screen
+  useBackHandler(() => {
+    dismissAlarm();
+    return true;
+  }, !!activeAlarm && screen === 'main', 50);
+
   useEffect(() => {
     if (activeAlarm) {
       setScreen('main'); // Reset screen when new alarm comes in

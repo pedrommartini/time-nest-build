@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.os.PowerManager;
 import android.util.Log;
 import androidx.core.app.NotificationCompat;
 
@@ -18,6 +19,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         String title = intent.getStringExtra("title");
         String message = intent.getStringExtra("message");
         int id = intent.getIntExtra("id", 0);
+        String intentType = intent.getStringExtra("intentType");
 
         Log.d("NativeAlarm", "Alarm Received: " + title);
 
@@ -25,6 +27,9 @@ public class AlarmReceiver extends BroadcastReceiver {
         alarmIntent.putExtra("title", title);
         alarmIntent.putExtra("message", message);
         alarmIntent.putExtra("id", id);
+        if (intentType != null) {
+            alarmIntent.putExtra("intentType", intentType);
+        }
         alarmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         
         PendingIntent fullScreenPendingIntent = PendingIntent.getActivity(
@@ -33,6 +38,13 @@ public class AlarmReceiver extends BroadcastReceiver {
                 alarmIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
+
+        PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+        PowerManager.WakeLock wakeLock = null;
+        if (pm != null) {
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "TimeNest:AlarmReceiverWakeLock");
+            wakeLock.acquire(10000); // 10 seconds max
+        }
 
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         
@@ -56,5 +68,16 @@ public class AlarmReceiver extends BroadcastReceiver {
                 .setAutoCancel(true);
 
         notificationManager.notify(id, builder.build());
+
+        // Also try to start activity directly (works if we have SYSTEM_ALERT_WINDOW)
+        try {
+            context.startActivity(alarmIntent);
+        } catch (Exception e) {
+            Log.e("NativeAlarm", "Direct startActivity failed", e);
+        }
+        
+        if (wakeLock != null) {
+            wakeLock.release();
+        }
     }
 }
