@@ -113,33 +113,56 @@ export const AlarmOverlay: React.FC = () => {
   let secondaryText = '+5 min';
   let tertiaryText = 'Dispensar';
 
-  switch(activeAlarm.intent) {
-    case 'pre-event':
-      bgClass = 'bg-[#6D5D8A]'; // Lavanda escuro
-      badgeClass = 'bg-[#8F7BAE] text-white';
-      badgeText = 'EM 15 MIN'; // Or dynamic based on time
-      ctaText = 'Vou me preparar agora';
-      break;
-    case 'task-now':
-      bgClass = 'bg-[#4B5563]'; // Slate dark
-      badgeClass = 'bg-[#6B7280] text-white';
-      badgeText = 'AGORA';
-      ctaText = 'Começar foco agora';
-      tertiaryText = 'Pular por enquanto';
-      break;
-    case 'critical':
-      bgClass = 'bg-orange-600';
-      badgeClass = 'bg-orange-500 text-white';
-      badgeText = 'URGENTE';
-      ctaText = 'Estou saindo agora';
-      tertiaryText = 'Não posso ir';
-      break;
-    case 'test':
-      bgClass = 'bg-brand-600';
-      badgeClass = 'bg-brand-500 text-white';
-      badgeText = 'TESTE';
-      ctaText = 'Ok, entendi';
-      break;
+  if (activeAlarm.type === 'medication') {
+    bgClass = 'bg-rose-900 dark:bg-rose-950';
+    badgeClass = 'bg-rose-500 text-white';
+    badgeText = '💊 MEDICAMENTO';
+    ctaText = 'Tomar agora';
+    secondaryText = '+5 min';
+    tertiaryText = 'Lembrar mais tarde';
+  } else if (activeAlarm.type === 'sleep') {
+    bgClass = 'bg-indigo-950 dark:bg-slate-950';
+    badgeClass = 'bg-indigo-600 text-white';
+    badgeText = '🌙 HORA DE DORMIR';
+    ctaText = 'Vou me preparar agora';
+    secondaryText = '+10 min';
+    tertiaryText = 'Adiar sono';
+  } else {
+    switch(activeAlarm.intent) {
+      case 'pre-event':
+        bgClass = 'bg-purple-950 dark:bg-slate-950';
+        badgeClass = 'bg-purple-600 text-white';
+        badgeText = '📅 COMPROMISSO';
+        ctaText = 'Vou me preparar';
+        secondaryText = '+5 min';
+        tertiaryText = 'Dispensar';
+        break;
+      case 'task-now':
+        bgClass = 'bg-sky-950 dark:bg-slate-950';
+        badgeClass = 'bg-sky-600 text-white';
+        badgeText = '🎯 HORA DO FOCO';
+        ctaText = 'Iniciar foco agora';
+        secondaryText = '+5 min';
+        tertiaryText = 'Pular por enquanto';
+        break;
+      case 'critical':
+        bgClass = 'bg-orange-950 dark:bg-red-950';
+        badgeClass = 'bg-orange-600 text-white';
+        badgeText = '⚠️ URGENTE';
+        ctaText = 'Confirmar';
+        secondaryText = '+5 min';
+        tertiaryText = 'Dispensar';
+        break;
+      case 'test':
+      default:
+        bgClass = 'bg-brand-950 dark:bg-slate-950';
+        badgeClass = 'bg-brand-600 text-white';
+        badgeText = '🔔 TESTE DE ALARME';
+        ctaText = 'Ok, entendi';
+        secondaryText = '+5 min';
+        tertiaryText = 'Dispensar';
+        break;
+    }
   }
 
   // --- Screens ---

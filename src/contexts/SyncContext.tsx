@@ -22,15 +22,24 @@ export interface UserCloudData {
 
 export type SyncState = 'idle' | 'syncing' | 'synced' | 'offline';
 
+export interface OfflineAction {
+  id: string;
+  type: 'add_event' | 'update_event' | 'delete_event' | 'add_task' | 'update_task' | 'delete_task';
+  payload: any;
+  createdAt: string;
+}
+
 interface SyncContextType {
   isOffline: boolean;
   syncState: SyncState;
   lastSyncedAt: string | null;
+  pendingOfflineCount: number;
   triggerSyncStatus: (state: SyncState) => void;
   syncNow: () => Promise<void>;
   saveCloudBackup: (accountEmail: string) => void;
   hasCloudDataForAccount: (accountEmail: string) => boolean;
   hydrateAccountFromCloud: (accountEmail: string) => boolean;
+  enqueueOfflineAction: (action: Omit<OfflineAction, 'id' | 'createdAt'>) => void;
 }
 
 const SyncContext = createContext<SyncContextType | undefined>(undefined);
@@ -43,6 +52,28 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(() => {
     return localStorage.getItem('timenest_last_cloud_sync') || null;
   });
+
+  const [offlineQueue, setOfflineQueue] = useState<OfflineAction[]>(() => {
+    try {
+      const saved = localStorage.getItem('timenest_offline_queue');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const enqueueOfflineAction = useCallback((action: Omit<OfflineAction, 'id' | 'createdAt'>) => {
+    const newAction: OfflineAction = {
+      ...action,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString()
+    };
+    setOfflineQueue(prev => {
+      const updated = [...prev, newAction];
+      localStorage.setItem('timenest_offline_queue', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
   const syncTimerRef = useRef<any>(null);
 
@@ -248,6 +279,10 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
+      // Drain offline queue on sync
+      setOfflineQueue([]);
+      localStorage.removeItem('timenest_offline_queue');
+
       triggerSyncStatus('synced');
     } catch (e) {
       console.error('Sync failed:', e);
@@ -273,11 +308,13 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isOffline,
       syncState,
       lastSyncedAt,
+      pendingOfflineCount: offlineQueue.length,
       triggerSyncStatus,
       syncNow,
       saveCloudBackup,
       hasCloudDataForAccount,
-      hydrateAccountFromCloud
+      hydrateAccountFromCloud,
+      enqueueOfflineAction
     }}>
       {children}
     </SyncContext.Provider>

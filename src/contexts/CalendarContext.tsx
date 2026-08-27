@@ -8,8 +8,8 @@ import { usePreferences } from './PreferencesContext';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
 import { Capacitor } from '@capacitor/core';
-import { scheduleEventAlarm } from '../utils/alarms';
-import { scheduleTaskNotification } from '../utils/notifications';
+import { scheduleEventAlarm, cancelEventAlarm } from '../utils/alarms';
+import { scheduleTaskNotification, cancelNotification } from '../utils/notifications';
 import { useGoogleLogin } from '@react-oauth/google';
 
 interface GoogleSyncSettings {
@@ -205,7 +205,15 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       if (shouldAlarm && finalAlarmDate.getTime() > Date.now()) {
-        scheduleEventAlarm(event.id, event.title, finalAlarmDate, `O evento começará em breve!`);
+        scheduleEventAlarm(
+          event.id, 
+          event.title, 
+          finalAlarmDate, 
+          `Início: ${event.title}`, 
+          'pre-event',
+          event.start,
+          'LEMBRETE'
+        );
       } else if (!shouldAlarm && finalAlarmDate.getTime() > Date.now()) {
         // Fallback to standard notification if alarm is not enabled
         scheduleTaskNotification(event.id + "_start", event.title, finalAlarmDate, `O evento começará em breve!`);
@@ -359,6 +367,9 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (id.startsWith('google-')) {
       deleteEventFromGoogle(id);
     }
+    cancelEventAlarm(id);
+    cancelNotification(id + "_start");
+    cancelNotification(id + "_end");
     setEvents(prev => prev.filter(e => e.id !== id));
   };
 

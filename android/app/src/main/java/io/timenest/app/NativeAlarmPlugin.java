@@ -82,6 +82,9 @@ public class NativeAlarmPlugin extends Plugin {
         long timestamp = call.getLong("timestamp", 0L);
         int id = call.getInt("id", (int) System.currentTimeMillis());
 
+        String eventTime = call.getString("eventTime", "");
+        String timeLabel = call.getString("timeLabel", "");
+
         if (timestamp <= System.currentTimeMillis()) {
             call.reject("Timestamp must be in the future");
             return;
@@ -95,6 +98,8 @@ public class NativeAlarmPlugin extends Plugin {
         intent.putExtra("message", message);
         intent.putExtra("id", id);
         intent.putExtra("intentType", intentType);
+        intent.putExtra("eventTime", eventTime);
+        intent.putExtra("timeLabel", timeLabel);
 
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context,

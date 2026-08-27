@@ -122,6 +122,29 @@ export function runTests(): TestResult[] {
     if (midInterval.usableMinutes !== 75) throw new Error(`Expected 75 usable minutes, got ${midInterval.usableMinutes}`);
   });
 
+  test('Interval Calculator', 'Handles back-to-back events with zero free time gap', () => {
+    const today = new Date().toISOString().split('T')[0];
+    const backToBackEvents: Event[] = [
+      { id: 'b-1', title: 'A', start: '10:00', end: '11:00', date: today, source: 'local', color: 'blue', isFixed: true },
+      { id: 'b-2', title: 'B', start: '11:00', end: '12:00', date: today, source: 'local', color: 'blue', isFixed: true }
+    ];
+    const intervals = calculateFreeIntervals(backToBackEvents, today, 10, '10:00', '12:00');
+    if (intervals.length !== 0) throw new Error(`Expected 0 intervals, got ${intervals.length}`);
+  });
+
+  test('Interval Calculator', 'Respects customized sleep window boundaries', () => {
+    const today = new Date().toISOString().split('T')[0];
+    const emptyEvents: Event[] = [];
+    const intervals = calculateFreeIntervals(emptyEvents, today, 0, '08:00', '22:00');
+    if (intervals.length !== 1) throw new Error(`Expected 1 full-day interval, got ${intervals.length}`);
+    if (intervals[0].start !== '08:00' || intervals[0].end !== '22:00') {
+      throw new Error(`Expected 08:00->22:00 interval, got ${intervals[0].start}->${intervals[0].end}`);
+    }
+    if (intervals[0].usableMinutes !== 14 * 60) {
+      throw new Error(`Expected 840 usable minutes, got ${intervals[0].usableMinutes}`);
+    }
+  });
+
   // 3. Backup and File Integrities
   test('Backup / Export', 'CSV tasks conversion matches standard columns', () => {
     const mockTasks = [{

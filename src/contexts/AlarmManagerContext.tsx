@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { usePreferences } from './PreferencesContext';
 import { useMedication } from './MedicationContext';
+import { scheduleEventAlarm, cancelEventAlarm } from '../utils/alarms';
 
 export interface ActiveAlarm {
   id: string;
@@ -28,14 +29,52 @@ export const AlarmManagerProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [activeAlarm, setActiveAlarm] = useState<ActiveAlarm | null>(null);
   const [lastTriggeredMinute, setLastTriggeredMinute] = useState<string>('');
 
+  // Schedule native sleep alarm when sleep settings change
+  useEffect(() => {
+    const syncNativeSleepAlarm = async () => {
+      if (sleepAlarmEnabled && sleepStart) {
+        const [sH, sM] = sleepStart.split(':').map(Number);
+        const now = new Date();
+        const sleepDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), sH, sM, 0);
+        
+        // 5 minutes before sleep
+        const prepDate = new Date(sleepDate.getTime() - 5 * 60000);
+        if (prepDate.getTime() <= Date.now()) {
+          prepDate.setDate(prepDate.getDate() + 1);
+        }
+
+        await scheduleEventAlarm(
+          'sleep_routine_alarm',
+          'Hora de Dormir',
+          prepDate,
+          `Preparação para dormir (${sleepStart})`,
+          'sleep',
+          sleepStart,
+          'HORA DE DORMIR'
+        );
+      } else {
+        await cancelEventAlarm('sleep_routine_alarm');
+      }
+    };
+
+    syncNativeSleepAlarm();
+  }, [sleepStart, sleepAlarmEnabled]);
+
   const testAlarm = async () => {
     // Fire native test alarm in 10 seconds so the screen wakes up
     const scheduledTime = new Date(Date.now() + 10000);
+    const testTimeStr = `${String(scheduledTime.getHours()).padStart(2, '0')}:${String(scheduledTime.getMinutes()).padStart(2, '0')}`;
     
-    // We import scheduleEventAlarm locally to avoid circular dependencies if any
     try {
-      const { scheduleEventAlarm } = await import('../utils/alarms');
-      await scheduleEventAlarm('test-task', 'Teste de Alarme', scheduledTime, 'Este é apenas um teste de 10s', 'test');
+      await scheduleEventAlarm(
+        'test_task_alarm', 
+        'Teste de Alarme', 
+        scheduledTime, 
+        'Este é um teste de 10s do Time Nest', 
+        'test',
+        testTimeStr,
+        'TESTE'
+      );
     } catch (e) {
       console.error('Failed to schedule native test alarm', e);
     }
@@ -54,8 +93,8 @@ export const AlarmManagerProvider: React.FC<{ children: React.ReactNode }> = ({ 
         type: 'test',
         intent: 'test',
         title: 'Teste de Alarme',
-        metadata: 'Este é apenas um teste de 10s',
-        durationOrTime: 'Agora',
+        metadata: 'Este é um teste de 10s do Time Nest',
+        durationOrTime: testTimeStr,
         sound: alarmSound,
         visual: alarmVisual
       });
@@ -64,7 +103,6 @@ export const AlarmManagerProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   useEffect(() => {
     const checkAlarms = () => {
-      // Don't check if an alarm is already active
       if (activeAlarm) return;
 
       const now = new Date();
@@ -72,7 +110,6 @@ export const AlarmManagerProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const m = String(now.getMinutes()).padStart(2, '0');
       const currentHm = `${h}:${m}`;
       
-      // Prevent triggering the same alarm multiple times in the same minute
       if (lastTriggeredMinute === currentHm) return;
 
       let triggered = false;
@@ -83,7 +120,6 @@ export const AlarmManagerProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const sleepDate = new Date();
         sleepDate.setHours(sH, sM, 0, 0);
         
-        // Subtract 5 mins
         const prepDate = new Date(sleepDate.getTime() - 5 * 60000);
         const prepHm = `${String(prepDate.getHours()).padStart(2, '0')}:${String(prepDate.getMinutes()).padStart(2, '0')}`;
         
@@ -93,7 +129,7 @@ export const AlarmManagerProvider: React.FC<{ children: React.ReactNode }> = ({ 
             type: 'sleep',
             intent: 'pre-event',
             title: 'Preparação para dormir',
-            durationOrTime: `Em 5 min (${sleepStart})`,
+            durationOrTime: sleepStart,
             metadata: 'Rotina de Sono',
             sound: alarmSound,
             visual: alarmVisual
@@ -105,12 +141,12 @@ export const AlarmManagerProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       // 2. Check Medications
       if (!triggered) {
-        const med = medications.find(m => m.time === currentHm);
+        const med = medications.find(m => m.time === currentHm && m.alarmEnabled !== false);
         if (med) {
           setActiveAlarm({
             id: 'med-' + med.id + '-' + Date.now(),
             type: 'medication',
-            intent: 'critical', // medications are usually important
+            intent: 'critical',
             title: med.name,
             durationOrTime: med.time,
             metadata: 'Lembrete de Medicamento',

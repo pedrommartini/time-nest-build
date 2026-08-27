@@ -2,12 +2,13 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { audio } from '../utils/audio';
+import { scheduleEventAlarm, cancelEventAlarm } from '../utils/alarms';
 
 export interface Medication {
   id: string;
   name: string;
   time: string; // HH:mm
-  recurrence: 'DAILY' | 'WEEKLY' | 'NONE'; // Usually daily for meds
+  recurrence: 'DAILY' | 'WEEKLY' | 'NONE';
   alarmEnabled: boolean;
   notes?: string;
   createdAt: string;
@@ -17,6 +18,7 @@ interface MedicationContextType {
   medications: Medication[];
   addMedication: (name: string, time: string, alarmEnabled?: boolean, notes?: string) => Promise<string>;
   updateMedication: (id: string, updates: Partial<Omit<Medication, 'id' | 'createdAt'>>) => Promise<void>;
+  toggleMedicationAlarm: (id: string) => Promise<void>;
   deleteMedication: (id: string) => Promise<void>;
 }
 
@@ -36,35 +38,58 @@ export const MedicationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [medications]);
 
   const scheduleMedicationAlarm = async (med: Medication) => {
-    if (!med.alarmEnabled || !Capacitor.isNativePlatform()) return;
+    if (!med.alarmEnabled) return;
     try {
       const [hour, minute] = med.time.split(':').map(Number);
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            title: 'Hora do Medicamento',
-            body: `Está na hora de tomar: ${med.name}`,
-            id: parseInt(med.id.replace(/\D/g, '').substring(0, 8)) || Math.floor(Math.random() * 100000),
-            schedule: {
-              on: { hour, minute },
-              allowWhileIdle: true,
-            },
-            sound: 'chime.wav',
-            smallIcon: 'ic_stat_med', // if available
-          }
-        ]
-      });
+      const now = new Date();
+      const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute, 0);
+      
+      // If time today has already passed, schedule for tomorrow
+      if (targetDate.getTime() <= Date.now()) {
+        targetDate.setDate(targetDate.getDate() + 1);
+      }
+
+      // 1. Schedule Native Fullscreen / Wakelock Alarm
+      await scheduleEventAlarm(
+        med.id,
+        med.name,
+        targetDate,
+        `Hora do medicamento: ${med.name}`,
+        'medication',
+        med.time,
+        'MEDICAMENTO'
+      );
+
+      // 2. Schedule Local Banner Notification as companion
+      if (Capacitor.isNativePlatform()) {
+        const notifId = Math.abs(hashCode(med.id));
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              title: 'Hora do Medicamento',
+              body: `Está na hora de tomar: ${med.name}`,
+              id: notifId,
+              schedule: { at: targetDate },
+              sound: 'chime.wav',
+              smallIcon: 'ic_stat_med',
+            }
+          ]
+        });
+      }
     } catch (e) {
       console.error('Failed to schedule medication alarm', e);
     }
   };
 
-  const cancelMedicationAlarm = async (id: string) => {
-    if (!Capacitor.isNativePlatform()) return;
+  const cancelMedicationAlarmHandler = async (id: string) => {
     try {
-      const notificationId = parseInt(id.replace(/\D/g, '').substring(0, 8));
-      if (!isNaN(notificationId)) {
-        await LocalNotifications.cancel({ notifications: [{ id: notificationId }] });
+      // 1. Cancel Native Alarm
+      await cancelEventAlarm(id);
+
+      // 2. Cancel Local Notification
+      if (Capacitor.isNativePlatform()) {
+        const notifId = Math.abs(hashCode(id));
+        await LocalNotifications.cancel({ notifications: [{ id: notifId }] });
       }
     } catch (e) {
       console.error('Failed to cancel medication alarm', e);
@@ -94,7 +119,7 @@ export const MedicationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     const med = medications.find(m => m.id === id);
     if (med) {
-      await cancelMedicationAlarm(id);
+      await cancelMedicationAlarmHandler(id);
       const updatedMed = { ...med, ...updates };
       if (updatedMed.alarmEnabled) {
         await scheduleMedicationAlarm(updatedMed);
@@ -102,13 +127,22 @@ export const MedicationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
+  const toggleMedicationAlarm = async (id: string) => {
+    const med = medications.find(m => m.id === id);
+    if (!med) return;
+    const nextState = !med.alarmEnabled;
+    await updateMedication(id, { alarmEnabled: nextState });
+    audio.playClick();
+  };
+
   const deleteMedication = async (id: string) => {
     setMedications(prev => prev.filter(m => m.id !== id));
-    await cancelMedicationAlarm(id);
+    await cancelMedicationAlarmHandler(id);
+    audio.playClick();
   };
 
   return (
-    <MedicationContext.Provider value={{ medications, addMedication, updateMedication, deleteMedication }}>
+    <MedicationContext.Provider value={{ medications, addMedication, updateMedication, toggleMedicationAlarm, deleteMedication }}>
       {children}
     </MedicationContext.Provider>
   );
@@ -121,3 +155,13 @@ export const useMedication = () => {
   }
   return context;
 };
+
+function hashCode(str: string): number {
+  let hash = 0;
+  for (let i = 0, len = str.length; i < len; i++) {
+      let chr = str.charCodeAt(i);
+      hash = (hash << 5) - hash + chr;
+      hash |= 0;
+  }
+  return hash;
+}

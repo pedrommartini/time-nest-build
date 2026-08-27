@@ -1,14 +1,30 @@
 import { registerPlugin } from '@capacitor/core';
 
 export interface NativeAlarmPlugin {
-  scheduleAlarm(options: { title: string; message: string; timestamp: number; id?: number; intentType?: string }): Promise<{ success: boolean; id: number }>;
+  scheduleAlarm(options: { 
+    title: string; 
+    message: string; 
+    timestamp: number; 
+    id?: number; 
+    intentType?: string;
+    eventTime?: string;
+    timeLabel?: string;
+  }): Promise<{ success: boolean; id: number }>;
   cancelAlarm(options: { id: number }): Promise<{ success: boolean }>;
   requestPermissions(): Promise<{ success: boolean; exactAlarmRequested?: boolean }>;
 }
 
 const NativeAlarm = registerPlugin<NativeAlarmPlugin>('NativeAlarm');
 
-export const scheduleEventAlarm = async (taskId: string, title: string, scheduledDate: Date, message: string, intentType: string = 'pre-event') => {
+export const scheduleEventAlarm = async (
+  taskId: string, 
+  title: string, 
+  scheduledDate: Date, 
+  message: string, 
+  intentType: string = 'pre-event',
+  eventTime?: string,
+  timeLabel?: string
+) => {
   try {
     const timestamp = scheduledDate.getTime();
     if (timestamp <= Date.now()) return; // Past
@@ -22,11 +38,13 @@ export const scheduleEventAlarm = async (taskId: string, title: string, schedule
 
     const id = Math.abs(hashCode(taskId));
     await NativeAlarm.scheduleAlarm({
-      title: title,
+      title,
       message,
       timestamp,
       id,
-      intentType
+      intentType,
+      eventTime: eventTime || `${String(scheduledDate.getHours()).padStart(2, '0')}:${String(scheduledDate.getMinutes()).padStart(2, '0')}`,
+      timeLabel
     });
     console.log(`Scheduled lock-screen alarm for ${title} at ${scheduledDate}`);
   } catch (error) {
@@ -38,6 +56,7 @@ export const cancelEventAlarm = async (taskId: string) => {
   try {
     const id = Math.abs(hashCode(taskId));
     await NativeAlarm.cancelAlarm({ id });
+    console.log(`Cancelled lock-screen alarm for ${taskId}`);
   } catch (error) {
     console.error('Failed to cancel NativeAlarm', error);
   }

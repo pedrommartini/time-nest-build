@@ -1,8 +1,11 @@
 package io.timenest.app;
 
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.KeyguardManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.media.AudioAttributes;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -13,6 +16,7 @@ import android.os.PowerManager;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,6 +29,10 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 public class FullScreenAlarmActivity extends Activity {
 
     private Ringtone ringtone;
@@ -33,6 +41,27 @@ public class FullScreenAlarmActivity extends Activity {
     private int dpToPx(int dp) {
         float density = getResources().getDisplayMetrics().density;
         return Math.round(dp * density);
+    }
+
+    private void stopSoundAndVibration() {
+        try {
+            if (ringtone != null && ringtone.isPlaying()) {
+                ringtone.stop();
+            }
+        } catch (Exception e) {
+            Log.e("FullScreenAlarm", "Error stopping ringtone", e);
+        }
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                VibratorManager vm = (VibratorManager) getSystemService(VIBRATOR_MANAGER_SERVICE);
+                if (vm != null) vm.getDefaultVibrator().cancel();
+            } else {
+                Vibrator vib = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+                if (vib != null) vib.cancel();
+            }
+        } catch (Exception e) {
+            Log.e("FullScreenAlarm", "Error cancelling vibration", e);
+        }
     }
 
     @Override
@@ -67,10 +96,20 @@ public class FullScreenAlarmActivity extends Activity {
         String title = getIntent().getStringExtra("title");
         String message = getIntent().getStringExtra("message");
         String intentType = getIntent().getStringExtra("intentType");
+        String eventTime = getIntent().getStringExtra("eventTime");
+        String timeLabel = getIntent().getStringExtra("timeLabel");
+        final int alarmId = getIntent().getIntExtra("id", (int) System.currentTimeMillis());
+
         if (intentType == null) intentType = "pre-event";
 
         if (title != null && title.startsWith("TimeNest: ")) {
             title = title.substring("TimeNest: ".length());
+        }
+
+        // Real dynamic time (HH:mm) if not specified
+        if (eventTime == null || eventTime.trim().isEmpty()) {
+            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
+            eventTime = sdf.format(new Date());
         }
 
         // Base Light Theme
@@ -80,57 +119,76 @@ public class FullScreenAlarmActivity extends Activity {
         int haloColor = 0x33B8A9E8; 
         String badgeText = "ALARME";
         int badgeTextColor = 0xFF6B5CA5;
-        
         int timeColor = 0xFF7C3AED;
         
         String okText = "Ok, entendi";
         int primaryBtnBgColor = 0xFF432C81; // dark purple
         
         String snooze1 = "+5 min";
-        String snooze2 = "+10 min";
-        String snooze3 = "+15 min";
         String dismissText = "Dispensar";
 
         switch (intentType) {
+            case "medication":
+                haloColor = 0x25DC2626; // red/rose halo
+                badgeText = "💊 MEDICAMENTO";
+                badgeTextColor = 0xFFDC2626;
+                timeColor = 0xFFDC2626;
+                okText = "Tomar agora";
+                primaryBtnBgColor = 0xFFDC2626;
+                snooze1 = "+5 min";
+                dismissText = "Lembrar mais tarde";
+                break;
             case "sleep":
-            case "pre-event":
-                haloColor = 0x227C3AED;
-                badgeText = "EM 15 MIN";
-                timeColor = 0xFF7C3AED;
+                haloColor = 0x25312E81; // deep indigo halo
+                badgeText = "🌙 HORA DE DORMIR";
+                badgeTextColor = 0xFF432C81;
+                timeColor = 0xFF432C81;
                 okText = "Vou me preparar agora";
                 primaryBtnBgColor = 0xFF432C81;
+                snooze1 = "+10 min";
+                dismissText = "Adiar sono";
+                break;
+            case "pre-event":
+                haloColor = 0x257C3AED; // vibrant purple halo
+                badgeText = (timeLabel != null && !timeLabel.isEmpty()) ? ("📅 " + timeLabel.toUpperCase()) : "📅 COMPROMISSO";
+                badgeTextColor = 0xFF7C3AED;
+                timeColor = 0xFF7C3AED;
+                okText = "Vou me preparar";
+                primaryBtnBgColor = 0xFF6D28D9;
+                snooze1 = "+5 min";
+                dismissText = "Dispensar";
                 break;
             case "task":
             case "task-now":
-                haloColor = 0x227C3AED;
-                badgeText = "AGORA";
-                timeColor = 0xFF7C3AED;
-                okText = "Começar foco agora";
-                primaryBtnBgColor = 0xFF432C81;
+                haloColor = 0x250284C7; // sky blue halo
+                badgeText = "🎯 HORA DO FOCO";
+                badgeTextColor = 0xFF0284C7;
+                timeColor = 0xFF0284C7;
+                okText = "Iniciar foco agora";
+                primaryBtnBgColor = 0xFF0284C7;
+                snooze1 = "+5 min";
+                dismissText = "Pular por enquanto";
                 break;
-            case "medication":
             case "critical":
-                haloColor = 0x22DC2626; // red/orange halo
-                badgeText = "URGENTE";
-                badgeTextColor = 0xFFDC2626;
-                timeColor = 0xFFDC2626;
-                okText = "Estou saindo agora";
-                primaryBtnBgColor = 0xFFDC2626;
-                dismissText = "Não posso ir";
+                haloColor = 0x25EA580C; // orange halo
+                badgeText = "⚠️ URGENTE";
+                badgeTextColor = 0xFFEA580C;
+                timeColor = 0xFFEA580C;
+                okText = "Confirmar";
+                primaryBtnBgColor = 0xFFEA580C;
+                snooze1 = "+5 min";
+                dismissText = "Dispensar";
                 break;
             case "test":
-                haloColor = 0x227C3AED;
-                badgeText = "TESTE";
+            default:
+                haloColor = 0x257C3AED;
+                badgeText = "🔔 TESTE DE ALARME";
+                badgeTextColor = 0xFF7C3AED;
                 timeColor = 0xFF7C3AED;
                 okText = "Ok, entendi";
                 primaryBtnBgColor = 0xFF432C81;
-                break;
-            case "snooze": // Represents the "Precisa de mais tempo?" screen
-                titleColor = 0xFF191439;
-                title = "Precisa de\nmais tempo?";
-                message = "Evento • 19:30"; // Example
-                timeColor = 0xFF7C3AED;
-                badgeText = "ADIAR";
+                snooze1 = "+5 min";
+                dismissText = "Dispensar";
                 break;
         }
 
@@ -166,7 +224,7 @@ public class FullScreenAlarmActivity extends Activity {
             ViewGroup.LayoutParams.WRAP_CONTENT
         );
         centerParams.gravity = Gravity.CENTER;
-        centerParams.bottomMargin = dpToPx(80); // shift up a bit to make room for buttons
+        centerParams.bottomMargin = dpToPx(80);
         centerContent.setLayoutParams(centerParams);
         centerContent.setPadding(dpToPx(24), 0, dpToPx(24), 0);
 
@@ -179,7 +237,7 @@ public class FullScreenAlarmActivity extends Activity {
         badge.setPadding(dpToPx(16), dpToPx(6), dpToPx(16), dpToPx(6));
         GradientDrawable badgeBg = new GradientDrawable();
         badgeBg.setCornerRadius(dpToPx(100));
-        badgeBg.setStroke(dpToPx(1), 0x22000000); // subtle border
+        badgeBg.setStroke(dpToPx(1), 0x22000000);
         badgeBg.setColor(Color.WHITE);
         badge.setBackground(badgeBg);
         LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(
@@ -190,10 +248,10 @@ public class FullScreenAlarmActivity extends Activity {
         badge.setLayoutParams(badgeParams);
         centerContent.addView(badge);
 
-        // Title (Huge, bold, dark)
+        // Title (Bold, dark)
         TextView titleView = new TextView(this);
         titleView.setText(title != null ? title : "Alarme");
-        titleView.setTextSize(52f);
+        titleView.setTextSize(36f);
         titleView.setTextColor(titleColor);
         titleView.setTypeface(null, Typeface.BOLD);
         titleView.setGravity(Gravity.CENTER);
@@ -206,9 +264,9 @@ public class FullScreenAlarmActivity extends Activity {
         titleView.setLayoutParams(titleParams);
         centerContent.addView(titleView);
 
-        // Time / duration label (Large, colored)
+        // Time / duration label (Real Dynamic Time)
         TextView timeView = new TextView(this);
-        timeView.setText("19:30"); // Replace with dynamic time if available, or just generic for now
+        timeView.setText(eventTime);
         timeView.setTextSize(48f);
         timeView.setTextColor(timeColor);
         timeView.setTypeface(null, Typeface.BOLD);
@@ -223,9 +281,9 @@ public class FullScreenAlarmActivity extends Activity {
 
         // Sub-message (Check icon + text)
         TextView msgView = new TextView(this);
-        msgView.setText("✓ " + (message != null ? message : "Tarefa"));
+        msgView.setText(message != null ? message : "Time Nest");
         msgView.setTextSize(14f);
-        msgView.setTextColor(0xFF6B7280); // gray
+        msgView.setTextColor(0xFF6B7280);
         msgView.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams msgParams = new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -235,7 +293,6 @@ public class FullScreenAlarmActivity extends Activity {
         centerContent.addView(msgView);
 
         root.addView(centerContent);
-
 
         // ── Bottom Buttons Layout ──
         LinearLayout bottomLayout = new LinearLayout(this);
@@ -249,145 +306,167 @@ public class FullScreenAlarmActivity extends Activity {
         bottomLayout.setLayoutParams(bottomParams);
         bottomLayout.setPadding(dpToPx(24), dpToPx(16), dpToPx(24), dpToPx(32));
 
-        if ("snooze".equals(intentType)) {
-            // Snooze screen has multiple snooze options
-            String[] options = {snooze1, snooze2, snooze3, "Quando eu terminar a tarefa atual"};
-            for (String opt : options) {
-                Button btn = new Button(this);
-                btn.setText(opt);
-                btn.setTextSize(16f);
-                btn.setTextColor(primaryBtnBgColor);
-                btn.setTypeface(null, Typeface.BOLD);
-                btn.setAllCaps(false);
-                GradientDrawable bg = new GradientDrawable();
-                bg.setCornerRadius(dpToPx(100));
-                bg.setStroke(dpToPx(1), 0x22000000);
-                bg.setColor(Color.WHITE);
-                btn.setBackground(bg);
-                LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    dpToPx(56)
-                );
-                btnParams.bottomMargin = dpToPx(12);
-                btn.setLayoutParams(btnParams);
-                btn.setOnClickListener(v -> finish());
-                bottomLayout.addView(btn);
+        // Primary button (Confirm / Take Med / Dismiss)
+        Button okBtn = new Button(this);
+        okBtn.setText(okText);
+        okBtn.setTextSize(16f);
+        okBtn.setTextColor(Color.WHITE);
+        okBtn.setTypeface(null, Typeface.BOLD);
+        okBtn.setAllCaps(false);
+        GradientDrawable okBg = new GradientDrawable();
+        okBg.setCornerRadius(dpToPx(100));
+        okBg.setColor(primaryBtnBgColor);
+        okBtn.setBackground(okBg);
+        LinearLayout.LayoutParams okParams = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dpToPx(60)
+        );
+        okParams.bottomMargin = dpToPx(16);
+        okBtn.setLayoutParams(okParams);
+        okBtn.setOnClickListener(v -> {
+            stopSoundAndVibration();
+            finish();
+        });
+        bottomLayout.addView(okBtn);
+
+        // Snooze button (reschedules for +5 min)
+        final String finalTitle = title;
+        final String finalMsg = message;
+        final String finalIntentType = intentType;
+        final String finalEventTime = eventTime;
+
+        Button snoozeBtn = new Button(this);
+        snoozeBtn.setText(snooze1);
+        snoozeBtn.setTextSize(15f);
+        snoozeBtn.setTextColor(primaryBtnBgColor);
+        snoozeBtn.setTypeface(null, Typeface.BOLD);
+        snoozeBtn.setAllCaps(false);
+        GradientDrawable snoozeBg = new GradientDrawable();
+        snoozeBg.setCornerRadius(dpToPx(100));
+        snoozeBg.setStroke(dpToPx(1), 0x22000000);
+        snoozeBg.setColor(Color.WHITE);
+        snoozeBtn.setBackground(snoozeBg);
+        LinearLayout.LayoutParams snoozeParams = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dpToPx(52)
+        );
+        snoozeParams.bottomMargin = dpToPx(16);
+        snoozeBtn.setLayoutParams(snoozeParams);
+        snoozeBtn.setOnClickListener(v -> {
+            stopSoundAndVibration();
+            try {
+                AlarmManager am = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+                if (am != null) {
+                    Intent snoozeIntent = new Intent(this, AlarmReceiver.class);
+                    snoozeIntent.putExtra("title", finalTitle);
+                    snoozeIntent.putExtra("message", finalMsg + " (Soneca)");
+                    snoozeIntent.putExtra("id", alarmId);
+                    snoozeIntent.putExtra("intentType", finalIntentType);
+                    snoozeIntent.putExtra("eventTime", finalEventTime);
+
+                    PendingIntent pi = PendingIntent.getBroadcast(
+                        this,
+                        alarmId,
+                        snoozeIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                    );
+
+                    long snoozeTime = System.currentTimeMillis() + (5 * 60 * 1000L); // 5 minutes
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        if (am.canScheduleExactAlarms()) {
+                            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, snoozeTime, pi);
+                        } else {
+                            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, snoozeTime, pi);
+                        }
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, snoozeTime, pi);
+                    } else {
+                        am.setExact(AlarmManager.RTC_WAKEUP, snoozeTime, pi);
+                    }
+                    Log.d("FullScreenAlarm", "Rescheduled alarm for +5 mins: " + snoozeTime);
+                }
+            } catch (Exception e) {
+                Log.e("FullScreenAlarm", "Failed to reschedule snooze alarm", e);
             }
-            
-            // "Voltar" text button
-            Button backBtn = new Button(this);
-            backBtn.setText("Voltar");
-            backBtn.setTextSize(14f);
-            backBtn.setTextColor(titleColor);
-            backBtn.setAllCaps(false);
-            backBtn.setBackground(null);
-            bottomLayout.addView(backBtn);
-            backBtn.setOnClickListener(v -> finish());
-        } else {
-            // Normal alarm screen
-            // Primary button
-            Button okBtn = new Button(this);
-            okBtn.setText(okText);
-            okBtn.setTextSize(16f);
-            okBtn.setTextColor(Color.WHITE);
-            okBtn.setTypeface(null, Typeface.BOLD);
-            okBtn.setAllCaps(false);
-            GradientDrawable okBg = new GradientDrawable();
-            okBg.setCornerRadius(dpToPx(100));
-            okBg.setColor(primaryBtnBgColor);
-            okBtn.setBackground(okBg);
-            LinearLayout.LayoutParams okParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dpToPx(60)
-            );
-            okParams.bottomMargin = dpToPx(16);
-            okBtn.setLayoutParams(okParams);
-            okBtn.setOnClickListener(v -> finish());
-            bottomLayout.addView(okBtn);
+            finish();
+        });
+        bottomLayout.addView(snoozeBtn);
 
-            // Snooze button
-            Button snoozeBtn = new Button(this);
-            snoozeBtn.setText(snooze1);
-            snoozeBtn.setTextSize(15f);
-            snoozeBtn.setTextColor(primaryBtnBgColor);
-            snoozeBtn.setTypeface(null, Typeface.BOLD);
-            snoozeBtn.setAllCaps(false);
-            GradientDrawable snoozeBg = new GradientDrawable();
-            snoozeBg.setCornerRadius(dpToPx(100));
-            snoozeBg.setStroke(dpToPx(1), 0x22000000);
-            snoozeBg.setColor(Color.WHITE);
-            snoozeBtn.setBackground(snoozeBg);
-            LinearLayout.LayoutParams snoozeParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dpToPx(52)
-            );
-            snoozeParams.bottomMargin = dpToPx(16);
-            snoozeBtn.setLayoutParams(snoozeParams);
-            snoozeBtn.setOnClickListener(v -> finish());
-            bottomLayout.addView(snoozeBtn);
-
-            // Dismiss text button
-            Button dismissBtn = new Button(this);
-            dismissBtn.setText(dismissText);
-            dismissBtn.setTextSize(14f);
-            dismissBtn.setTextColor(titleColor);
-            dismissBtn.setTypeface(null, Typeface.BOLD);
-            dismissBtn.setAllCaps(false);
-            dismissBtn.setBackground(null);
-            LinearLayout.LayoutParams dismissParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dpToPx(44)
-            );
-            dismissBtn.setLayoutParams(dismissParams);
-            dismissBtn.setOnClickListener(v -> finish());
-            bottomLayout.addView(dismissBtn);
-        }
+        // Dismiss text button
+        Button dismissBtn = new Button(this);
+        dismissBtn.setText(dismissText);
+        dismissBtn.setTextSize(14f);
+        dismissBtn.setTextColor(titleColor);
+        dismissBtn.setTypeface(null, Typeface.BOLD);
+        dismissBtn.setAllCaps(false);
+        dismissBtn.setBackground(null);
+        LinearLayout.LayoutParams dismissParams = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dpToPx(44)
+        );
+        dismissBtn.setLayoutParams(dismissParams);
+        dismissBtn.setOnClickListener(v -> {
+            stopSoundAndVibration();
+            finish();
+        });
+        bottomLayout.addView(dismissBtn);
 
         root.addView(bottomLayout);
         setContentView(root);
 
         // Play alarm ringtone
-        Uri alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-        if (alarmUri == null) {
-            alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        try {
+            Uri alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+            if (alarmUri == null) {
+                alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            }
+            ringtone = RingtoneManager.getRingtone(getApplicationContext(), alarmUri);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && ringtone != null) {
+                ringtone.setAudioAttributes(new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .build());
+            }
+            if (ringtone != null) {
+                ringtone.play();
+            }
+        } catch (Exception e) {
+            Log.e("FullScreenAlarm", "Error playing ringtone", e);
         }
-        ringtone = RingtoneManager.getRingtone(getApplicationContext(), alarmUri);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            ringtone.setAudioAttributes(new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ALARM)
-                .build());
-        }
-        ringtone.play();
 
         // Vibrate
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            VibratorManager vm = (VibratorManager) getSystemService(VIBRATOR_MANAGER_SERVICE);
-            if (vm != null) {
-                long[] pattern = {0, 500, 200, 500, 200, 500};
-                VibrationEffect effect = VibrationEffect.createWaveform(pattern, -1); // not repeating for now, could put 0 to repeat
-                vm.getDefaultVibrator().vibrate(effect);
-            }
-        } else {
-            Vibrator vib = (Vibrator) getSystemService(VIBRATOR_SERVICE);
-            if (vib != null) {
-                long[] pattern = {0, 500, 200, 500, 200, 500};
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    vib.vibrate(VibrationEffect.createWaveform(pattern, -1));
-                } else {
-                    vib.vibrate(pattern, -1);
+        try {
+            long[] pattern = {0, 500, 200, 500, 200, 500};
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                VibratorManager vm = (VibratorManager) getSystemService(VIBRATOR_MANAGER_SERVICE);
+                if (vm != null) {
+                    VibrationEffect effect = VibrationEffect.createWaveform(pattern, -1);
+                    vm.getDefaultVibrator().vibrate(effect);
+                }
+            } else {
+                Vibrator vib = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+                if (vib != null) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        vib.vibrate(VibrationEffect.createWaveform(pattern, -1));
+                    } else {
+                        vib.vibrate(pattern, -1);
+                    }
                 }
             }
+        } catch (Exception e) {
+            Log.e("FullScreenAlarm", "Error vibrating", e);
         }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (ringtone != null && ringtone.isPlaying()) {
-            ringtone.stop();
-        }
+        stopSoundAndVibration();
         if (wakeLock != null && wakeLock.isHeld()) {
-            wakeLock.release();
+            try {
+                wakeLock.release();
+            } catch (Exception e) {
+                Log.e("FullScreenAlarm", "Error releasing wakeLock", e);
+            }
         }
     }
 }

@@ -20,6 +20,8 @@ public class AlarmReceiver extends BroadcastReceiver {
         String message = intent.getStringExtra("message");
         int id = intent.getIntExtra("id", 0);
         String intentType = intent.getStringExtra("intentType");
+        String eventTime = intent.getStringExtra("eventTime");
+        String timeLabel = intent.getStringExtra("timeLabel");
 
         Log.d("NativeAlarm", "Alarm Received: " + title);
 
@@ -29,6 +31,12 @@ public class AlarmReceiver extends BroadcastReceiver {
         alarmIntent.putExtra("id", id);
         if (intentType != null) {
             alarmIntent.putExtra("intentType", intentType);
+        }
+        if (eventTime != null) {
+            alarmIntent.putExtra("eventTime", eventTime);
+        }
+        if (timeLabel != null) {
+            alarmIntent.putExtra("timeLabel", timeLabel);
         }
         alarmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         

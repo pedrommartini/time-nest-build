@@ -10,6 +10,7 @@ import { useFocus } from '../contexts/FocusContext';
 import { useMedication } from '../contexts/MedicationContext';
 import { useGamification } from '../contexts/GamificationContext';
 import { useAlarmManager } from '../contexts/AlarmManagerContext';
+import { useSync } from '../contexts/SyncContext';
 import { useBackHandler } from '../contexts/NavigationContext';
 import { audio } from '../utils/audio';
 import { runTests } from '../utils/tests';
@@ -17,7 +18,7 @@ import type { TestResult as UTResult } from '../utils/tests';
 import type { ThemeType, ColorBlindMode } from '../contexts/PreferencesContext';
 import { AVAILABLE_SKINS } from '../utils/skins';
 import { 
-  User, Calendar as CalendarIcon, Settings, Bell, ChevronRight, ArrowLeft,
+  User, Calendar as CalendarIcon, Settings, Bell, BellOff, ChevronRight, ArrowLeft,
   Shield, Info, Moon, Palette, Check,
   Plus, Volume2, Globe, Crown, Cloud, Download, LogOut,
   Flame, Clock, Star, X, Pill, Trash2, Trophy, Coins, Sparkles, AlertCircle
@@ -45,9 +46,10 @@ export const ProfileView: React.FC = () => {
   const { resetLearning } = useTasks();
   const { notifications, unreadCount, markAsRead, clearAll } = useNotifications();
   const { stats } = useFocus();
-  const { medications, addMedication, deleteMedication } = useMedication();
+  const { medications, addMedication, toggleMedicationAlarm, deleteMedication } = useMedication();
   const { nests, level } = useGamification();
   const { testAlarm } = useAlarmManager();
+  const { isOffline, syncState, lastSyncedAt, pendingOfflineCount, syncNow } = useSync();
 
   const [activeSubScreen, setActiveSubScreen] = useState<string | null>(null);
 
@@ -68,6 +70,7 @@ export const ProfileView: React.FC = () => {
   
   const [newMedName, setNewMedName] = useState('');
   const [newMedTime, setNewMedTime] = useState('08:00');
+  const [newMedAlarmEnabled, setNewMedAlarmEnabled] = useState(true);
 
   // Edit Profile States
   const [editName, setEditName] = useState(profile.name);
@@ -452,15 +455,32 @@ export const ProfileView: React.FC = () => {
                 </div>
               </button>
 
-              <button className="p-3 flex items-center justify-between hover:bg-app-bg/50 transition-colors border-b border-border-color/50">
+              <button onClick={() => { audio.playClick(); setActiveSubScreen('backup'); }} className="p-3 flex items-center justify-between hover:bg-app-bg/50 transition-colors border-b border-border-color/50">
                 <div className="flex items-center gap-3">
-                  <Cloud className="w-4 h-4 text-text-secondary" />
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center">
+                    <Cloud className="w-4 h-4" />
+                  </div>
                   <div className="text-left">
                     <p className="text-xs font-bold text-text-primary">Backup e sincronização</p>
-                    <p className="text-[9px] text-text-secondary">Último backup: hoje às 08:30</p>
+                    <p className="text-[9px] text-text-secondary">
+                      {isOffline 
+                        ? 'Modo Offline' 
+                        : lastSyncedAt 
+                          ? `Sincronizado: ${new Date(lastSyncedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` 
+                          : 'Sincronização em tempo real'}
+                    </p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-text-secondary" />
+                <div className="flex items-center gap-2">
+                  {isOffline ? (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 text-[9px] font-bold">Offline</span>
+                  ) : syncState === 'syncing' ? (
+                    <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 text-[9px] font-bold animate-pulse">Sincronizando...</span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-600 text-[9px] font-bold">Nuvem Ativa</span>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-text-secondary" />
+                </div>
               </button>
 
               <button className="p-3 flex items-center justify-between hover:bg-app-bg/50 transition-colors border-b border-border-color/50">
@@ -848,6 +868,21 @@ export const ProfileView: React.FC = () => {
                         onChange={(e) => setNewMedName(e.target.value)}
                         className="px-4 py-3 rounded-xl bg-app-bg border border-border-color text-sm text-text-primary w-full focus:outline-none focus:ring-2 focus:ring-brand-500/30"
                       />
+                      <div className="flex items-center justify-between bg-app-bg/60 p-3 rounded-xl border border-border-color/60">
+                        <div className="flex items-center gap-2">
+                          <Bell className="w-4 h-4 text-rose-500" />
+                          <span className="text-xs font-bold text-text-primary">Alarme ativo</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setNewMedAlarmEnabled(!newMedAlarmEnabled)}
+                          className={`w-10 h-6 rounded-full transition-colors p-0.5 flex items-center ${
+                            newMedAlarmEnabled ? 'bg-rose-500 justify-end' : 'bg-gray-300 dark:bg-gray-700 justify-start'
+                          }`}
+                        >
+                          <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
+                        </button>
+                      </div>
                       <div className="flex gap-3">
                         <input 
                           type="time" 
@@ -858,7 +893,7 @@ export const ProfileView: React.FC = () => {
                         <button 
                           onClick={async () => {
                             if (newMedName.trim()) {
-                              await addMedication(newMedName.trim(), newMedTime);
+                              await addMedication(newMedName.trim(), newMedTime, newMedAlarmEnabled);
                               setNewMedName('');
                             }
                           }}
@@ -879,7 +914,9 @@ export const ProfileView: React.FC = () => {
                         {medications.map(med => (
                           <div key={med.id} className="card-standard p-4 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                med.alarmEnabled ? 'bg-rose-50 text-rose-500 dark:bg-rose-950/40' : 'bg-gray-100 text-gray-400 dark:bg-gray-800'
+                              }`}>
                                 <Pill className="w-5 h-5" />
                               </div>
                               <div>
@@ -887,12 +924,35 @@ export const ProfileView: React.FC = () => {
                                 <p className="text-[10px] text-brand-600 font-bold">Todos os dias às {med.time}</p>
                               </div>
                             </div>
-                            <button 
-                              onClick={() => deleteMedication(med.id)}
-                              className="w-8 h-8 flex items-center justify-center text-text-secondary hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => toggleMedicationAlarm(med.id)}
+                                className={`px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold ${
+                                  med.alarmEnabled
+                                    ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40'
+                                    : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500 border border-transparent'
+                                }`}
+                                title={med.alarmEnabled ? 'Alarme ativado' : 'Alarme desativado'}
+                              >
+                                {med.alarmEnabled ? (
+                                  <>
+                                    <Bell className="w-3.5 h-3.5" />
+                                    <span>Ligado</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <BellOff className="w-3.5 h-3.5" />
+                                    <span>Desligado</span>
+                                  </>
+                                )}
+                              </button>
+                              <button 
+                                onClick={() => deleteMedication(med.id)}
+                                className="w-8 h-8 flex items-center justify-center text-text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-full transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1178,6 +1238,110 @@ export const ProfileView: React.FC = () => {
                       </div>
                     ))
                   )}
+                </div>
+              </>
+            )}
+
+            {/* SUB: BACKUP & SINCRONIZAÇÃO */}
+            {activeSubScreen === 'backup' && (
+              <>
+                {renderSubScreenHeader('Backup e Sincronização')}
+                <div className="flex flex-col gap-4 max-w-sm mx-auto">
+                  
+                  {/* Card Status da Nuvem */}
+                  <div className="card-standard p-4 rounded-2xl flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center">
+                          <Cloud className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm text-text-primary">Nuvem Time Nest</h4>
+                          <p className="text-[10px] text-text-secondary">{profile.email || 'Conta Local'}</p>
+                        </div>
+                      </div>
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                        isOffline 
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' 
+                          : syncState === 'syncing' 
+                            ? 'bg-blue-100 text-blue-700 animate-pulse' 
+                            : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                      }`}>
+                        {isOffline ? 'Offline' : syncState === 'syncing' ? 'Sincronizando' : 'Ativo'}
+                      </span>
+                    </div>
+
+                    <div className="pt-2 border-t border-border-color/50 flex flex-col gap-1 text-[10px] text-text-secondary">
+                      <div className="flex justify-between">
+                        <span>Último backup:</span>
+                        <span className="font-medium text-text-primary">
+                          {lastSyncedAt ? new Date(lastSyncedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : 'Pendente'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Fila offline pendente:</span>
+                        <span className="font-medium text-text-primary">{pendingOfflineCount} itens</span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={async () => {
+                        audio.playClick();
+                        await syncNow();
+                        audio.playChimeDone();
+                      }}
+                      disabled={isOffline || syncState === 'syncing'}
+                      className="w-full py-2.5 mt-2 rounded-xl btn-primary text-xs font-bold flex items-center justify-center gap-2 hover:brightness-105 transition-all disabled:opacity-50"
+                    >
+                      {syncState === 'syncing' ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Sincronizando...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          Sincronizar Agora
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Card Google Integrations */}
+                  <div className="card-standard p-4 rounded-2xl flex flex-col gap-3">
+                    <h4 className="font-bold text-xs text-text-primary uppercase tracking-wider">Integrações Google</h4>
+                    
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-app-bg border border-border-color/60">
+                      <div className="flex items-center gap-3">
+                        <CalendarIcon className="w-4 h-4 text-blue-500" />
+                        <div>
+                          <p className="text-xs font-bold text-text-primary">Google Agenda & Tasks</p>
+                          <p className="text-[10px] text-text-secondary">
+                            {googleSync.isConnected ? (googleSync.email || 'Conectado') : 'Não conectado'}
+                          </p>
+                        </div>
+                      </div>
+                      {googleSync.isConnected ? (
+                        <button 
+                          onClick={() => { audio.playClick(); disconnectGoogle(); }}
+                          className="px-2.5 py-1 rounded-lg text-[10px] font-bold text-red-500 border border-red-200 hover:bg-red-50 transition-colors"
+                        >
+                          Desconectar
+                        </button>
+                      ) : (
+                        <button
+                          onClick={async () => {
+                            audio.playClick();
+                            await connectGoogle();
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-[10px] font-bold text-brand-600 bg-brand-50 hover:bg-brand-100 transition-colors"
+                        >
+                          Conectar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                 </div>
               </>
             )}

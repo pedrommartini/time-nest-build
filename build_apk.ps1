@@ -1,4 +1,4 @@
-$EnvDir = "E:\AI\Antigravity\Time Nest\.android_env"
+$EnvDir = "E:\AI\Programas\Emulador Android"
 $env:JAVA_HOME = "$EnvDir\jdk-17.0.11+9"
 $env:ANDROID_HOME = "$EnvDir\sdk"
 $env:PATH = "$env:JAVA_HOME\bin;$env:ANDROID_HOME\cmdline-tools\latest\bin;$env:PATH"
