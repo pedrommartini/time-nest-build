@@ -73,7 +73,7 @@ const AppContent: React.FC = () => {
     return () => window.removeEventListener('open_manual_onboarding', handleOpenManual);
   }, []);
 
-  const INSTALLED_VERSION = '2.9.0';
+  const INSTALLED_VERSION = '3.1.0';
 
   React.useEffect(() => {
     const checkUpdate = async () => {
