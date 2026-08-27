@@ -56,7 +56,7 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     if (window.location.pathname === '/download' || window.location.pathname === '/apkdownload') {
-      window.location.href = '/timenest_v3.1.0.apk';
+      window.location.href = 'https://github.com/pedrommartini/time-nest-build/releases/download/v3.1.0/timenest_v3.1.0.apk';
     }
     if (!localStorage.getItem('timenest_onboarding_completed')) {
       setOnboardingState({ open: true, isManualReplay: false });

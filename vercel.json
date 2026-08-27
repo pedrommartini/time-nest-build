@@ -30,12 +30,12 @@
   "redirects": [
     {
       "source": "/download",
-      "destination": "/timenest_v3.1.0.apk",
+      "destination": "https://github.com/pedrommartini/time-nest-build/releases/download/v3.1.0/timenest_v3.1.0.apk",
       "permanent": false
     },
     {
       "source": "/apkdownload",
-      "destination": "/timenest_v3.1.0.apk",
+      "destination": "https://github.com/pedrommartini/time-nest-build/releases/download/v3.1.0/timenest_v3.1.0.apk",
       "permanent": false
     }
   ],
