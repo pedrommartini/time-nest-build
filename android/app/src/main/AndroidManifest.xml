@@ -42,7 +42,7 @@
             android:showOnLockScreen="true"
             android:showForAllUsers="true"
             android:turnScreenOn="true"
-            android:exported="false" />
+            android:exported="true" />
     </application>
 
     <!-- Permissions -->

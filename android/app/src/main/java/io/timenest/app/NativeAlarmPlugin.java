@@ -33,45 +33,53 @@ public class NativeAlarmPlugin extends Plugin {
 
     @PluginMethod
     public void requestPermissions(PluginCall call) {
-        Context context = getContext();
-        boolean needsExactAlarm = false;
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            if (!alarmManager.canScheduleExactAlarms()) {
-                Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
-                intent.setData(android.net.Uri.parse("package:" + context.getPackageName()));
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(intent);
-                needsExactAlarm = true;
+        try {
+            Context context = getContext();
+            boolean needsExactAlarm = false;
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                try {
+                    AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+                    if (alarmManager != null && !alarmManager.canScheduleExactAlarms()) {
+                        needsExactAlarm = true;
+                    }
+                } catch (Exception e) {
+                    Log.w("NativeAlarm", "Error checking exact alarm permission", e);
+                }
             }
-        }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
-            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    android.net.Uri.parse("package:" + context.getPackageName()));
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(intent);
-        }
-
-        if (Build.VERSION.SDK_INT >= 33) {
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissionForAlias("notifications", call, "notificationsPermsCallback");
-                return;
+            if (Build.VERSION.SDK_INT >= 33) {
+                try {
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                        requestPermissionForAlias("notifications", call, "notificationsPermsCallback");
+                        return;
+                    }
+                } catch (Exception e) {
+                    Log.w("NativeAlarm", "Error requesting notifications permission", e);
+                }
             }
-        }
 
-        JSObject ret = new JSObject();
-        ret.put("success", true);
-        ret.put("exactAlarmRequested", needsExactAlarm);
-        call.resolve(ret);
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            ret.put("exactAlarmRequested", needsExactAlarm);
+            call.resolve(ret);
+        } catch (Exception e) {
+            Log.e("NativeAlarm", "Safe catch in requestPermissions", e);
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        }
     }
 
     @PermissionCallback
     private void notificationsPermsCallback(PluginCall call) {
-        JSObject ret = new JSObject();
-        ret.put("success", true);
-        call.resolve(ret);
+        try {
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            Log.e("NativeAlarm", "Error in notificationsPermsCallback", e);
+        }
     }
 
     @PluginMethod

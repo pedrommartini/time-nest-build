@@ -47,10 +47,12 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
   const [medName, setMedName] = useState('');
   const [medTime, setMedTime] = useState('08:00');
 
+  const [direction, setDirection] = useState(0);
+
   const prevStep = () => {
     if (step > 0) {
       audio.playClick();
-      setPage([step - 1, -1]);
+      setDirection(-1);
       setStep(prev => prev - 1);
     }
   };
@@ -137,6 +139,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
 
     if (step < 3) {
       audio.playClick();
+      setDirection(1);
       setStep(prev => prev + 1);
     } else if (step === 3) {
       // After sleep step, show medication question popup
@@ -205,39 +208,33 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
     }
   };
 
-  const childVariants: Variants = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
-    exit: { opacity: 0, y: -20, transition: { duration: 0.3 } }
-  };
-
   const renderStepContent = () => {
     switch (step) {
       case 0:
         return (
-          <>
-            <motion.h1 variants={childVariants} className="text-xl md:text-2xl font-bold text-text-primary mb-6">Bem-vindo ao TimeNest</motion.h1>
-            <motion.div variants={childVariants} className="w-56 h-56 md:w-64 md:h-64 mb-6">
+          <div className="w-full flex flex-col items-center">
+            <h1 className="text-xl md:text-2xl font-bold text-text-primary mb-3">Bem-vindo ao TimeNest</h1>
+            <div className="w-36 h-36 md:w-44 md:h-44 mb-4">
               <AnimatedTimeline />
-            </motion.div>
-            <motion.p variants={childVariants} className="text-text-secondary text-xs md:text-sm mb-4 w-full px-4">
+            </div>
+            <p className="text-text-secondary text-xs md:text-sm mb-3 w-full px-4 leading-relaxed">
               Seu assistente pessoal para organizar o dia, aumentar o foco e respeitar o seu sono.
-            </motion.p>
-          </>
+            </p>
+          </div>
         );
       
       case 1:
         return (
-          <>
-            <motion.h1 variants={childVariants} className="text-xl md:text-2xl font-bold text-text-primary mb-6">Conecte sua Agenda</motion.h1>
-            <motion.div variants={childVariants} className="w-56 h-56 md:w-64 md:h-64 mb-6">
+          <div className="w-full flex flex-col items-center">
+            <h1 className="text-xl md:text-2xl font-bold text-text-primary mb-3">Conecte sua Agenda</h1>
+            <div className="w-36 h-36 md:w-44 md:h-44 mb-3">
               <AnimatedSync />
-            </motion.div>
-            <motion.p variants={childVariants} className="text-text-secondary text-xs md:text-sm mb-6 w-full px-4">
+            </div>
+            <p className="text-text-secondary text-xs md:text-sm mb-4 w-full px-4 leading-relaxed">
               Sincronize com o Google para importar e exportar seus eventos automaticamente.
-            </motion.p>
+            </p>
             
-            <motion.div variants={childVariants} className="w-full">
+            <div className="w-full">
               {!googleSync.isConnected ? (
                 <button 
                   onClick={async () => {
@@ -270,7 +267,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
                     setIsSyncing(false);
                   }}
                   disabled={isSyncing}
-                  className="w-full max-w-[240px] mx-auto flex items-center justify-center gap-2 bg-white text-gray-800 font-semibold py-3 rounded-2xl shadow-md hover:shadow-lg active:scale-95 transition-all mb-4 text-xs"
+                  className="w-full max-w-[240px] mx-auto flex items-center justify-center gap-2.5 bg-white dark:bg-card-bg text-gray-800 dark:text-gray-100 font-bold py-3 rounded-2xl shadow-md hover:shadow-lg border border-border-color active:scale-95 transition-all mb-3 text-xs"
                 >
                   {isSyncing ? (
                     <div className="w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
@@ -287,7 +284,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
                   )}
                 </button>
               ) : (
-                <div className="w-full max-w-[240px] mx-auto flex items-center justify-center gap-2 bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 font-semibold py-3 rounded-2xl shadow-sm mb-4 border border-green-300 dark:border-green-800 text-xs">
+                <div className="w-full max-w-[240px] mx-auto flex items-center justify-center gap-2 bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 font-bold py-3 rounded-2xl shadow-sm mb-3 border border-green-300 dark:border-green-800 text-xs">
                   <Check className="w-4 h-4" />
                   Conta Conectada!
                 </div>
@@ -295,23 +292,23 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
               
               <button 
                 onClick={nextStep}
-                className="text-text-secondary hover:text-brand-500 font-medium text-[10px] py-1 transition-colors block mx-auto"
+                className="text-text-secondary hover:text-brand-500 font-medium text-[11px] py-1 transition-colors block mx-auto"
               >
                 {googleSync.isConnected ? 'Continuar' : 'Pular esta etapa'}
               </button>
-            </motion.div>
-          </>
+            </div>
+          </div>
         );
 
       case 2:
         return (
-          <>
-            <motion.h1 variants={childVariants} className="text-xl md:text-2xl font-bold text-text-primary mb-2">Escolha seu Username</motion.h1>
-            <motion.p variants={childVariants} className="text-text-secondary text-xs mb-6 w-full px-4">
+          <div className="w-full flex flex-col items-center">
+            <h1 className="text-xl md:text-2xl font-bold text-text-primary mb-2">Escolha seu Username</h1>
+            <p className="text-text-secondary text-xs mb-4 w-full px-4">
               Defina a sua identificação única no TimeNest.
-            </motion.p>
+            </p>
             
-            <motion.div variants={childVariants} className="w-full max-w-[280px] mx-auto flex flex-col items-center">
+            <div className="w-full max-w-[280px] mx-auto flex flex-col items-center">
               <div className="w-full bg-card-bg p-4 rounded-2xl border border-border-color shadow-sm mb-3">
                 <label className="block text-[10px] font-bold text-text-secondary uppercase mb-1 text-left">Username único</label>
                 <div className={`relative flex items-center bg-app-bg rounded-xl border transition-colors px-3 py-2 ${
@@ -349,7 +346,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
 
               {/* Suggestions Chips */}
               {suggestions.length > 0 && (
-                <div className="w-full mb-6 text-left">
+                <div className="w-full mb-4 text-left">
                   <span className="text-[10px] font-bold text-text-secondary mb-1.5 flex items-center gap-1">
                     <Sparkles className="w-3 h-3 text-amber-500" />
                     Sugestões automáticas:
@@ -381,30 +378,30 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
                 Continuar
                 <ChevronRight className="w-4 h-4" />
               </button>
-            </motion.div>
-          </>
+            </div>
+          </div>
         );
 
       case 3:
         return (
-          <>
-            <motion.h1 variants={childVariants} className="text-xl md:text-2xl font-bold text-text-primary mb-4">Horário de Sono</motion.h1>
-            <motion.div variants={childVariants} className="w-44 h-44 md:w-52 md:h-52 mb-4">
+          <div className="w-full flex flex-col items-center">
+            <h1 className="text-xl md:text-2xl font-bold text-text-primary mb-3">Horário de Sono</h1>
+            <div className="w-36 h-36 md:w-44 md:h-44 mb-3">
               <AnimatedSleep />
-            </motion.div>
-            <motion.p variants={childVariants} className="text-text-secondary text-xs md:text-sm mb-4 w-full px-4">
+            </div>
+            <p className="text-text-secondary text-xs md:text-sm mb-3 w-full px-4 leading-relaxed">
               Protegemos seu descanso. Nenhum evento ou tarefa será sugerido nesse período.
-            </motion.p>
+            </p>
             
-            <motion.div variants={childVariants} className="w-full">
-              <div className="w-full max-w-[260px] mx-auto bg-card-bg p-4 rounded-2xl border border-border-color space-y-3 shadow-sm mb-4">
+            <div className="w-full">
+              <div className="w-full max-w-[260px] mx-auto bg-card-bg p-3.5 rounded-2xl border border-border-color space-y-2.5 shadow-sm mb-3">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-text-primary text-xs">Dormir</span>
                   <input 
                     type="time" 
                     value={tempStart}
                     onChange={(e) => setTempStart(e.target.value)}
-                    className="bg-app-bg text-text-primary px-2 py-1.5 rounded-lg border border-border-color font-mono text-xs text-center focus:outline-none focus:border-brand-500"
+                    className="bg-app-bg text-text-primary px-2 py-1 rounded-lg border border-border-color font-mono text-xs text-center focus:outline-none focus:border-brand-500"
                   />
                 </div>
                 <div className="h-px bg-border-color w-full" />
@@ -414,7 +411,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
                     type="time" 
                     value={tempEnd}
                     onChange={(e) => setTempEnd(e.target.value)}
-                    className="bg-app-bg text-text-primary px-2 py-1.5 rounded-lg border border-border-color font-mono text-xs text-center focus:outline-none focus:border-brand-500"
+                    className="bg-app-bg text-text-primary px-2 py-1 rounded-lg border border-border-color font-mono text-xs text-center focus:outline-none focus:border-brand-500"
                   />
                 </div>
                 
@@ -449,23 +446,23 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
                 Avançar
                 <ChevronRight className="w-4 h-4" />
               </button>
-            </motion.div>
-          </>
+            </div>
+          </div>
         );
 
       case 4:
         return (
-          <>
-            <motion.h1 variants={childVariants} className="text-xl font-bold text-text-primary mb-2 flex items-center justify-center gap-2">
+          <div className="w-full flex flex-col items-center">
+            <h1 className="text-xl font-bold text-text-primary mb-2 flex items-center justify-center gap-2">
               <Pill className="w-5 h-5 text-red-500" />
               Horário de Medicamentos
-            </motion.h1>
-            <motion.p variants={childVariants} className="text-text-secondary text-xs mb-4 w-full px-4">
+            </h1>
+            <p className="text-text-secondary text-xs mb-3 w-full px-4">
               Cadastre seus medicamentos diários para nunca esquecer uma dose.
-            </motion.p>
+            </p>
 
-            <motion.div variants={childVariants} className="w-full max-w-[280px] mx-auto">
-              <div className="bg-card-bg p-3.5 rounded-2xl border border-border-color shadow-sm mb-4 space-y-3">
+            <div className="w-full max-w-[280px] mx-auto">
+              <div className="bg-card-bg p-3 rounded-2xl border border-border-color shadow-sm mb-3 space-y-2.5">
                 <div className="space-y-2">
                   <input
                     type="text"
@@ -495,7 +492,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
 
                 {/* List of Added Meds */}
                 {medications.length > 0 && (
-                  <div className="pt-2 border-t border-border-color space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar">
+                  <div className="pt-2 border-t border-border-color space-y-1.5 max-h-28 overflow-y-auto custom-scrollbar">
                     {medications.map((m) => (
                       <div key={m.id} className="flex items-center justify-between p-2 rounded-lg bg-app-bg border border-border-color/50 text-xs">
                         <div className="flex items-center gap-2">
@@ -523,8 +520,8 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
                 <Check className="w-4 h-4" />
                 Concluir e Começar
               </button>
-            </motion.div>
-          </>
+            </div>
+          </div>
         );
     }
   };
@@ -552,15 +549,9 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
     })
   };
 
-  const [[page, direction], setPage] = useState([0, 0]);
-
   const paginate = (newDirection: number) => {
-    const maxS = showMedicationModal ? 4 : 3;
-    if (step + newDirection >= 0 && step + newDirection <= maxS) {
-      setPage([step + newDirection, newDirection]);
-      if (newDirection > 0) nextStep();
-      else prevStep();
-    }
+    if (newDirection > 0) nextStep();
+    else prevStep();
   };
 
   return (
@@ -575,7 +566,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
         <div className="absolute top-4 left-4 z-30 animate-fade-in">
           <button
             type="button"
-            onClick={() => paginate(-1)}
+            onClick={() => prevStep()}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-card-bg/90 border border-border-color shadow-sm text-text-primary text-xs font-semibold hover:bg-card-bg active:scale-95 transition-all"
           >
             <ArrowLeft className="w-4 h-4 text-brand-500" />
@@ -589,7 +580,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
         {/* Content Area with Animation */}
         <AnimatePresence initial={true} custom={direction} mode="wait">
           <motion.div
-            key={page}
+            key={step}
             custom={direction}
             variants={variants}
             initial="initial"
@@ -639,7 +630,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
                 type="button"
                 onClick={() => {
                   audio.playClick();
-                  setPage([4, 1]);
+                  setDirection(1);
                   setStep(4);
                 }}
                 className="w-full py-3 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"
@@ -671,7 +662,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
               onClick={() => {
                 if (step !== i) {
                   audio.playClick();
-                  setPage([i, i > step ? 1 : -1]);
+                  setDirection(i > step ? 1 : -1);
                   setStep(i);
                 }
               }}

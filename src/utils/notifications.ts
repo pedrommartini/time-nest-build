@@ -2,9 +2,13 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 
 export const requestNotificationPermissions = async () => {
-  if (Capacitor.isNativePlatform()) {
-    const permStatus = await LocalNotifications.requestPermissions();
-    return permStatus.display === 'granted';
+  try {
+    if (Capacitor.isNativePlatform()) {
+      const permStatus = await LocalNotifications.requestPermissions();
+      return permStatus.display === 'granted';
+    }
+  } catch (e) {
+    console.warn('Safe catch in requestNotificationPermissions:', e);
   }
   return false;
 };
