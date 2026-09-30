@@ -29,7 +29,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
   const { googleSync, connectGoogle } = useCalendar();
   const { profile, setProfile } = useProfile();
   const { medications, addMedication, deleteMedication } = useMedication();
-  const { hasCloudDataForAccount, hydrateAccountFromCloud, saveCloudBackup } = useSync();
+  const { saveCloudBackup } = useSync();
 
   const [step, setStep] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -239,32 +239,37 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
                 <button 
                   onClick={async () => {
                     setIsSyncing(true);
-                    const user = await connectGoogle();
-                    if (user) {
-                      const userEmail = user.email || googleSync.email;
-                      const newProfile = { ...profile };
-                      if (user.displayName || user.name) newProfile.name = user.displayName || user.name;
-                      if (user.email) newProfile.email = user.email;
-                      if (user.imageUrl || user.photoUrl) newProfile.avatar = user.imageUrl || user.photoUrl;
-                      
-                      const autoSugg = generateUsernameSuggestions(user.email || user.displayName || user.name || 'user', profile.id)[0];
-                      if (autoSugg) {
-                        const cleanSugg = cleanUsernameInput(autoSugg);
-                        newProfile.username = cleanSugg;
-                        setTempUsername(cleanSugg);
-                      }
-                      setProfile(newProfile);
+                    try {
+                      const user = await connectGoogle();
+                      if (user) {
+                        const userEmail = user.email || googleSync.email;
+                        const newProfile = { ...profile };
+                        if (user.displayName || user.name) newProfile.name = user.displayName || user.name;
+                        if (user.email) newProfile.email = user.email;
+                        if (user.imageUrl || user.photoUrl) newProfile.avatar = user.imageUrl || user.photoUrl;
+                        
+                        const autoSugg = generateUsernameSuggestions(user.email || user.displayName || user.name || 'user', profile.id)[0];
+                        if (autoSugg) {
+                          const cleanSugg = cleanUsernameInput(autoSugg);
+                          newProfile.username = cleanSugg;
+                          setTempUsername(cleanSugg);
+                        }
+                        setProfile(newProfile);
 
-                      // If account already has data in cloud and this is NOT a manual replay, skip to timeline!
-                      if (!isManualReplay && userEmail && hasCloudDataForAccount(userEmail)) {
-                        hydrateAccountFromCloud(userEmail);
-                        localStorage.setItem('timenest_onboarding_completed', 'true');
-                        setIsSyncing(false);
-                        onComplete();
-                        return;
+                        // If user connected Google, complete onboarding immediately and enter app
+                        if (!isManualReplay && userEmail) {
+                          localStorage.setItem('timenest_onboarding_completed', 'true');
+                          setIsSyncing(false);
+                          audio.playChimeDone();
+                          onComplete();
+                          return;
+                        }
                       }
+                    } catch (e) {
+                      console.error('Google connect error:', e);
+                    } finally {
+                      setIsSyncing(false);
                     }
-                    setIsSyncing(false);
                   }}
                   disabled={isSyncing}
                   className="w-full max-w-[240px] mx-auto flex items-center justify-center gap-2.5 bg-white dark:bg-card-bg text-gray-800 dark:text-gray-100 font-bold py-3 rounded-2xl shadow-md hover:shadow-lg border border-border-color active:scale-95 transition-all mb-3 text-xs"

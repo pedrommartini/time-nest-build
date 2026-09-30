@@ -148,52 +148,9 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     },
     onError: (error) => {
-      console.warn('Web GoogleAuth error, activating smooth demo sync fallback:', error);
-      audio.playChimeDone();
-      setGoogleSync({
-        isConnected: true,
-        lastSync: new Date().toISOString(),
-        autoSync: true,
-        accessToken: 'demo_token',
-        email: 'pedrovski8tube@gmail.com'
-      });
-      
-      const today = getLocalDateString();
-      const demoGoogleEvents: Event[] = [
-        {
-          id: 'google-demo-1',
-          title: '📅 Reunião de Equipe (Google Agenda)',
-          start: '10:30',
-          end: '11:30',
-          date: today,
-          source: 'google',
-          color: 'purple',
-          isFixed: true
-        },
-        {
-          id: 'google-demo-2',
-          title: '📅 Alinhamento de Projeto (Google Agenda)',
-          start: '14:00',
-          end: '15:00',
-          date: today,
-          source: 'google',
-          color: 'purple',
-          isFixed: true
-        }
-      ];
-
-      setEvents(prev => {
-        const locals = prev.filter(e => e.source !== 'google');
-        return [...locals, ...demoGoogleEvents];
-      });
-
+      console.warn('Web GoogleAuth error:', error);
       if (webLoginPromise.current) {
-        webLoginPromise.current.resolve({
-          name: 'Pedro Miranda Martini',
-          displayName: 'Pedro Miranda Martini',
-          email: 'pedrovski8tube@gmail.com',
-          imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=256&auto=format&fit=crop&q=80'
-        });
+        webLoginPromise.current.reject(error);
         webLoginPromise.current = null;
       }
     },
