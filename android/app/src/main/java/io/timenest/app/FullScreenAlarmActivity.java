@@ -148,6 +148,16 @@ public class FullScreenAlarmActivity extends Activity {
                 snooze1 = "+10 min";
                 dismissText = "Adiar sono";
                 break;
+            case "wake":
+                haloColor = 0x25F59E0B; // warm amber halo
+                badgeText = "☀️ HORA DE ACORDAR";
+                badgeTextColor = 0xFFD97706;
+                timeColor = 0xFFD97706;
+                okText = "Acordei! Iniciar dia";
+                primaryBtnBgColor = 0xFFD97706;
+                snooze1 = "+5 min Soneca";
+                dismissText = "Dispensar";
+                break;
             case "pre-event":
                 haloColor = 0x257C3AED; // vibrant purple halo
                 badgeText = (timeLabel != null && !timeLabel.isEmpty()) ? ("📅 " + timeLabel.toUpperCase()) : "📅 COMPROMISSO";

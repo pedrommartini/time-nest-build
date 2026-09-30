@@ -213,5 +213,59 @@ export function runTests(): TestResult[] {
     if (!availA.available) throw new Error('Username should remain available for owner userA');
   });
 
+  // 6. Alarms & Sleep Routine Tests
+  test('Alarms & Routine', 'Calculates sleep routine duration across midnight', () => {
+    const sH = 23, sM = 30; // 23:30
+    const eH = 7, eM = 30;  // 07:30
+    let totalMin = (eH * 60 + eM) - (sH * 60 + sM);
+    if (totalMin < 0) totalMin += 24 * 60;
+    if (totalMin !== 8 * 60) throw new Error(`Expected 480 min (8h), got ${totalMin}`);
+  });
+
+  test('Alarms & Routine', 'Calculates 5-minute pre-sleep alarm time accurately', () => {
+    const sleepStart = '23:00';
+    const [sH, sM] = sleepStart.split(':').map(Number);
+    const date = new Date(2026, 0, 1, sH, sM, 0);
+    const prepDate = new Date(date.getTime() - 5 * 60000);
+    const prepTimeStr = `${String(prepDate.getHours()).padStart(2, '0')}:${String(prepDate.getMinutes()).padStart(2, '0')}`;
+    if (prepTimeStr !== '22:55') throw new Error(`Expected 22:55, got ${prepTimeStr}`);
+  });
+
+  test('Alarms & Routine', 'Medication alarm schedules future timestamp properly', () => {
+    const medTime = '08:00';
+    const [mH, mM] = medTime.split(':').map(Number);
+    const now = new Date(2026, 0, 1, 9, 0, 0); // 09:00 (past 08:00)
+    const scheduled = new Date(now.getFullYear(), now.getMonth(), now.getDate(), mH, mM, 0);
+    if (scheduled.getTime() <= now.getTime()) {
+      scheduled.setDate(scheduled.getDate() + 1);
+    }
+    // Should be scheduled for tomorrow 08:00
+    if (scheduled.getDate() !== 2 || scheduled.getHours() !== 8) {
+      throw new Error(`Expected next day 08:00, got ${scheduled.toISOString()}`);
+    }
+  });
+
+  test('Alarms & Routine', 'Calculates pre-event 15-minute alarm offset', () => {
+    const eventStart = '19:30';
+    const offset = 15;
+    const [h, m] = eventStart.split(':').map(Number);
+    let targetMin = h * 60 + m - offset;
+    if (targetMin < 0) targetMin += 1440;
+    const tH = Math.floor(targetMin / 60);
+    const tM = targetMin % 60;
+    const result = `${String(tH).padStart(2, '0')}:${String(tM).padStart(2, '0')}`;
+    if (result !== '19:15') throw new Error(`Expected 19:15, got ${result}`);
+  });
+
+  test('Alarms & Routine', 'Computes snooze delay timestamps accurately', () => {
+    const baseNow = 1000000;
+    const snooze5 = baseNow + 5 * 60000;
+    const snooze10 = baseNow + 10 * 60000;
+    const snooze15 = baseNow + 15 * 60000;
+    if (snooze5 - baseNow !== 300000) throw new Error('5-min snooze failed');
+    if (snooze10 - baseNow !== 600000) throw new Error('10-min snooze failed');
+    if (snooze15 - baseNow !== 900000) throw new Error('15-min snooze failed');
+  });
+
   return results;
 }

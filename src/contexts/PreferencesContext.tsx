@@ -7,7 +7,7 @@ export type ThemeType = 'light' | 'dark' | 'system';
 export type LanguageType = 'pt-BR' | 'en' | 'es';
 export type ColorBlindMode = 'none' | 'protanopia' | 'deuteranopia' | 'tritanopia';
 export type FontFamilyType = 'Outfit' | 'Plus Jakarta Sans' | 'Poppins';
-export type AlarmSoundType = 'chime' | 'rain' | 'forest' | 'waves';
+export type AlarmSoundType = 'chime' | 'radar' | 'gentle' | 'rain' | 'forest' | 'waves' | 'cafe';
 export type AlarmVisualType = 'minimal' | 'gamified';
 
 interface PreferencesContextType {
@@ -36,6 +36,8 @@ interface PreferencesContextType {
   setSleepAlarmEnabled: (val: boolean) => void;
   sleep5MinAlarmEnabled: boolean;
   setSleep5MinAlarmEnabled: (val: boolean) => void;
+  wakeAlarmEnabled: boolean;
+  setWakeAlarmEnabled: (val: boolean) => void;
   alarmSound: AlarmSoundType;
   setAlarmSound: (val: AlarmSoundType) => void;
   alarmVisual: AlarmVisualType;
@@ -93,6 +95,7 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [sleepEnd, setSleepEnd] = useState<string>('07:00');
   const [sleepAlarmEnabled, setSleepAlarmEnabled] = useState<boolean>(false);
   const [sleep5MinAlarmEnabled, setSleep5MinAlarmEnabled] = useState<boolean>(true);
+  const [wakeAlarmEnabled, setWakeAlarmEnabled] = useState<boolean>(false);
   const [alarmSound, setAlarmSound] = useState<AlarmSoundType>('chime');
   const [alarmVisual, setAlarmVisual] = useState<AlarmVisualType>('minimal');
   const [globalAlarmsEnabled, setGlobalAlarmsEnabled] = useState<boolean>(false);
@@ -117,6 +120,7 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
         if (parsed.sleepEnd) setSleepEnd(parsed.sleepEnd);
         if (parsed.sleepAlarmEnabled !== undefined) setSleepAlarmEnabled(parsed.sleepAlarmEnabled);
         if (parsed.sleep5MinAlarmEnabled !== undefined) setSleep5MinAlarmEnabled(parsed.sleep5MinAlarmEnabled);
+        if (parsed.wakeAlarmEnabled !== undefined) setWakeAlarmEnabled(parsed.wakeAlarmEnabled);
         if (parsed.alarmSound) setAlarmSound(parsed.alarmSound);
         if (parsed.alarmVisual) setAlarmVisual(parsed.alarmVisual);
         if (parsed.globalAlarmsEnabled !== undefined) setGlobalAlarmsEnabled(parsed.globalAlarmsEnabled);
@@ -127,9 +131,9 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Save to local storage
   useEffect(() => {
     localStorage.setItem('timenest_preferences', JSON.stringify({
-      theme, skin, language, isLowStimulation, colorBlindMode, fontFamily, uiScale, isTestEnvironment, sleepStart, sleepEnd, sleepAlarmEnabled, sleep5MinAlarmEnabled, alarmSound, alarmVisual, globalAlarmsEnabled
+      theme, skin, language, isLowStimulation, colorBlindMode, fontFamily, uiScale, isTestEnvironment, sleepStart, sleepEnd, sleepAlarmEnabled, sleep5MinAlarmEnabled, wakeAlarmEnabled, alarmSound, alarmVisual, globalAlarmsEnabled
     }));
-  }, [theme, skin, language, isLowStimulation, colorBlindMode, fontFamily, uiScale, isTestEnvironment, sleepStart, sleepEnd, sleepAlarmEnabled, sleep5MinAlarmEnabled, alarmSound, alarmVisual, globalAlarmsEnabled]);
+  }, [theme, skin, language, isLowStimulation, colorBlindMode, fontFamily, uiScale, isTestEnvironment, sleepStart, sleepEnd, sleepAlarmEnabled, sleep5MinAlarmEnabled, wakeAlarmEnabled, alarmSound, alarmVisual, globalAlarmsEnabled]);
 
   // Apply theme, skin & accessibility classes to root
   useEffect(() => {
@@ -187,6 +191,7 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
       updateSleepTime: (start, end) => { setSleepStart(start); setSleepEnd(end); },
       sleepAlarmEnabled, setSleepAlarmEnabled,
       sleep5MinAlarmEnabled, setSleep5MinAlarmEnabled,
+      wakeAlarmEnabled, setWakeAlarmEnabled,
       alarmSound, setAlarmSound,
       alarmVisual, setAlarmVisual,
       globalAlarmsEnabled, setGlobalAlarmsEnabled,

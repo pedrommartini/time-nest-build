@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { CalendarDays, CheckSquare, Trash2, Check, ChevronUp, ChevronDown } from 'lucide-react';
+import { CalendarDays, CheckSquare, Trash2, Check, ChevronUp, ChevronDown, Bell } from 'lucide-react';
 import { getLocalDateString } from '../utils/time';
 import type { Event } from '../utils/time';
 import { audio } from '../utils/audio';
@@ -479,11 +479,16 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
 
         {/* Title & Metadata Column (Middle) */}
         <div className="flex flex-col min-w-0 flex-1 justify-center pointer-events-auto pr-1">
-          <span className={`font-semibold text-text-primary truncate transition-all ${
-            finalHeight < 36 ? 'text-xs' : finalHeight < 55 ? 'text-sm' : 'text-base'
-          } ${isCompleted ? 'line-through text-text-secondary opacity-70' : ''}`}>
-            {event.title}
-          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className={`font-semibold text-text-primary truncate transition-all ${
+              finalHeight < 36 ? 'text-xs' : finalHeight < 55 ? 'text-sm' : 'text-base'
+            } ${isCompleted ? 'line-through text-text-secondary opacity-70' : ''}`}>
+              {event.title}
+            </span>
+            {event.alarmEnabled && (
+              <Bell className="w-2.5 h-2.5 text-amber-500 dark:text-amber-400 shrink-0" />
+            )}
+          </div>
           
           {finalHeight >= 62 && (
             <div className="flex items-center gap-1.5 mt-0.5">

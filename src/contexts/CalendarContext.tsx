@@ -400,7 +400,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             lastSync: new Date().toISOString(),
             autoSync: true,
             accessToken: 'demo_token',
-            email: 'usuario.google@gmail.com'
+            email: 'pedrovski8tube@gmail.com'
           });
           
           const today = getLocalDateString();
@@ -432,7 +432,12 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             return [...locals, ...demoGoogleEvents];
           });
           
-          return { name: 'Google Agenda Conectada', email: 'usuario.google@gmail.com', imageUrl: '' };
+          return {
+            name: 'Pedro Miranda Martini',
+            displayName: 'Pedro Miranda Martini',
+            email: 'pedrovski8tube@gmail.com',
+            imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=256&auto=format&fit=crop&q=80'
+          };
         }
       } else {
         return new Promise((resolve, reject) => {

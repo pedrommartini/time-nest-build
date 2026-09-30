@@ -191,6 +191,135 @@ class AudioSystem {
       this.activeOscillators.push(osc, lfo);
     }
   }
+
+  public ensureAudioUnlocked() {
+    if (!this.ctx) return;
+    if (this.ctx.state === 'suspended') {
+      const unlock = () => {
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
+        }
+        window.removeEventListener('pointerdown', unlock);
+        window.removeEventListener('keydown', unlock);
+        window.removeEventListener('touchstart', unlock);
+      };
+      window.addEventListener('pointerdown', unlock, { once: true });
+      window.addEventListener('keydown', unlock, { once: true });
+      window.addEventListener('touchstart', unlock, { once: true });
+    }
+  }
+
+  private alarmInterval: any = null;
+  private isAlarmPlaying: boolean = false;
+
+  public playAlarm(sound: 'chime' | 'rain' | 'waves' | 'cafe' | 'forest' | 'radar' | 'gentle' = 'chime', isCritical: boolean = false) {
+    this.stopAlarm();
+    this.ensureAudioUnlocked();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
+
+    this.isAlarmPlaying = true;
+
+    // Ambient loop sounds
+    if (sound === 'rain' || sound === 'waves' || sound === 'forest' || sound === 'cafe') {
+      this.playAmbient(sound, isCritical ? 0.7 : 0.45);
+      return;
+    }
+
+    // Procedural tones
+    const playNote = () => {
+      if (!this.isAlarmPlaying || !this.enabled || !this.ctx || !this.masterGain) return;
+      if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+      
+      const t = this.ctx.currentTime;
+
+      if (sound === 'radar') {
+        // High-clarity 2-pulse alert
+        const freqs = [880, 1320];
+        freqs.forEach((freq, idx) => {
+          if (!this.ctx || !this.masterGain) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, t + idx * 0.12);
+          
+          gain.gain.setValueAtTime(0, t + idx * 0.12);
+          gain.gain.linearRampToValueAtTime(isCritical ? 0.4 : 0.25, t + idx * 0.12 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.12 + 0.18);
+
+          osc.connect(gain);
+          gain.connect(this.masterGain);
+          osc.start(t + idx * 0.12);
+          osc.stop(t + idx * 0.12 + 0.2);
+        });
+      } else if (sound === 'gentle') {
+        // Soft acoustic kalimba tones (A4, C#5, E5, G#5)
+        const freqs = [440.00, 554.37, 659.25, 830.61];
+        freqs.forEach((freq, idx) => {
+          if (!this.ctx || !this.masterGain) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, t + idx * 0.15);
+          
+          gain.gain.setValueAtTime(0, t + idx * 0.15);
+          gain.gain.linearRampToValueAtTime(0.2, t + idx * 0.15 + 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.15 + 1.2);
+
+          osc.connect(gain);
+          gain.connect(this.masterGain);
+          osc.start(t + idx * 0.15);
+          osc.stop(t + idx * 0.15 + 1.25);
+        });
+      } else {
+        // Default: Chime arpeggio
+        this.playChimeDone();
+      }
+    };
+
+    playNote();
+    const intervalMs = isCritical ? 2000 : (sound === 'radar' ? 2500 : 3500);
+    this.alarmInterval = setInterval(playNote, intervalMs);
+  }
+
+  public stopAlarm() {
+    this.isAlarmPlaying = false;
+    if (this.alarmInterval) {
+      clearInterval(this.alarmInterval);
+      this.alarmInterval = null;
+    }
+    this.stopAmbient();
+  }
+
+  public previewSound(sound: 'chime' | 'rain' | 'waves' | 'cafe' | 'forest' | 'radar' | 'gentle') {
+    this.playAlarm(sound, false);
+    setTimeout(() => {
+      this.stopAlarm();
+    }, 2800);
+  }
+
+  public playCelebration() {
+    if (!this.enabled || !this.ctx || !this.masterGain) return;
+    if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+    const t = this.ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // C5, E5, G5, C6, E6
+    notes.forEach((freq, i) => {
+      if (!this.ctx || !this.masterGain) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      const start = t + (i * 0.08);
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.3, start + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.8);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(start);
+      osc.stop(start + 0.85);
+    });
+  }
 }
 
 export const audio = new AudioSystem();

@@ -55,10 +55,10 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [profile, setProfile] = useState<UserProfile>(() => {
     let initialProfile: UserProfile = {
       id: 'user_' + Date.now(),
-      name: 'Visitante',
-      username: 'visitante',
-      email: 'visitante@email.com',
-      avatar: '',
+      name: 'Pedro Miranda Martini',
+      username: 'pedrovski8',
+      email: 'pedrovski8tube@gmail.com',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=256&auto=format&fit=crop&q=80',
       joinedAt: new Date().toISOString()
     };
 
@@ -66,10 +66,23 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const savedProfile = localStorage.getItem('timenest_profile');
       if (savedProfile) {
         const parsed = JSON.parse(savedProfile);
+        const fixedName = (parsed.name === 'Google Agenda Conectada' || !parsed.name || parsed.name === 'Visitante') 
+          ? 'Pedro Miranda Martini' 
+          : parsed.name;
+        const fixedEmail = (parsed.email === 'usuario.google@gmail.com' || !parsed.email || parsed.email === 'visitante@email.com') 
+          ? 'pedrovski8tube@gmail.com' 
+          : parsed.email;
+        const fixedAvatar = (!parsed.avatar) 
+          ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=256&auto=format&fit=crop&q=80' 
+          : parsed.avatar;
+
         initialProfile = {
           ...initialProfile,
           ...parsed,
-          id: parsed.id || ('user_' + (parsed.email || 'local_user'))
+          name: fixedName,
+          email: fixedEmail,
+          avatar: fixedAvatar,
+          id: parsed.id || ('user_' + (fixedEmail || 'local_user'))
         };
       }
     } catch(e) {}
