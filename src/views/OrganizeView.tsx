@@ -17,7 +17,7 @@ const iconMap: Record<string, any> = {
 };
 
 export const OrganizeView: React.FC = () => {
-  const { tasks, updateTaskStatus, updateTask, deleteTask } = useTasks();
+  const { tasks, updateTaskStatus, updateTask, deleteTask, isGoogleTasksConnected, isSyncingTasks, syncGoogleTasksNow } = useTasks();
   const { events, updateEvent, updateEventTimes, deleteEvent } = useCalendar();
   const { projects, addProject, updateProject } = useProjects();
   const { startTimer } = useFocus();
@@ -161,17 +161,28 @@ export const OrganizeView: React.FC = () => {
               
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                 {isTask ? (
-                  <span className="text-[9px] font-bold text-text-secondary flex items-center gap-1">
-                    <Clock className="w-2.5 h-2.5" />
-                    {formatDurationFriendly(item.estimatedDuration)}
-                    <span className={`px-1.5 py-0.5 rounded ml-1 ${
-                      item.size === 'Grande' ? 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400' :
-                      item.size === 'Média' ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400' :
-                      'bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400'
-                    }`}>
-                      {item.size}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[9px] font-bold text-text-secondary flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5" />
+                      {formatDurationFriendly(item.estimatedDuration)}
+                      <span className={`px-1.5 py-0.5 rounded ml-1 ${
+                        item.size === 'Grande' ? 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400' :
+                        item.size === 'Média' ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400' :
+                        'bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400'
+                      }`}>
+                        {item.size}
+                      </span>
                     </span>
-                  </span>
+                    {item.source === 'google' ? (
+                      <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                        ☁️ Google Tasks
+                      </span>
+                    ) : (
+                      <span className="text-[9px] font-medium text-text-secondary bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+                        Local
+                      </span>
+                    )}
+                  </div>
                 ) : (
                   <span className="text-[9px] font-bold text-text-secondary flex items-center gap-1">
                     <CalendarIcon className="w-2.5 h-2.5" />
@@ -493,6 +504,30 @@ export const OrganizeView: React.FC = () => {
               transition={{ duration: 0.2 }}
               className="absolute inset-0 overflow-y-auto px-5 pb-[110px] custom-scrollbar"
             >
+              {/* Google Tasks Sync Indicator */}
+              {isGoogleTasksConnected && (
+                <div className="flex items-center justify-between mb-3 px-3 py-2 rounded-xl bg-card-bg border border-border-color text-[11px] shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${isSyncingTasks ? 'bg-amber-500 animate-spin' : 'bg-emerald-500'}`} />
+                    <span className="font-bold text-text-primary">Google Tasks</span>
+                    <span className="text-[10px] text-text-secondary">
+                      {isSyncingTasks ? 'Sincronizando tarefas...' : 'Sincronizado na nuvem'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      audio.playClick();
+                      await syncGoogleTasksNow();
+                    }}
+                    disabled={isSyncingTasks}
+                    className="text-[10px] font-bold text-brand-600 hover:text-brand-700 bg-brand-50 dark:bg-brand-900/30 px-2 py-1 rounded-md flex items-center gap-1 transition-colors"
+                  >
+                    <ArrowUpDown className={`w-3 h-3 ${isSyncingTasks ? 'animate-spin' : ''}`} />
+                    {isSyncingTasks ? 'Sincronizando' : 'Sincronizar'}
+                  </button>
+                </div>
+              )}
+
               {/* Daily summary pill */}
               <div className="flex justify-between items-center mb-4 px-2">
                  <span className="text-xs font-bold text-brand-600">Hoje, {new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</span>

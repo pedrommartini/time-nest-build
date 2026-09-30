@@ -2,9 +2,15 @@
 
 import { parseNLPInput, normalizeTitle, getSimilarity, estimateDuration } from './nlp';
 import { calculateFreeIntervals, timeStringToMinutes, minutesToTimeString } from './time';
-import type { Event } from './time';
+import type { Event, Task } from './time';
 import { validateAndParseBackup, exportTasksToCSV } from './backup';
 import { validateUsernameFormat, isUsernameAvailable, reserveUsername } from './username';
+import { 
+  serializeTaskNotes, 
+  deserializeTaskNotes, 
+  taskToGoogleTaskPayload, 
+  googleTaskItemToTimeNestTask 
+} from './googleTasks';
 
 export interface TestResult {
   category: string;
@@ -265,6 +271,81 @@ export function runTests(): TestResult[] {
     if (snooze5 - baseNow !== 300000) throw new Error('5-min snooze failed');
     if (snooze10 - baseNow !== 600000) throw new Error('10-min snooze failed');
     if (snooze15 - baseNow !== 900000) throw new Error('15-min snooze failed');
+  });
+
+  // 7. Google Tasks Cloud Sync & Metadata Persistence Tests
+  test('Google Tasks Cloud Sync', 'Serializes and deserializes rich task metadata in notes', () => {
+    const originalDesc = 'Comprar mantimentos para a semana inteira';
+    const meta = {
+      duration: 45,
+      size: 'Média' as const,
+      priority: 'Alta' as const,
+      category: 'Mercado',
+      alarmEnabled: true,
+      notificationOffset: 10
+    };
+
+    const serialized = serializeTaskNotes(originalDesc, meta);
+    if (!serialized.includes('[timenest-meta:')) {
+      throw new Error('Expected serialized notes to contain [timenest-meta: tag');
+    }
+
+    const { description, meta: parsedMeta } = deserializeTaskNotes(serialized);
+    if (description !== originalDesc) {
+      throw new Error(`Expected description "${originalDesc}", got "${description}"`);
+    }
+    if (parsedMeta.duration !== 45) {
+      throw new Error(`Expected duration 45, got ${parsedMeta.duration}`);
+    }
+    if (parsedMeta.priority !== 'Alta') {
+      throw new Error(`Expected priority "Alta", got ${parsedMeta.priority}`);
+    }
+    if (parsedMeta.alarmEnabled !== true) {
+      throw new Error(`Expected alarmEnabled true, got ${parsedMeta.alarmEnabled}`);
+    }
+  });
+
+  test('Google Tasks Cloud Sync', 'Builds Google Tasks API payload with correct status and title', () => {
+    const task: Task = {
+      id: 'local-123',
+      title: 'Finalizar relatório financeiro',
+      description: 'Verificar balanço trimestral',
+      estimatedDuration: 60,
+      size: 'Grande',
+      priority: 'Alta',
+      status: 'pending',
+      category: 'Finanças',
+      createdAt: '2026-09-30T10:00:00Z',
+      source: 'manual',
+      alarmEnabled: true
+    };
+
+    const payload = taskToGoogleTaskPayload(task);
+    if (payload.title !== task.title) throw new Error('Payload title mismatch');
+    if (payload.status !== 'needsAction') throw new Error(`Expected needsAction, got ${payload.status}`);
+    if (!payload.notes.includes('Verificar balanço trimestral')) throw new Error('Payload notes missing description');
+    if (!payload.notes.includes('"alarmEnabled":true')) throw new Error('Payload notes missing alarmEnabled metadata');
+  });
+
+  test('Google Tasks Cloud Sync', 'Reconstructs TimeNest Task from Google Tasks REST item', () => {
+    const rawGoogleItem = {
+      id: 'gtask-xyz-987',
+      title: 'Estudar TypeScript Avançado',
+      status: 'completed',
+      updated: '2026-09-30T15:00:00Z',
+      notes: 'Capítulo 4 e 5\n\n[timenest-meta:{"duration":90,"size":"Grande","priority":"Alta","category":"Estudos","alarmEnabled":true}]'
+    };
+
+    const task = googleTaskItemToTimeNestTask(rawGoogleItem);
+    if (task.id !== 'google-gtask-xyz-987') throw new Error(`Expected id google-gtask-xyz-987, got ${task.id}`);
+    if (task.title !== 'Estudar TypeScript Avançado') throw new Error('Title mismatch');
+    if (task.description !== 'Capítulo 4 e 5') throw new Error(`Expected clean description, got "${task.description}"`);
+    if (task.status !== 'completed') throw new Error(`Expected status completed, got ${task.status}`);
+    if (task.estimatedDuration !== 90) throw new Error(`Expected duration 90, got ${task.estimatedDuration}`);
+    if (task.size !== 'Grande') throw new Error(`Expected size Grande, got ${task.size}`);
+    if (task.priority !== 'Alta') throw new Error(`Expected priority Alta, got ${task.priority}`);
+    if (task.alarmEnabled !== true) throw new Error('Expected alarmEnabled true');
+    if (task.source !== 'google') throw new Error('Expected source google');
   });
 
   return results;
