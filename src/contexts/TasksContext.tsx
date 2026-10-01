@@ -1,6 +1,7 @@
 // Tasks and Repetition/Suggestion Context for TimeNest
+// Integrated with TimeNest Cloud Database for authenticated Google users
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { Task } from '../utils/time';
 import { parseNLPInput, normalizeTitle, getSimilarity } from '../utils/nlp';
 import { audio } from '../utils/audio';
@@ -9,9 +10,10 @@ import { usePreferences } from './PreferencesContext';
 import { useCalendar } from './CalendarContext';
 import { useGamification } from './GamificationContext';
 import { 
-  taskToGoogleTaskPayload, 
-  googleTaskItemToTimeNestTask 
-} from '../utils/googleTasks';
+  loadUserTasksFromCloud, 
+  saveUserTasksToCloud,
+  normalizeUserEmail
+} from '../utils/cloudDatabase';
 
 interface RepetitionSuggestion {
   id: string;
@@ -49,6 +51,7 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const { isTestEnvironment } = usePreferences();
   const { googleSync } = useCalendar();
   const { addNests } = useGamification();
+
   const [tasks, setTasks] = useState<Task[]>(() => {
     try {
       const key = isTestEnvironment ? 'timenest_tasks_test' : 'timenest_tasks';
@@ -127,8 +130,16 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch(e) {}
     return [];
   });
+
   const [learningData, setLearningData] = useState<DurationLearning[]>([]);
-  
+  const [isSyncingTasks, setIsSyncingTasks] = useState(false);
+  const [lastTasksSync, setLastTasksSync] = useState<string | null>(() => {
+    return localStorage.getItem('timenest_last_cloud_sync') || null;
+  });
+
+  // Track the last loaded user email to avoid redundant full fetches
+  const loadedEmailRef = useRef<string | null>(null);
+
   // Load learning data
   useEffect(() => {
     try {
@@ -158,196 +169,76 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [learningData, isTestEnvironment]);
 
-  const [isSyncingTasks, setIsSyncingTasks] = useState(false);
-  const [lastTasksSync, setLastTasksSync] = useState<string | null>(() => {
-    return localStorage.getItem('timenest_last_tasks_sync') || null;
-  });
+  /**
+   * Automatic Cloud Sync Engine:
+   * When user signs in with Google, pull their TimeNest tasks from the cloud database
+   */
+  useEffect(() => {
+    if (!googleSync.isConnected || !googleSync.email) return;
 
-  const pushTaskToGoogle = async (task: Task, isUpdate = false) => {
-    if (!googleSync.isConnected) return;
-    const isRealToken = googleSync.accessToken && googleSync.accessToken !== 'demo_token';
-    const cleanEmail = (googleSync.email || 'user').trim().toLowerCase();
+    const userEmail = normalizeUserEmail(googleSync.email);
+    if (loadedEmailRef.current === userEmail) return;
 
-    if (isRealToken) {
+    let isCancelled = false;
+
+    const syncWithCloud = async () => {
+      setIsSyncingTasks(true);
       try {
-        const payload = taskToGoogleTaskPayload(task);
-        let url = 'https://tasks.googleapis.com/tasks/v1/lists/@default/tasks';
-        let method = 'POST';
+        const { tasks: cloudTasks } = await loadUserTasksFromCloud(userEmail);
+        if (isCancelled) return;
 
-        if (isUpdate && task.id.startsWith('google-')) {
-          const googleId = task.id.replace('google-', '');
-          url = `${url}/${googleId}`;
-          method = 'PATCH';
-        }
-
-        const response = await fetch(url, {
-          method,
-          headers: {
-            'Authorization': `Bearer ${googleSync.accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (!isUpdate || !task.id.startsWith('google-')) {
-            setTasks(prev => prev.map(t => t.id === task.id ? { ...t, id: `google-${data.id}`, source: 'google' } : t));
-          }
-        }
-      } catch (e) {
-        console.error('Failed to push task to Google Tasks:', e);
-      }
-    } else {
-      // Demo / fallback cloud binding tied to user account
-      const accountKey = `timenest_tasks_account_${cleanEmail}`;
-      try {
-        const raw = localStorage.getItem(accountKey);
-        let list: Task[] = raw ? JSON.parse(raw) : [];
-        const idx = list.findIndex(t => t.id === task.id);
-        if (idx >= 0) {
-          list[idx] = { ...task, source: 'google' };
-        } else {
-          list.push({ ...task, source: 'google' });
-        }
-        localStorage.setItem(accountKey, JSON.stringify(list));
-      } catch(e) {}
-    }
-  };
-
-  const deleteTaskFromGoogle = async (taskId: string) => {
-    if (!googleSync.isConnected) return;
-    const isRealToken = googleSync.accessToken && googleSync.accessToken !== 'demo_token';
-    const cleanEmail = (googleSync.email || 'user').trim().toLowerCase();
-
-    if (isRealToken && taskId.startsWith('google-')) {
-      try {
-        const googleId = taskId.replace('google-', '');
-        await fetch(`https://tasks.googleapis.com/tasks/v1/lists/@default/tasks/${googleId}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${googleSync.accessToken}` }
-        });
-      } catch (e) {
-        console.error('Failed to delete task from Google Tasks:', e);
-      }
-    } else {
-      const accountKey = `timenest_tasks_account_${cleanEmail}`;
-      try {
-        const raw = localStorage.getItem(accountKey);
-        if (raw) {
-          const list: Task[] = JSON.parse(raw);
-          const filtered = list.filter(t => t.id !== taskId);
-          localStorage.setItem(accountKey, JSON.stringify(filtered));
-        }
-      } catch(e) {}
-    }
-  };
-
-  const syncGoogleTasksNow = async () => {
-    if (!googleSync.isConnected) return;
-    setIsSyncingTasks(true);
-    try {
-      const isRealToken = googleSync.accessToken && googleSync.accessToken !== 'demo_token';
-      const cleanEmail = (googleSync.email || 'user').trim().toLowerCase();
-
-      if (isRealToken) {
-        const response = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists/@default/tasks?showCompleted=true&showHidden=true', {
-          headers: { 'Authorization': `Bearer ${googleSync.accessToken}` }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const items: any[] = data.items || [];
-          
+        if (cloudTasks && cloudTasks.length > 0) {
+          // Cloud has tasks for this user: hydrate and merge
           setTasks(prev => {
-            const remoteGoogleTasks: Task[] = items
-              .filter((item: any) => item.status !== 'hidden' && item.title)
-              .map((item: any) => {
-                const existing = prev.find(t => t.id === `google-${item.id}`);
-                return googleTaskItemToTimeNestTask(item, existing);
-              });
+            const cloudIds = new Set(cloudTasks.map(t => t.id));
+            // Keep local tasks that might not have been pushed yet
+            const unpushedLocal = prev.filter(t => !cloudIds.has(t.id));
+            const merged = [...cloudTasks, ...unpushedLocal];
 
-            // Local tasks that haven't been pushed to Google Tasks yet
-            const unpushedLocals = prev.filter(t => !t.id.startsWith('google-') && t.source !== 'google');
-
-            // Asynchronously upload unpushed local tasks to Google Tasks cloud
-            if (unpushedLocals.length > 0) {
-              unpushedLocals.forEach(localTask => {
-                pushTaskToGoogle(localTask, false);
-              });
+            // If there were unpushed local tasks, auto-save the merged set to cloud
+            if (unpushedLocal.length > 0) {
+              saveUserTasksToCloud(userEmail, merged);
             }
-
-            const merged = [
-              ...unpushedLocals,
-              ...remoteGoogleTasks
-            ];
-
-            const nowIso = new Date().toISOString();
-            setLastTasksSync(nowIso);
-            localStorage.setItem('timenest_last_tasks_sync', nowIso);
             return merged;
           });
-        }
-      } else {
-        // Fallback / Demo account mode (e.g. linked to pedrovski8tube@gmail.com)
-        const accountKey = `timenest_tasks_account_${cleanEmail}`;
-        const storedAccountTasks = localStorage.getItem(accountKey);
-        if (storedAccountTasks) {
-          const parsed = JSON.parse(storedAccountTasks) as Task[];
-          setTasks(prev => {
-            const localIds = new Set(prev.map(t => t.id));
-            const newFromCloud = parsed.filter(t => !localIds.has(t.id));
-            const combined = [...prev, ...newFromCloud];
-            localStorage.setItem(accountKey, JSON.stringify(combined));
-            return combined;
-          });
         } else {
+          // If cloud has no tasks for this user, but local state has tasks, save them to the cloud database
           setTasks(prev => {
             if (prev.length > 0) {
-              localStorage.setItem(accountKey, JSON.stringify(prev));
+              saveUserTasksToCloud(userEmail, prev);
             }
             return prev;
           });
         }
+
+        loadedEmailRef.current = userEmail;
         const nowIso = new Date().toISOString();
         setLastTasksSync(nowIso);
-        localStorage.setItem('timenest_last_tasks_sync', nowIso);
+        localStorage.setItem('timenest_last_cloud_sync', nowIso);
+      } catch (err) {
+        console.error('Error auto-syncing tasks with TimeNest cloud database:', err);
+      } finally {
+        if (!isCancelled) setIsSyncingTasks(false);
       }
-    } catch (e) {
-      console.error('Error fetching Google Tasks', e);
-    } finally {
-      setIsSyncingTasks(false);
-    }
-  };
-
-  const pushAllLocalTasksToGoogle = async () => {
-    if (!googleSync.isConnected) return;
-    const unpushed = tasks.filter(t => !t.id.startsWith('google-') && t.source !== 'google');
-    for (const t of unpushed) {
-      await pushTaskToGoogle(t, false);
-    }
-  };
-
-  useEffect(() => {
-    if (!googleSync.isConnected) return;
-    
-    syncGoogleTasksNow();
-
-    const interval = setInterval(() => {
-       if (!document.hidden) syncGoogleTasksNow();
-    }, 60000);
-    
-    const handleVisibilityChange = () => {
-       if (!document.hidden) syncGoogleTasksNow();
     };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
+    syncWithCloud();
+
     return () => {
-       clearInterval(interval);
-       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      isCancelled = true;
     };
-  }, [googleSync.isConnected, googleSync.accessToken, googleSync.email]);
+  }, [googleSync.isConnected, googleSync.email]);
+
+  /**
+   * Helper to silently trigger cloud save whenever tasks are modified
+   */
+  const autoSaveToCloud = (updatedTasks: Task[]) => {
+    if (googleSync.email) {
+      saveUserTasksToCloud(googleSync.email, updatedTasks);
+      const nowIso = new Date().toISOString();
+      setLastTasksSync(nowIso);
+    }
+  };
 
   const addTask = (input: string, overrideDuration?: number, options?: { description?: string; recurrenceRule?: 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY'; notificationOffset?: number; alarmEnabled?: boolean; projectId?: string }) => {
     const parsed = parseNLPInput(input);
@@ -363,7 +254,6 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (duration <= 15) size = 'Pequena';
       else if (duration >= 60) size = 'Grande';
     } else if (overrideDuration === undefined) {
-      // Use basic heuristics if no learned data
       if (parsed.title.toLowerCase().match(/(rápido|rapidinho|email|mensagem)/)) {
         duration = 15;
         size = 'Pequena';
@@ -386,24 +276,25 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       status: 'pending',
       category: 'Geral',
       createdAt: new Date().toISOString(),
-      source: googleSync.isConnected ? 'google' : 'nlp',
+      source: 'timenest',
       recurrenceRule: options?.recurrenceRule,
       notificationOffset: options?.notificationOffset,
       alarmEnabled: options?.alarmEnabled,
       projectId: options?.projectId
     };
     
-    setTasks(prev => [newTask, ...prev]);
+    const updated = [newTask, ...tasks];
+    setTasks(updated);
     audio.playClick();
-    
-    if (googleSync.isConnected) {
-       pushTaskToGoogle(newTask, false);
-    }
+    autoSaveToCloud(updated);
     return newTask.id;
   };
 
   const updateTaskStatus = (id: string, status: 'pending' | 'completed') => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+    const updated = tasks.map(t => t.id === id ? { ...t, status } : t);
+    setTasks(updated);
+    autoSaveToCloud(updated);
+
     const task = tasks.find(t => t.id === id);
     if (task && status === 'completed') {
       audio.playChimeDone();
@@ -416,27 +307,19 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // Reward Nests based on task size
       const reward = task.size === 'Grande' ? 20 : task.size === 'Média' ? 10 : 5;
       addNests(reward, 'Tarefa concluída');
-      if (googleSync.isConnected) {
-        pushTaskToGoogle({ ...task, status }, true);
-      }
-    } else if (task && googleSync.isConnected) {
-      pushTaskToGoogle({ ...task, status }, true);
     }
   };
 
   const updateTask = (id: string, updates: Partial<Task>) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
-    const current = tasks.find(t => t.id === id);
-    if (current && googleSync.isConnected) {
-      pushTaskToGoogle({ ...current, ...updates }, true);
-    }
+    const updated = tasks.map(t => t.id === id ? { ...t, ...updates } : t);
+    setTasks(updated);
+    autoSaveToCloud(updated);
   };
 
   const deleteTask = (id: string) => {
-    if (googleSync.isConnected) {
-      deleteTaskFromGoogle(id);
-    }
-    setTasks(prev => prev.filter(t => t.id !== id));
+    const updated = tasks.filter(t => t.id !== id);
+    setTasks(updated);
+    autoSaveToCloud(updated);
   };
 
   const updateTaskDuration = (id: string, actualDuration: number) => {
@@ -498,14 +381,31 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const suggestions = computeSuggestions();
 
   const acceptSuggestion = (id: string) => {
-    // In a full app, this would create a Routine template. 
-    // For this prototype, we'll just dismiss it with a success sound.
     audio.playChimeDone();
     alert(`Rotina criada para: ${id}`);
   };
 
-  const dismissSuggestion = (_id: string) => {
-    // We would store this in a "dismissedSuggestions" array to avoid showing it again soon.
+  const dismissSuggestion = (_id: string) => {};
+
+  // Compatibility helpers (automatic background sync)
+  const syncGoogleTasksNow = async () => {
+    if (!googleSync.email) return;
+    setIsSyncingTasks(true);
+    try {
+      const { tasks: cloudTasks } = await loadUserTasksFromCloud(googleSync.email);
+      if (cloudTasks && cloudTasks.length > 0) {
+        setTasks(cloudTasks);
+      }
+      const nowIso = new Date().toISOString();
+      setLastTasksSync(nowIso);
+    } finally {
+      setIsSyncingTasks(false);
+    }
+  };
+
+  const pushAllLocalTasksToGoogle = async () => {
+    if (!googleSync.email) return;
+    await saveUserTasksToCloud(googleSync.email, tasks);
   };
 
   return (

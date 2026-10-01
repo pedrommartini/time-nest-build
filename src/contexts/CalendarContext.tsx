@@ -154,7 +154,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         webLoginPromise.current = null;
       }
     },
-    scope: 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks'
+    scope: 'https://www.googleapis.com/auth/calendar.events'
   });
   
   // Events are loaded in useState now.
@@ -168,7 +168,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '898129156349-qm7fannl6mbgfrhim2ujatddh6tb21sk.apps.googleusercontent.com';
       GoogleAuth.initialize({
         clientId: googleClientId,
-        scopes: ['profile', 'email', 'openid', 'https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/tasks'],
+        scopes: ['profile', 'email', 'openid', 'https://www.googleapis.com/auth/calendar.events'],
         grantOfflineAccess: true,
       });
     }

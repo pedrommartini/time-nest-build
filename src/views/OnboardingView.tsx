@@ -18,6 +18,7 @@ import {
 } from '../utils/username';
 
 import { useSync } from '../contexts/SyncContext';
+import { loadUserTasksFromCloud } from '../utils/cloudDatabase';
 
 interface OnboardingViewProps {
   onComplete: () => void;
@@ -256,8 +257,16 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete, isMa
                         }
                         setProfile(newProfile);
 
-                        // If user connected Google, complete onboarding immediately and enter app
+                        // If user connected Google, pull their cloud tasks, complete onboarding and enter app
                         if (!isManualReplay && userEmail) {
+                          try {
+                            const { tasks: cloudTasks } = await loadUserTasksFromCloud(userEmail);
+                            if (cloudTasks && cloudTasks.length > 0) {
+                              localStorage.setItem('timenest_tasks', JSON.stringify(cloudTasks));
+                            }
+                          } catch (cloudErr) {
+                            console.warn('Failed to pre-fetch cloud tasks:', cloudErr);
+                          }
                           localStorage.setItem('timenest_onboarding_completed', 'true');
                           setIsSyncing(false);
                           audio.playChimeDone();

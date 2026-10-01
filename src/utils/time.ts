@@ -10,7 +10,7 @@ export interface Task {
   status: 'pending' | 'completed';
   category: string;
   createdAt: string;
-  source: 'manual' | 'nlp' | 'repetition' | 'google';
+  source: 'manual' | 'nlp' | 'repetition' | 'google' | 'timenest';
   recurrenceRule?: 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
   notificationOffset?: number; // minutes before
   alarmEnabled?: boolean;

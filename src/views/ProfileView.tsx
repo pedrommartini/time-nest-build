@@ -22,7 +22,7 @@ import {
   Shield, Info, Moon, Palette, Check,
   Plus, Volume2, Globe, Crown, Cloud, Download, LogOut,
   Flame, Clock, Star, X, Pill, Trash2, Trophy, Coins, Sparkles, AlertCircle,
-  Sun, CheckCircle2, Zap, ArrowUpDown
+  Sun, CheckCircle2, Zap
 } from 'lucide-react';
 import { 
   cleanUsernameInput, 
@@ -46,14 +46,7 @@ export const ProfileView: React.FC = () => {
     globalAlarmsEnabled, setGlobalAlarmsEnabled, t 
   } = usePreferences();
   const { googleSync, connectGoogle, disconnectGoogle } = useCalendar();
-  const { 
-    resetLearning, 
-    isSyncingTasks, 
-    lastTasksSync, 
-    syncGoogleTasksNow, 
-    pushAllLocalTasksToGoogle, 
-    tasks 
-  } = useTasks();
+  const { resetLearning } = useTasks();
   const { notifications, unreadCount, markAsRead, clearAll } = useNotifications();
   const { stats } = useFocus();
   const { medications, addMedication, toggleMedicationAlarm, deleteMedication } = useMedication();
@@ -1534,11 +1527,11 @@ export const ProfileView: React.FC = () => {
                   {/* Card Google Integrations */}
                   <div className="card-standard p-4 rounded-2xl flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-xs text-text-primary uppercase tracking-wider">Integrações Google (Nuvem)</h4>
+                      <h4 className="font-bold text-xs text-text-primary uppercase tracking-wider">Google Agenda (Eventos)</h4>
                       {googleSync.isConnected && (
                         <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full flex items-center gap-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          Nuvem Ativa
+                          Conectado
                         </span>
                       )}
                     </div>
@@ -1548,7 +1541,7 @@ export const ProfileView: React.FC = () => {
                         <div className="flex items-center gap-3">
                           <CalendarIcon className="w-4 h-4 text-blue-500" />
                           <div>
-                            <p className="text-xs font-bold text-text-primary">Google Agenda & Google Tasks</p>
+                            <p className="text-xs font-bold text-text-primary">Google Agenda</p>
                             <p className="text-[10px] text-text-secondary">
                               {googleSync.isConnected ? (googleSync.email || 'Conectado') : 'Não conectado'}
                             </p>
@@ -1573,50 +1566,6 @@ export const ProfileView: React.FC = () => {
                           </button>
                         )}
                       </div>
-
-                      {googleSync.isConnected && (
-                        <div className="pt-2 mt-1 border-t border-border-color/40 flex flex-col gap-2">
-                          <div className="flex items-center justify-between text-[10px] text-text-secondary">
-                            <span>Sincronização de Tarefas (Google Tasks):</span>
-                            <span className="font-semibold text-text-primary">
-                              {tasks.filter(t => t.source === 'google' || t.id.startsWith('google-')).length} de {tasks.length} na nuvem
-                            </span>
-                          </div>
-
-                          {lastTasksSync && (
-                            <p className="text-[9px] text-text-secondary italic">
-                              Última sincronização: {new Date(lastTasksSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                            </p>
-                          )}
-
-                          <div className="flex items-center gap-2 mt-1">
-                            <button
-                              onClick={async () => {
-                                audio.playClick();
-                                await syncGoogleTasksNow();
-                              }}
-                              disabled={isSyncingTasks}
-                              className="flex-1 py-1.5 rounded-lg text-[10px] font-bold text-brand-600 bg-brand-50 dark:bg-brand-900/30 hover:bg-brand-100 flex items-center justify-center gap-1 transition-colors"
-                            >
-                              <ArrowUpDown className={`w-3 h-3 ${isSyncingTasks ? 'animate-spin' : ''}`} />
-                              {isSyncingTasks ? 'Sincronizando tarefas...' : 'Sincronizar Tarefas Agora'}
-                            </button>
-
-                            {tasks.some(t => !t.id.startsWith('google-') && t.source !== 'google') && (
-                              <button
-                                onClick={async () => {
-                                  audio.playClick();
-                                  await pushAllLocalTasksToGoogle();
-                                }}
-                                disabled={isSyncingTasks}
-                                className="py-1.5 px-2.5 rounded-lg text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 flex items-center gap-1 transition-colors"
-                              >
-                                Subir locais ({tasks.filter(t => !t.id.startsWith('google-') && t.source !== 'google').length})
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
 
