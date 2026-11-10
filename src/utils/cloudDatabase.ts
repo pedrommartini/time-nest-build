@@ -182,3 +182,17 @@ export async function saveUserTasksToCloud(email: string, tasks: Task[]): Promis
     }, 400);
   });
 }
+
+/**
+ * Clears local cloud database pointers on disconnect/logout
+ */
+export function clearCloudDatabaseCache(): void {
+  try {
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('timenest_cloud_obj_')) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch (e) {}
+}
+

@@ -12,7 +12,8 @@ import { useGamification } from './GamificationContext';
 import { 
   loadUserTasksFromCloud, 
   saveUserTasksToCloud,
-  normalizeUserEmail
+  normalizeUserEmail,
+  clearCloudDatabaseCache
 } from '../utils/cloudDatabase';
 
 interface RepetitionSuggestion {
@@ -54,6 +55,14 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [tasks, setTasks] = useState<Task[]>(() => {
     try {
+      const savedGsync = localStorage.getItem('timenest_gsync');
+      if (savedGsync) {
+        const parsedGsync = JSON.parse(savedGsync);
+        if (parsedGsync.isConnected && parsedGsync.email) {
+          // Connected: tasks will be fetched fresh from TimeNest cloud database
+          return [];
+        }
+      }
       const key = isTestEnvironment ? 'timenest_tasks_test' : 'timenest_tasks';
       const savedTasks = localStorage.getItem(key);
       if (savedTasks) {
@@ -153,13 +162,43 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch(e) {}
   }, [isTestEnvironment]);
 
-  // Save tasks to local storage
+  // Save tasks to local storage (ONLY when not logged in with Google)
   useEffect(() => {
     const key = isTestEnvironment ? 'timenest_tasks_test' : 'timenest_tasks';
+    if (googleSync.isConnected && googleSync.email) {
+      // Local persistence is deactivated while logged in - data is saved in cloud database
+      localStorage.removeItem(key);
+      return;
+    }
+
     if (tasks.length > 0 || localStorage.getItem(key)) {
       localStorage.setItem(key, JSON.stringify(tasks));
     }
-  }, [tasks, isTestEnvironment]);
+  }, [tasks, isTestEnvironment, googleSync.isConnected, googleSync.email]);
+
+  // Track previous connection to clear state and local storage on logout/disconnect
+  const prevConnectedRef = useRef(googleSync.isConnected);
+
+  useEffect(() => {
+    const handleLogout = () => {
+      setTasks([]);
+      loadedEmailRef.current = null;
+      localStorage.removeItem('timenest_tasks');
+      localStorage.removeItem('timenest_tasks_test');
+      localStorage.removeItem('timenest_last_cloud_sync');
+      clearCloudDatabaseCache();
+    };
+
+    if (prevConnectedRef.current && !googleSync.isConnected) {
+      handleLogout();
+    }
+    prevConnectedRef.current = googleSync.isConnected;
+
+    window.addEventListener('timenest_logout', handleLogout);
+    return () => {
+      window.removeEventListener('timenest_logout', handleLogout);
+    };
+  }, [googleSync.isConnected]);
   
   // Save learning data to local storage
   useEffect(() => {

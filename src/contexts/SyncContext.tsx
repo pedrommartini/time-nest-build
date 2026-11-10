@@ -95,9 +95,18 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    const handleLogout = () => {
+      localStorage.removeItem('timenest_offline_queue');
+      localStorage.removeItem('timenest_last_cloud_sync');
+      setOfflineQueue([]);
+      setLastSyncedAt(null);
+    };
+    window.addEventListener('timenest_logout', handleLogout);
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('timenest_logout', handleLogout);
     };
   }, []);
 

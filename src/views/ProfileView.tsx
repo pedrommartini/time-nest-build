@@ -75,17 +75,16 @@ export const ProfileView: React.FC = () => {
   const [newMedTime, setNewMedTime] = useState('08:00');
   const [newMedAlarmEnabled, setNewMedAlarmEnabled] = useState(true);
 
-  const effectiveName = (profile.name === 'Google Agenda Conectada' || !profile.name || profile.name === 'Visitante')
-    ? 'Pedro Miranda Martini'
-    : profile.name;
-  const effectiveEmail = (googleSync.email && googleSync.email !== 'usuario.google@gmail.com')
-    ? googleSync.email
-    : (profile.email && profile.email !== 'usuario.google@gmail.com' && profile.email !== 'visitante@email.com' ? profile.email : 'pedrovski8tube@gmail.com');
-  const effectiveAvatar = profile.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=256&auto=format&fit=crop&q=80';
-
-  const effectiveUsername = (profile.username === 'pedrovski8tube' || !profile.username || profile.username === 'visitante')
-    ? 'pedrovski8'
-    : profile.username;
+  const effectiveName = profile.name && profile.name !== 'Visitante'
+    ? profile.name
+    : (googleSync.isConnected ? 'Pedro Miranda Martini' : 'Visitante');
+  const effectiveEmail = googleSync.email 
+    ? googleSync.email 
+    : (googleSync.isConnected ? (profile.email || 'pedrovski8tube@gmail.com') : '');
+  const effectiveAvatar = profile.avatar;
+  const effectiveUsername = profile.username && profile.username !== 'visitante'
+    ? profile.username
+    : (googleSync.isConnected ? 'pedrovski8' : 'visitante');
 
   const userPoints = 386;
   const leaderboardList = [

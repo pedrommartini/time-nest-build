@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { audio } from '../utils/audio';
-import { reserveUsername, cleanUsernameInput, generateUsernameSuggestions } from '../utils/username';
+import { reserveUsername } from '../utils/username';
 
 export interface UserProfile {
   id: string;
@@ -54,48 +54,56 @@ const defaultAchievements: Achievement[] = [
 export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [profile, setProfile] = useState<UserProfile>(() => {
     let initialProfile: UserProfile = {
-      id: 'user_' + Date.now(),
-      name: 'Pedro Miranda Martini',
-      username: 'pedrovski8',
-      email: 'pedrovski8tube@gmail.com',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=256&auto=format&fit=crop&q=80',
+      id: 'guest_' + Date.now(),
+      name: 'Visitante',
+      username: 'visitante',
+      email: '',
+      avatar: '',
       joinedAt: new Date().toISOString()
     };
 
     try {
-      const savedProfile = localStorage.getItem('timenest_profile');
-      if (savedProfile) {
-        const parsed = JSON.parse(savedProfile);
-        const fixedName = (parsed.name === 'Google Agenda Conectada' || !parsed.name || parsed.name === 'Visitante') 
-          ? 'Pedro Miranda Martini' 
-          : parsed.name;
-        const fixedEmail = (parsed.email === 'usuario.google@gmail.com' || !parsed.email || parsed.email === 'visitante@email.com') 
-          ? 'pedrovski8tube@gmail.com' 
-          : parsed.email;
-        const fixedAvatar = (!parsed.avatar) 
-          ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=256&auto=format&fit=crop&q=80' 
-          : parsed.avatar;
+      const savedGsync = localStorage.getItem('timenest_gsync');
+      const isConnected = savedGsync ? JSON.parse(savedGsync)?.isConnected : false;
 
+      const savedProfile = localStorage.getItem('timenest_profile');
+      if (savedProfile && isConnected) {
+        const parsed = JSON.parse(savedProfile);
         initialProfile = {
           ...initialProfile,
-          ...parsed,
-          name: fixedName,
-          email: fixedEmail,
-          avatar: fixedAvatar,
-          id: parsed.id || ('user_' + (fixedEmail || 'local_user'))
+          ...parsed
         };
       }
     } catch(e) {}
 
     // Ensure initial username exists and is reserved
     if (!initialProfile.username) {
-      const suggested = generateUsernameSuggestions(initialProfile.name || initialProfile.email || 'user', initialProfile.id)[0];
-      initialProfile.username = cleanUsernameInput(suggested || 'visitante');
+      initialProfile.username = 'visitante';
     }
     reserveUsername(initialProfile.username, initialProfile.id);
 
     return initialProfile;
   });
+
+  // Listen for global logout to clear profile data
+  useEffect(() => {
+    const handleLogout = () => {
+      setProfile({
+        id: 'guest_' + Date.now(),
+        name: 'Visitante',
+        username: 'visitante',
+        email: '',
+        avatar: '',
+        joinedAt: new Date().toISOString()
+      });
+      localStorage.removeItem('timenest_profile');
+    };
+
+    window.addEventListener('timenest_logout', handleLogout);
+    return () => {
+      window.removeEventListener('timenest_logout', handleLogout);
+    };
+  }, []);
   
   const [achievements, _setAchievements] = useState<Achievement[]>(() => {
     try {

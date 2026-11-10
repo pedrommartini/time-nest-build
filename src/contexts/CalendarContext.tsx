@@ -41,8 +41,13 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { isTestEnvironment, sleepStart, sleepEnd, globalAlarmsEnabled } = usePreferences();
   const [events, setEvents] = useState<Event[]>(() => {
     try {
-      // NOTE: isTestEnvironment is not available in lazy init of useState if it comes from hook after,
-      // but wait, isTestEnvironment is from usePreferences() which is already called above!
+      const savedGsync = localStorage.getItem('timenest_gsync');
+      if (savedGsync) {
+        const parsedGsync = JSON.parse(savedGsync);
+        if (parsedGsync.isConnected && parsedGsync.email) {
+          return [];
+        }
+      }
       const key = isTestEnvironment ? 'timenest_events_test' : 'timenest_events';
       const saved = localStorage.getItem(key);
       if (saved) {
@@ -186,11 +191,16 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, []);
 
-  // Save events to local storage
+  // Save events to local storage (ONLY when not connected to Google)
   useEffect(() => {
     const key = isTestEnvironment ? 'timenest_events_test' : 'timenest_events';
-    if (events.length > 0 || localStorage.getItem(key)) {
-      localStorage.setItem(key, JSON.stringify(events));
+    if (googleSync.isConnected && googleSync.email) {
+      // Local persistence deactivated while logged in - data is in Google Calendar
+      localStorage.removeItem(key);
+    } else {
+      if (events.length > 0 || localStorage.getItem(key)) {
+        localStorage.setItem(key, JSON.stringify(events));
+      }
     }
     
     // Schedule alarms and notifications
@@ -237,7 +247,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     });
 
-  }, [events, isTestEnvironment, globalAlarmsEnabled]);
+  }, [events, isTestEnvironment, globalAlarmsEnabled, googleSync.isConnected, googleSync.email]);
 
   useEffect(() => {
     localStorage.setItem('timenest_margin', String(safetyMargin));
@@ -525,9 +535,36 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       accessToken: null,
       email: null
     });
-    setEvents(prev => prev.filter(e => e.source !== 'google'));
+    setEvents([]);
+    localStorage.removeItem('timenest_events');
+    localStorage.removeItem('timenest_events_test');
+    localStorage.removeItem('timenest_gsync');
+    
+    // Dispatch global logout event across the app
+    window.dispatchEvent(new CustomEvent('timenest_logout'));
     audio.playClick();
   };
+
+  // Watch for disconnect from any source to guarantee events and tokens are wiped
+  const prevConnectedRef = React.useRef(googleSync.isConnected);
+  useEffect(() => {
+    const handleLogout = () => {
+      setEvents([]);
+      localStorage.removeItem('timenest_events');
+      localStorage.removeItem('timenest_events_test');
+      localStorage.removeItem('timenest_gsync');
+    };
+
+    if (prevConnectedRef.current && !googleSync.isConnected) {
+      handleLogout();
+    }
+    prevConnectedRef.current = googleSync.isConnected;
+
+    window.addEventListener('timenest_logout', handleLogout);
+    return () => {
+      window.removeEventListener('timenest_logout', handleLogout);
+    };
+  }, [googleSync.isConnected]);
 
   const syncGoogleNow = async (tokenOverride?: string) => {
     const token = tokenOverride || googleSync.accessToken;
