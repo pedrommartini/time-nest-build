@@ -174,7 +174,10 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
    * When user signs in with Google, pull their TimeNest tasks from the cloud database
    */
   useEffect(() => {
-    if (!googleSync.isConnected || !googleSync.email) return;
+    if (!googleSync.isConnected || !googleSync.email) {
+      loadedEmailRef.current = null;
+      return;
+    }
 
     const userEmail = normalizeUserEmail(googleSync.email);
     if (loadedEmailRef.current === userEmail) return;
@@ -187,9 +190,14 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const { tasks: cloudTasks } = await loadUserTasksFromCloud(userEmail);
         if (isCancelled) return;
 
+        const isAccountSwitch = loadedEmailRef.current && loadedEmailRef.current !== userEmail;
+
         if (cloudTasks && cloudTasks.length > 0) {
           // Cloud has tasks for this user: hydrate and merge
           setTasks(prev => {
+            if (isAccountSwitch) {
+              return cloudTasks;
+            }
             const cloudIds = new Set(cloudTasks.map(t => t.id));
             // Keep local tasks that might not have been pushed yet
             const unpushedLocal = prev.filter(t => !cloudIds.has(t.id));
@@ -204,6 +212,9 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         } else {
           // If cloud has no tasks for this user, but local state has tasks, save them to the cloud database
           setTasks(prev => {
+            if (isAccountSwitch) {
+              return [];
+            }
             if (prev.length > 0) {
               saveUserTasksToCloud(userEmail, prev);
             }

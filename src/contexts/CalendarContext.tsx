@@ -118,33 +118,45 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const webGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       audio.playChimeDone();
-      setGoogleSync({
-        isConnected: true,
-        lastSync: new Date().toISOString(),
-        autoSync: true,
-        accessToken: tokenResponse.access_token
-      });
-      await syncGoogleNow(tokenResponse.access_token);
-      
+      let email: string | null = null;
+      let displayName = '';
+      let imageUrl = '';
+
       try {
         const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
         });
-        const userInfo = await res.json();
-        setGoogleSync(prev => ({ ...prev, email: userInfo.email || null }));
-        if (webLoginPromise.current) {
-          webLoginPromise.current.resolve({
-             displayName: userInfo.name || '',
-             email: userInfo.email || '',
-             imageUrl: userInfo.picture || ''
-          });
-          webLoginPromise.current = null;
+        if (res.ok) {
+          const userInfo = await res.json();
+          email = userInfo.email || null;
+          displayName = userInfo.name || '';
+          imageUrl = userInfo.picture || '';
         }
       } catch(e) {
-        if (webLoginPromise.current) {
-          webLoginPromise.current.resolve({ displayName: '', imageUrl: '' });
-          webLoginPromise.current = null;
-        }
+        console.warn('Failed to fetch userinfo:', e);
+      }
+
+      setGoogleSync({
+        isConnected: true,
+        lastSync: new Date().toISOString(),
+        autoSync: true,
+        accessToken: tokenResponse.access_token,
+        email
+      });
+
+      if (webLoginPromise.current) {
+        webLoginPromise.current.resolve({
+          displayName,
+          email: email || '',
+          imageUrl
+        });
+        webLoginPromise.current = null;
+      }
+
+      try {
+        await syncGoogleNow(tokenResponse.access_token);
+      } catch(calErr) {
+        console.warn('Error during Google Calendar sync:', calErr);
       }
     },
     onError: (error) => {
