@@ -49,8 +49,8 @@ $itemRestart.add_Click({
     
     $emuArgs = @(
         "-avd", "TimeNest_Pixel",
-        "-cores", "4",
-        "-memory", "3584",
+        "-cores", "2",
+        "-memory", "1536",
         "-gpu", "host",
         "-no-snapshot-save",
         "-no-snapshot-load",
@@ -98,8 +98,8 @@ $running = Get-Process | Where-Object { $_.ProcessName -like "*qemu*" -or $_.Pro
 if (-not $running) {
     $emuArgs = @(
         "-avd", "TimeNest_Pixel",
-        "-cores", "4",
-        "-memory", "3584",
+        "-cores", "2",
+        "-memory", "1536",
         "-gpu", "host",
         "-no-snapshot-save",
         "-no-snapshot-load",

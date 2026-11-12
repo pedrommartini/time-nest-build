@@ -29,3 +29,7 @@ mingit/
 capture_timeline_web.cjs
 .chrome-gcp-profile/
 gcp_cdp_automation*
+scratch/
+scratch_*
+.agents/
+*.jpg

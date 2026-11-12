@@ -13,6 +13,6 @@ echo  Iniciando Emulador Pixel 6 (60 FPS - RTX GPU Acelerada)
 echo  RAM: 3.5 GB | Cores: 4 | GPU: Host Hardware (RTX 3060 Ti)
 echo =========================================================
 
-"%ANDROID_HOME%\emulator\emulator.exe" -avd TimeNest_Pixel -cores 4 -memory 3584 -gpu host -no-snapshot-save -no-snapshot-load -no-boot-anim -netdelay none -netspeed full
+"%ANDROID_HOME%\emulator\emulator.exe" -avd TimeNest_Pixel -cores 2 -memory 1536 -gpu host -no-snapshot-save -no-snapshot-load -no-boot-anim -netdelay none -netspeed full
 
 pause

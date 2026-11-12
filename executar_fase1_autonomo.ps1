@@ -24,9 +24,9 @@ Start-Sleep -Seconds 2
 Write-Host "2. Inicializando Emulador Pixel 6 (API 34)..."
 $emuArgs = @(
     "-avd", "TimeNest_Pixel",
-    "-cores", "4",
-    "-memory", "3584",
-    "-gpu", "swiftshader_indirect",
+    "-cores", "2",
+    "-memory", "1536",
+    "-gpu", "angle_indirect",
     "-no-window",
     "-no-audio",
     "-no-snapshot-save",
@@ -35,7 +35,12 @@ $emuArgs = @(
     "-netdelay", "none",
     "-netspeed", "full"
 )
-Start-Process -FilePath "$env:ANDROID_HOME\emulator\emulator.exe" -ArgumentList $emuArgs | Out-Null
+$emuProc = Start-Process -FilePath "$env:ANDROID_HOME\emulator\emulator.exe" -ArgumentList $emuArgs -PassThru
+if ($emuProc) {
+    try {
+        $emuProc.PriorityClass = [System.Diagnostics.ProcessPriorityClass]::BelowNormal
+    } catch {}
+}
 
 Write-Host "3. Aguardando inicializacao completa do Android..."
 & $adb wait-for-device

@@ -1,11 +1,24 @@
 {
   "headers": [
     {
+      "source": "/version.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate, max-age=0"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
       "source": "/(.*)\\.apk",
       "headers": [
         {
           "key": "Content-Disposition",
-          "value": "attachment; filename=\"timenest_v3.1.0.apk\""
+          "value": "attachment; filename=\"timenest.apk\""
         },
         {
           "key": "Content-Type",
@@ -30,12 +43,12 @@
   "redirects": [
     {
       "source": "/download",
-      "destination": "https://github.com/pedrommartini/time-nest-build/releases/download/v3.1.0/timenest_v3.1.0.apk",
+      "destination": "/timenest.apk",
       "permanent": false
     },
     {
       "source": "/apkdownload",
-      "destination": "https://github.com/pedrommartini/time-nest-build/releases/download/v3.1.0/timenest_v3.1.0.apk",
+      "destination": "/timenest.apk",
       "permanent": false
     }
   ],

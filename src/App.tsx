@@ -22,10 +22,14 @@ import { OrganizeView } from './views/OrganizeView';
 import { FocusView } from './views/FocusView';
 import { ProfileView } from './views/ProfileView';
 import { OnboardingView } from './views/OnboardingView';
+import { AlarmStudioView } from './views/AlarmStudioView';
 import { UpdateOverlay } from './components/UpdateOverlay';
+import { DEFAULT_APK_DOWNLOAD_URL, type VersionInfo } from './version';
+import { checkForUpdate, applyOneClickUpdate } from './utils/updater';
+import { Capacitor } from '@capacitor/core';
 
 import { SyncProvider, useSync } from './contexts/SyncContext';
-import { Clock, User, Plus, List, Target, WifiOff, Check } from 'lucide-react';
+import { Clock, User, Plus, List, Target, WifiOff, Check, Sparkles } from 'lucide-react';
 import { audio } from './utils/audio';
 import { requestNotificationPermissions } from './utils/notifications';
 
@@ -43,8 +47,22 @@ const AppContent: React.FC = () => {
   const [passcodeError, setPasscodeError] = useState(false);
   const [showUpdateOverlay, setShowUpdateOverlay] = useState(false);
   const [latestVersion, setLatestVersion] = useState('');
+  const [latestVersionInfo, setLatestVersionInfo] = useState<VersionInfo | null>(null);
   
   const [onboardingState, setOnboardingState] = useState<{ open: boolean; isManualReplay?: boolean }>({ open: false });
+  const [isAlarmStudioOpen, setIsAlarmStudioOpen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.has('alarm-test') || params.has('alarm-studio') || params.has('studio') || window.location.hash.includes('alarm-studio') || window.location.hash.includes('alarm-test');
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const handleOpenStudio = () => setIsAlarmStudioOpen(true);
+    window.addEventListener('open_alarm_studio', handleOpenStudio);
+    return () => window.removeEventListener('open_alarm_studio', handleOpenStudio);
+  }, []);
 
   useBackHandler(() => {
     if (showUpdateOverlay) {
@@ -56,7 +74,7 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     if (window.location.pathname === '/download' || window.location.pathname === '/apkdownload') {
-      window.location.href = 'https://github.com/pedrommartini/time-nest-build/releases/download/v3.1.0/timenest_v3.1.0.apk';
+      window.location.href = DEFAULT_APK_DOWNLOAD_URL;
     }
     if (!localStorage.getItem('timenest_onboarding_completed')) {
       setOnboardingState({ open: true, isManualReplay: false });
@@ -73,39 +91,50 @@ const AppContent: React.FC = () => {
     return () => window.removeEventListener('open_manual_onboarding', handleOpenManual);
   }, []);
 
-  const INSTALLED_VERSION = '3.1.0';
-
   React.useEffect(() => {
-    const checkUpdate = async () => {
-      try {
-        const res = await fetch('https://time-nest-two.vercel.app/version.json?t=' + Date.now());
-        const data = await res.json();
-        
-        if (data.version && data.version !== INSTALLED_VERSION) {
-          const dismissedVersion = localStorage.getItem('timenest_update_dismissed');
-          if (dismissedVersion !== data.version) {
-            setLatestVersion(data.version);
-            setShowUpdateOverlay(true);
-          }
+    const runUpdateCheck = async (isManual = false) => {
+      const result = await checkForUpdate();
+      if (result.hasUpdate && result.versionInfo) {
+        const dismissedVersion = localStorage.getItem('timenest_update_dismissed');
+        if (isManual || dismissedVersion !== result.versionInfo.version) {
+          setLatestVersion(result.versionInfo.version);
+          setLatestVersionInfo(result.versionInfo);
+          setShowUpdateOverlay(true);
         }
-      } catch (e) {
-        // Ignora erros de rede se estiver offline
       }
     };
 
-    const timer = setTimeout(checkUpdate, 1500);
-    return () => clearTimeout(timer);
+    const timer = setTimeout(() => runUpdateCheck(false), 1500);
+
+    const handleManualTrigger = () => {
+      runUpdateCheck(true);
+    };
+    window.addEventListener('timenest_check_updates_trigger', handleManualTrigger);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('timenest_check_updates_trigger', handleManualTrigger);
+    };
   }, []);
 
-  const handleApplyUpdate = () => {
-    localStorage.setItem('timenest_update_dismissed', latestVersion);
-    window.location.href = 'https://time-nest-two.vercel.app/download';
+  const handleApplyUpdate = async () => {
+    if (latestVersion) {
+      localStorage.setItem('timenest_update_dismissed', latestVersion);
+    }
+    await applyOneClickUpdate(latestVersionInfo || undefined);
   };
 
   const handleDismissUpdate = () => {
-    localStorage.setItem('timenest_update_dismissed', latestVersion);
+    if (latestVersion) {
+      localStorage.setItem('timenest_update_dismissed', latestVersion);
+    }
     setShowUpdateOverlay(false);
   };
+
+  // --- Alarm Studio (Web Visual Tester) ---
+  if (isAlarmStudioOpen) {
+    return <AlarmStudioView onClose={() => setIsAlarmStudioOpen(false)} />;
+  }
 
   // --- Onboarding ---
   if (onboardingState.open) {
@@ -337,6 +366,7 @@ const AppContent: React.FC = () => {
       {showUpdateOverlay && (
         <UpdateOverlay 
           version={latestVersion} 
+          versionInfo={latestVersionInfo}
           onUpdate={handleApplyUpdate} 
           onDismiss={handleDismissUpdate} 
         />
@@ -369,6 +399,21 @@ const AppContent: React.FC = () => {
         <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[9999] bg-[#1E1B2E]/95 dark:bg-[#2D284D]/95 text-white text-xs font-semibold px-5 py-2.5 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.3)] backdrop-blur-md animate-fade-in pointer-events-none flex items-center gap-2 border border-white/10 tracking-wide">
           <span>Pressione voltar novamente para sair</span>
         </div>
+      )}
+
+      {/* Floating Web Button to test Alarm Studio */}
+      {!Capacitor.isNativePlatform() && (
+        <button
+          onClick={() => {
+            audio.playClick();
+            setIsAlarmStudioOpen(true);
+          }}
+          className="fixed top-4 right-4 z-[90] px-3.5 py-2 rounded-full bg-[#181528]/95 hover:bg-[#25213B] text-white text-xs font-bold shadow-2xl backdrop-blur-md flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer border border-purple-500/30 ring-1 ring-purple-500/20"
+          title="Abrir Laboratório Visual de Alarmes para testar o visual dos alarmes"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+          <span>Testar Alarmes</span>
+        </button>
       )}
     </div>
   );

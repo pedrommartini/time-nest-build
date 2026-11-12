@@ -25,6 +25,42 @@
   --animate-fade-in: fadeIn 0.3s ease-out;
   --animate-slide-up: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-pulse-slow: pulseSlow 3s infinite ease-in-out;
+  --animate-ping-slow: pingSlow 4s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+  
+  /* TimeNest Fullscreen Alarm Color & Animation Tokens (Milestone 1) */
+  --color-alarm-paper: #FAF9F6;
+  --color-alarm-peach: #FFF8F5;
+  --color-alarm-charcoal: #120E1F;
+  --color-alarm-midnight: #110E2E;
+  --color-alarm-mahogany: #380A0A;
+  --color-alarm-slate: #6B6684;
+  --color-alarm-royal: #6E4EFF;
+  --color-alarm-royal-deep: #5B27E8;
+
+  --color-alarm-canvas-standard: #FAF9F6;
+  --color-alarm-canvas-critical: #FFF8F5;
+  --color-alarm-canvas-dark: #120E1F;
+  --color-alarm-text-standard: #110E2E;
+  --color-alarm-text-critical: #380A0A;
+  --color-alarm-text-dark: #FFFFFF;
+  --color-alarm-muted-standard: #6B6684;
+  --color-alarm-muted-critical: #8C4A4A;
+  --color-alarm-muted-dark: #A19DB8;
+  --color-alarm-primary-standard: #6E4EFF;
+  --color-alarm-primary-critical: #EA3A2A;
+
+  --animate-halo-breathe-standard: halo-breathe-standard 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  --animate-halo-breathe-critical: halo-breathe-critical 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  --animate-halo-breathe: halo-breathe-standard 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  --animate-alarm-breathe: halo-breathe-standard 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  --animate-alarm-breathe-critical: halo-breathe-critical 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+
+  --animate-alarm-ripple-1: alarmRipple1 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  --animate-alarm-ripple-2: alarmRipple2 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.25s;
+  --animate-alarm-ripple-3: alarmRipple3 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.5s;
+  --animate-alarm-ripple-critical-1: alarmRippleCrit1 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  --animate-alarm-ripple-critical-2: alarmRippleCrit2 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.2s;
+  --animate-alarm-ripple-critical-3: alarmRippleCrit3 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.4s;
   
   --shadow-low: 0 2px 8px rgba(37, 35, 43, 0.06);
   --shadow-medium: 0 6px 20px rgba(37, 35, 43, 0.08);
@@ -46,8 +82,124 @@
   }
   
   @keyframes pulseSlow {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.65; transform: scale(1.05); }
+  }
+
+  @keyframes pingSlow {
+    0% { transform: scale(0.92); opacity: 0.55; }
+    50% { transform: scale(1.1); opacity: 0.25; }
+    100% { transform: scale(0.92); opacity: 0.55; }
+  }
+
+  @keyframes halo-breathe-standard {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.88;
+    }
+    50% {
+      transform: scale(1.035);
+      opacity: 1;
+    }
+  }
+
+  @keyframes halo-breathe-critical {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.85;
+    }
+    50% {
+      transform: scale(1.045);
+      opacity: 1;
+    }
+  }
+
+  @keyframes haloBreathe {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.88;
+    }
+    50% {
+      transform: scale(1.035);
+      opacity: 1;
+    }
+  }
+
+  @keyframes haloBreatheCritical {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.85;
+    }
+    50% {
+      transform: scale(1.045);
+      opacity: 1;
+    }
+  }
+
+  @keyframes alarmRipple1 {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.85;
+    }
+    50% {
+      transform: scale(1.035);
+      opacity: 1;
+    }
+  }
+
+  @keyframes alarmRipple2 {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.80;
+    }
+    50% {
+      transform: scale(1.045);
+      opacity: 1;
+    }
+  }
+
+  @keyframes alarmRipple3 {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.75;
+    }
+    50% {
+      transform: scale(1.055);
+      opacity: 0.95;
+    }
+  }
+
+  @keyframes alarmRippleCrit1 {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.85;
+    }
+    50% {
+      transform: scale(1.04);
+      opacity: 1;
+    }
+  }
+
+  @keyframes alarmRippleCrit2 {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.80;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 1;
+    }
+  }
+
+  @keyframes alarmRippleCrit3 {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.75;
+    }
+    50% {
+      transform: scale(1.06);
+      opacity: 0.95;
+    }
   }
 }
 
@@ -442,4 +594,299 @@ body {
   box-shadow: var(--shadow-highlight);
   border: 1px solid var(--border-color);
 }
+
+/* ==========================================================================
+   Milestone 1: TimeNest Fullscreen Alarm Concentric Halos & Animations
+   Concentric Breathing Ripples faithful to Approved Production Concept Art
+   ========================================================================== */
+
+/* Concentric Halos Viewport Container */
+.alarm-halo-viewport {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+  user-select: none;
+}
+
+/* Concentric Halos Stage centered at ~41% height behind title and time */
+.alarm-halo-stage {
+  position: absolute;
+  top: 41%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+  will-change: transform, opacity;
+}
+
+/* Vertical offset utility to align with title & time centroid */
+.alarm-halo-centered-offset {
+  transform: translateY(-9%);
+}
+
+/* --------------------------------------------------------------------------
+   Color Theme Tokens: Standard (Lavender), Critical (Fiery Peach) & Dark Mode
+   -------------------------------------------------------------------------- */
+
+/* Standard Theme (Lavender / Pre-event, Task, Snooze, ADHD Support) */
+.alarm-halo-lavender,
+.alarm-theme-standard {
+  --halo-core-bg: radial-gradient(circle, rgba(168, 130, 255, 0.32) 0%, rgba(215, 195, 255, 0.16) 45%, transparent 70%);
+  --halo-ring-1-border: rgba(185, 155, 255, 0.40);
+  --halo-ring-1-shadow: 0 0 25px rgba(168, 130, 255, 0.20), inset 0 0 20px rgba(168, 130, 255, 0.10);
+  --halo-ring-2-border: rgba(167, 139, 250, 0.32);
+  --halo-ring-2-shadow: 0 0 35px rgba(185, 155, 255, 0.15), inset 0 0 25px rgba(185, 155, 255, 0.06);
+  --halo-ring-3-border: rgba(197, 175, 255, 0.22);
+  --halo-ring-3-shadow: 0 0 50px rgba(197, 175, 255, 0.10);
+  --halo-ring-4-border: rgba(220, 205, 255, 0.14);
+  --halo-ring-4-shadow: 0 0 65px rgba(220, 205, 255, 0.06);
+  --halo-ambient-bg: radial-gradient(circle, rgba(168, 130, 255, 0.12) 0%, rgba(200, 180, 255, 0.06) 50%, transparent 75%);
+  --halo-core-color: rgba(167, 139, 250, 0.45);
+  --halo-mid-ring: rgba(139, 92, 246, 0.25);
+  --halo-outer-ring: rgba(168, 85, 247, 0.08);
+}
+
+.dark .alarm-halo-lavender,
+.dark.alarm-halo-lavender,
+[data-theme="dark"] .alarm-halo-lavender,
+.alarm-theme-dark-standard {
+  --halo-core-bg: radial-gradient(circle, rgba(140, 95, 255, 0.38) 0%, rgba(95, 60, 200, 0.20) 50%, transparent 70%);
+  --halo-ring-1-border: rgba(175, 140, 255, 0.40);
+  --halo-ring-1-shadow: 0 0 30px rgba(140, 95, 255, 0.28), inset 0 0 25px rgba(140, 95, 255, 0.14);
+  --halo-ring-2-border: rgba(145, 105, 255, 0.30);
+  --halo-ring-2-shadow: 0 0 40px rgba(140, 95, 255, 0.20), inset 0 0 30px rgba(140, 95, 255, 0.10);
+  --halo-ring-3-border: rgba(120, 80, 230, 0.22);
+  --halo-ring-3-shadow: 0 0 60px rgba(140, 95, 255, 0.14);
+  --halo-ring-4-border: rgba(88, 28, 135, 0.18);
+  --halo-ring-4-shadow: 0 0 75px rgba(140, 95, 255, 0.10);
+  --halo-ambient-bg: radial-gradient(circle, rgba(110, 78, 255, 0.20) 0%, rgba(75, 45, 180, 0.10) 50%, transparent 75%);
+  --halo-core-color: rgba(147, 51, 234, 0.55);
+  --halo-mid-ring: rgba(168, 85, 247, 0.35);
+  --halo-outer-ring: rgba(168, 85, 247, 0.16);
+}
+
+/* Critical Theme (Fiery Peach / Urgent) */
+.alarm-halo-critical,
+.alarm-theme-critical {
+  --halo-core-bg: radial-gradient(circle, rgba(255, 105, 65, 0.35) 0%, rgba(255, 160, 120, 0.18) 45%, transparent 70%);
+  --halo-ring-1-border: rgba(255, 133, 102, 0.42);
+  --halo-ring-1-shadow: 0 0 25px rgba(255, 105, 65, 0.22), inset 0 0 20px rgba(255, 105, 65, 0.12);
+  --halo-ring-2-border: rgba(255, 110, 80, 0.35);
+  --halo-ring-2-shadow: 0 0 35px rgba(255, 130, 95, 0.18), inset 0 0 25px rgba(255, 130, 95, 0.08);
+  --halo-ring-3-border: rgba(254, 160, 130, 0.25);
+  --halo-ring-3-shadow: 0 0 50px rgba(254, 160, 130, 0.12);
+  --halo-ring-4-border: rgba(255, 200, 180, 0.15);
+  --halo-ring-4-shadow: 0 0 65px rgba(255, 200, 180, 0.08);
+  --halo-ambient-bg: radial-gradient(circle, rgba(255, 105, 65, 0.16) 0%, rgba(255, 160, 120, 0.08) 50%, transparent 75%);
+  --halo-core-color: rgba(249, 115, 22, 0.45);
+  --halo-mid-ring: rgba(239, 68, 68, 0.28);
+  --halo-outer-ring: rgba(239, 68, 68, 0.10);
+}
+
+.dark .alarm-halo-critical,
+.dark.alarm-halo-critical,
+[data-theme="dark"] .alarm-halo-critical,
+.alarm-theme-dark-critical {
+  --halo-core-bg: radial-gradient(circle, rgba(255, 75, 45, 0.45) 0%, rgba(180, 40, 20, 0.22) 50%, transparent 70%);
+  --halo-ring-1-border: rgba(255, 85, 55, 0.48);
+  --halo-ring-1-shadow: 0 0 30px rgba(255, 75, 45, 0.28), inset 0 0 25px rgba(255, 75, 45, 0.14);
+  --halo-ring-2-border: rgba(230, 65, 40, 0.35);
+  --halo-ring-2-shadow: 0 0 40px rgba(255, 75, 45, 0.20), inset 0 0 30px rgba(255, 75, 45, 0.10);
+  --halo-ring-3-border: rgba(190, 45, 25, 0.25);
+  --halo-ring-3-shadow: 0 0 60px rgba(255, 75, 45, 0.14);
+  --halo-ring-4-border: rgba(150, 30, 15, 0.18);
+  --halo-ring-4-shadow: 0 0 75px rgba(255, 75, 45, 0.10);
+  --halo-ambient-bg: radial-gradient(circle, rgba(230, 50, 30, 0.22) 0%, rgba(160, 30, 15, 0.10) 50%, transparent 75%);
+  --halo-core-color: rgba(249, 115, 22, 0.55);
+  --halo-mid-ring: rgba(239, 68, 68, 0.38);
+  --halo-outer-ring: rgba(239, 68, 68, 0.18);
+}
+
+/* --------------------------------------------------------------------------
+   Concentric Ring Layers: Core (~57.4%), Ring 1 (~74.5%), Ring 2 (~86.5%), Ring 3 (~109%), Ring 4 (~126.5%)
+   -------------------------------------------------------------------------- */
+
+/* Core Glow: Soft radial luminescence directly backing typography */
+.alarm-halo-core {
+  position: absolute;
+  width: var(--halo-core-size, 260px);
+  height: var(--halo-core-size, 260px);
+  border-radius: 9999px;
+  background: var(--halo-core-bg);
+  filter: blur(28px);
+  pointer-events: none;
+  flex-shrink: 0;
+  will-change: transform, opacity;
+}
+
+/* Ring 1 (Inner): ~74.5% of container width (~280px-340px) */
+.alarm-halo-ring-1,
+.alarm-halo-inner {
+  position: absolute;
+  width: var(--halo-ring-1-size, 340px);
+  height: var(--halo-ring-1-size, 340px);
+  border-radius: 9999px;
+  border: 1.5px solid var(--halo-ring-1-border);
+  box-shadow: var(--halo-ring-1-shadow);
+  pointer-events: none;
+  flex-shrink: 0;
+  will-change: transform, opacity;
+}
+
+/* Ring 2 (Mid): ~86.5% of container width (~330px-500px) */
+.alarm-halo-ring-2,
+.alarm-halo-mid {
+  position: absolute;
+  width: var(--halo-ring-2-size, 500px);
+  height: var(--halo-ring-2-size, 500px);
+  border-radius: 9999px;
+  border: 1.5px solid var(--halo-ring-2-border);
+  box-shadow: var(--halo-ring-2-shadow);
+  pointer-events: none;
+  flex-shrink: 0;
+  will-change: transform, opacity;
+}
+
+/* Ring 3 (Outer): ~109% of container width (~410px-680px) */
+.alarm-halo-ring-3,
+.alarm-halo-outer {
+  position: absolute;
+  width: var(--halo-ring-3-size, 680px);
+  height: var(--halo-ring-3-size, 680px);
+  border-radius: 9999px;
+  border: 1px solid var(--halo-ring-3-border);
+  box-shadow: var(--halo-ring-3-shadow);
+  pointer-events: none;
+  flex-shrink: 0;
+  will-change: transform, opacity;
+}
+
+/* Ring 4 (Peripheral Boundary Wave): ~126.5% of container width (~480px-880px) */
+.alarm-halo-ring-4,
+.alarm-halo-ambient,
+.alarm-halo-peripheral {
+  position: absolute;
+  width: var(--halo-ring-4-size, 880px);
+  height: var(--halo-ring-4-size, 880px);
+  border-radius: 9999px;
+  border: 1px solid var(--halo-ring-4-border, transparent);
+  box-shadow: var(--halo-ring-4-shadow, none);
+  background: var(--halo-ambient-bg);
+  filter: blur(48px);
+  pointer-events: none;
+  flex-shrink: 0;
+  will-change: transform, opacity;
+}
+
+/* Static Gentle Core Glow Fallback (Low Stimulation) */
+.alarm-halo-core-static {
+  position: absolute;
+  width: var(--halo-core-size, 260px);
+  height: var(--halo-core-size, 260px);
+  border-radius: 9999px;
+  background: var(--halo-core-bg);
+  filter: blur(24px);
+  opacity: 0.35;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+/* Standalone animation utility classes */
+.animate-halo-breathe-standard {
+  animation: halo-breathe-standard 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-halo-breathe-critical {
+  animation: halo-breathe-critical 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-halo-breathe {
+  animation: halo-breathe-standard 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-alarm-breathe {
+  animation: halo-breathe-standard 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-alarm-breathe-critical {
+  animation: halo-breathe-critical 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* --------------------------------------------------------------------------
+   Accessibility: Low Stimulation & Reduced Motion Safe States
+   -------------------------------------------------------------------------- */
+
+/* Low stimulation disables halo rings and pulsing, showing only a static gentle glow */
+.low-stim [class*="alarm-halo-ring"],
+.low-stim .alarm-halo-ring-1,
+.low-stim .alarm-halo-ring-2,
+.low-stim .alarm-halo-ring-3,
+.low-stim .alarm-halo-ring-4,
+.low-stim .alarm-halo-inner,
+.low-stim .alarm-halo-mid,
+.low-stim .alarm-halo-outer,
+.low-stim .alarm-halo-ambient,
+.low-stim .alarm-halo-peripheral,
+[data-low-stim="true"] [class*="alarm-halo-ring"],
+[data-low-stim="true"] .alarm-halo-ring-1,
+[data-low-stim="true"] .alarm-halo-ring-2,
+[data-low-stim="true"] .alarm-halo-ring-3,
+[data-low-stim="true"] .alarm-halo-ring-4,
+[data-low-stim="true"] .alarm-halo-inner,
+[data-low-stim="true"] .alarm-halo-mid,
+[data-low-stim="true"] .alarm-halo-outer,
+[data-low-stim="true"] .alarm-halo-ambient,
+[data-low-stim="true"] .alarm-halo-peripheral {
+  display: none !important;
+  animation: none !important;
+}
+
+.low-stim .alarm-halo-viewport,
+.low-stim .alarm-halo-viewport *,
+.low-stim .alarm-halo-stage,
+.low-stim .alarm-halo-core,
+[data-low-stim="true"] .alarm-halo-viewport,
+[data-low-stim="true"] .alarm-halo-viewport *,
+[data-low-stim="true"] .alarm-halo-stage,
+[data-low-stim="true"] .alarm-halo-core {
+  animation: none !important;
+  transform: scale(1) !important;
+}
+
+.low-stim .alarm-halo-core,
+[data-low-stim="true"] .alarm-halo-core {
+  opacity: 0.35 !important;
+  filter: blur(24px) !important;
+}
+
+/* Reduced motion disables scaling/pulsing animations */
+@media (prefers-reduced-motion: reduce) {
+  .alarm-halo-viewport,
+  .alarm-halo-viewport *,
+  .alarm-halo-stage,
+  .alarm-halo-core,
+  .alarm-halo-ring-1,
+  .alarm-halo-ring-2,
+  .alarm-halo-ring-3,
+  .alarm-halo-ring-4,
+  .alarm-halo-inner,
+  .alarm-halo-mid,
+  .alarm-halo-outer,
+  .alarm-halo-ambient,
+  .alarm-halo-peripheral,
+  .alarm-halo-core-static {
+    animation: none !important;
+    transform: scale(1) !important;
+  }
+}
+
 

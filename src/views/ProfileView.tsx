@@ -22,8 +22,10 @@ import {
   Shield, Info, Moon, Palette, Check,
   Plus, Volume2, Globe, Crown, Cloud, Download, LogOut,
   Flame, Clock, Star, X, Pill, Trash2, Trophy, Coins, Sparkles, AlertCircle,
-  Sun, CheckCircle2, Zap
+  Sun, CheckCircle2, Zap, RefreshCw
 } from 'lucide-react';
+import { APP_VERSION } from '../version';
+import { checkForUpdate } from '../utils/updater';
 import { 
   cleanUsernameInput, 
   validateUsernameFormat, 
@@ -104,6 +106,27 @@ export const ProfileView: React.FC = () => {
   const [editAvatar, setEditAvatar] = useState(effectiveAvatar);
   const [editUsernameError, setEditUsernameError] = useState<string | null>(null);
   const [editUsernameValid, setEditUsernameValid] = useState<boolean>(true);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [updateToastMsg, setUpdateToastMsg] = useState<string | null>(null);
+
+  const handleManualUpdateCheck = async () => {
+    setIsCheckingUpdate(true);
+    audio.playClick();
+    try {
+      const res = await checkForUpdate();
+      if (res.hasUpdate) {
+        window.dispatchEvent(new CustomEvent('timenest_check_updates_trigger'));
+      } else {
+        setUpdateToastMsg(`Você já está na versão mais recente (${APP_VERSION})! ✨`);
+        setTimeout(() => setUpdateToastMsg(null), 3500);
+      }
+    } catch {
+      setUpdateToastMsg('Não foi possível verificar atualizações no momento.');
+      setTimeout(() => setUpdateToastMsg(null), 3500);
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
 
   const handleOpenEditProfile = () => {
     setEditName(effectiveName);
@@ -529,6 +552,21 @@ export const ProfileView: React.FC = () => {
                 <ChevronRight className="w-4 h-4 text-text-secondary" />
               </button>
 
+              <button 
+                onClick={handleManualUpdateCheck}
+                disabled={isCheckingUpdate}
+                className="p-3 flex items-center justify-between hover:bg-app-bg/50 transition-colors border-b border-border-color/50"
+              >
+                <div className="flex items-center gap-3">
+                  <RefreshCw className={`w-4 h-4 text-brand-500 ${isCheckingUpdate ? 'animate-spin' : ''}`} />
+                  <div className="text-left">
+                    <span className="text-xs font-bold text-text-primary block">Verificar atualizações</span>
+                    <span className="text-[10px] text-text-secondary">Versão atual: v{APP_VERSION}</span>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-text-secondary" />
+              </button>
+
               <button onClick={() => {
                 if (confirm('Tem certeza que deseja sair da conta e DELETAR todos os dados locais?')) {
                   wipeAllData();
@@ -545,9 +583,17 @@ export const ProfileView: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-center gap-1 mt-2">
-            <span className="text-[9px] text-text-secondary">Versão 3.1.0</span>
+            <span className="text-[9px] text-text-secondary">Versão {APP_VERSION}</span>
             <span className="text-[9px]">💜</span>
           </div>
+
+          {/* Update Status Toast */}
+          {updateToastMsg && (
+            <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-[#1E1B2E]/95 dark:bg-[#2D284D]/95 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg backdrop-blur-md animate-fade-in border border-white/10 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{updateToastMsg}</span>
+            </div>
+          )}
 
         </div>
       </div>
@@ -1072,6 +1118,25 @@ export const ProfileView: React.FC = () => {
                     <p className="text-[10px] text-text-secondary leading-tight">
                       Toque para testar instantaneamente qualquer uma das telas de alarme aprovadas:
                     </p>
+
+                    <button
+                      onClick={() => {
+                        audio.playClick();
+                        window.dispatchEvent(new CustomEvent('open_alarm_studio'));
+                      }}
+                      className="w-full p-3 rounded-2xl bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white flex items-center justify-between shadow-md transition-all active:scale-[0.98] cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                          <Sparkles className="w-4 h-4 text-amber-300" />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-extrabold text-white text-xs">Laboratório Visual de Alarmes</p>
+                          <p className="text-[10px] text-white/80 font-normal">Testador web interativo com smartphone e edição ao vivo</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 opacity-70 shrink-0" />
+                    </button>
 
                     <div className="grid grid-cols-2 gap-2 pt-1">
                       <button

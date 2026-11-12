@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useTasks } from '../contexts/TasksContext';
 import { useCalendar } from '../contexts/CalendarContext';
 import { useProjects } from '../contexts/ProjectsContext';
 import { formatDurationFriendly } from '../utils/time';
-import { Search, Filter, MoreVertical, Clock, Play, Calendar as CalendarIcon, CheckSquare, ChevronRight, Briefcase, GraduationCap, Home, ChefHat, Dumbbell, Plane, Folder, ChevronLeft, ArrowLeft, Plus, Edit3, ArrowUpDown, PersonStanding, Code, Music, Palette, Camera, ShoppingCart, Users, Car, Gamepad2, Heart, Coffee } from 'lucide-react';
+import { Search, Filter, MoreVertical, Clock, Play, Calendar as CalendarIcon, CheckSquare, ChevronRight, Briefcase, GraduationCap, Home, ChefHat, Dumbbell, Plane, Folder, ChevronLeft, ArrowLeft, Plus, Edit3, PersonStanding, Code, Music, Palette, Camera, ShoppingCart, Users, Car, Gamepad2, Heart, Coffee } from 'lucide-react';
 import { audio } from '../utils/audio';
 import { useFocus } from '../contexts/FocusContext';
 import { useNavigation, useBackHandler } from '../contexts/NavigationContext';
@@ -24,7 +24,8 @@ export const OrganizeView: React.FC = () => {
   const { setActiveTab: setGlobalActiveTab, openSmartInput } = useNavigation();
   
   const [activeTab, setActiveTab] = useState<'feed' | 'projects'>('feed');
-  const [feedFilter, setFeedFilter] = useState<'prox' | 'todos' | 'eventos' | 'tarefas'>('todos');
+  const [swipeDirection, setSwipeDirection] = useState<number>(0);
+  const [feedFilter, setFeedFilter] = useState<'todos' | 'eventos' | 'tarefas'>('todos');
   const [projectFilter, setProjectFilter] = useState<'todos' | 'recentes' | 'prazo' | 'ativos'>('todos');
   
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
@@ -33,8 +34,88 @@ export const OrganizeView: React.FC = () => {
   const [newProjectTitle, setNewProjectTitle] = useState('');
   const [editingProjectDesc, setEditingProjectDesc] = useState<string | null>(null);
   const [draftDescription, setDraftDescription] = useState('');
-  const [todosSortOrder, setTodosSortOrder] = useState<'desc' | 'asc'>('desc');
   const [detailItem, setDetailItem] = useState<{ type: 'event' | 'task', id: string } | null>(null);
+
+  const switchTab = (tab: 'feed' | 'projects') => {
+    if (tab === activeTab) return;
+    setSwipeDirection(tab === 'projects' ? 1 : -1);
+    audio.playClick();
+    setActiveTab(tab);
+  };
+
+  // --- SWIPE GESTURE HANDLERS (Swipe pro lado troca a aba) ---
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+  const touchDelta = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const isHorizontalSwipe = useRef<boolean | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    touchDelta.current = { x: 0, y: 0 };
+    isHorizontalSwipe.current = null;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartPos.current || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - touchStartPos.current.x;
+    const dy = e.touches[0].clientY - touchStartPos.current.y;
+    touchDelta.current = { x: dx, y: dy };
+
+    if (isHorizontalSwipe.current === null && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+      isHorizontalSwipe.current = Math.abs(dx) > Math.abs(dy) * 1.2;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartPos.current && isHorizontalSwipe.current) {
+      const { x: dx } = touchDelta.current;
+      const minSwipeDistance = 45;
+      if (dx < -minSwipeDistance && activeTab === 'feed') {
+        switchTab('projects');
+      } else if (dx > minSwipeDistance && activeTab === 'projects') {
+        switchTab('feed');
+      }
+    }
+    touchStartPos.current = null;
+    isHorizontalSwipe.current = null;
+  };
+
+  // Mouse drag fallback for desktop
+  const mouseStartPos = useRef<{ x: number; y: number } | null>(null);
+  const mouseDelta = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const isMouseDown = useRef(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('button, input, textarea, a, [role="button"]')) return;
+    isMouseDown.current = true;
+    mouseStartPos.current = { x: e.clientX, y: e.clientY };
+    mouseDelta.current = { x: 0, y: 0 };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isMouseDown.current || !mouseStartPos.current) return;
+    mouseDelta.current = {
+      x: e.clientX - mouseStartPos.current.x,
+      y: e.clientY - mouseStartPos.current.y
+    };
+  };
+
+  const handleMouseUp = () => {
+    if (isMouseDown.current && mouseStartPos.current) {
+      const { x: dx, y: dy } = mouseDelta.current;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        if (dx < -50 && activeTab === 'feed') {
+          switchTab('projects');
+        } else if (dx > 50 && activeTab === 'projects') {
+          switchTab('feed');
+        }
+      }
+    }
+    isMouseDown.current = false;
+    mouseStartPos.current = null;
+  };
 
   // Close detail drawer if open
   useBackHandler(() => {
@@ -56,7 +137,7 @@ export const OrganizeView: React.FC = () => {
 
   // Back from projects tab to feed tab
   useBackHandler(() => {
-    setActiveTab('feed');
+    switchTab('feed');
     return true;
   }, activeTab === 'projects' && !selectedProject && !isCreatingProject, 10);
 
@@ -76,31 +157,13 @@ export const OrganizeView: React.FC = () => {
     })
   ];
 
+  // Sempre do mais recente ao mais antigo
   const filteredFeed = feedItemsRaw.filter(item => {
-    if (feedFilter === 'eventos') {
-      if (item.type !== 'event') return false;
-      const now = new Date();
-      return item.dateObj.getTime() > now.getTime();
-    }
+    if (feedFilter === 'eventos') return item.type === 'event';
     if (feedFilter === 'tarefas') return item.type === 'task';
-    if (feedFilter === 'prox') {
-       if (item.type === 'task') return item.status === 'pending';
-       if (item.type === 'event') {
-          const now = new Date();
-          return item.dateObj.getTime() > now.getTime();
-       }
-    }
     return true;
   }).sort((a, b) => {
-    if (feedFilter === 'todos') {
-      return todosSortOrder === 'desc' 
-        ? b.creationTime - a.creationTime 
-        : a.creationTime - b.creationTime;
-    }
-    if (feedFilter === 'eventos' || feedFilter === 'prox') {
-      return a.dateObj.getTime() - b.dateObj.getTime(); // Nearest first
-    }
-    return b.creationTime - a.creationTime;
+    return (b.creationTime - a.creationTime) || (b.dateObj.getTime() - a.dateObj.getTime());
   });
 
   const pendingTasksCount = tasks.filter(t => t.status === 'pending').length;
@@ -415,59 +478,76 @@ export const OrganizeView: React.FC = () => {
           </div>
         </div>
 
-        {/* Segmented Control */}
-        <div className="flex bg-card-bg p-1 rounded-xl border border-border-color mb-4 relative">
+        {/* Menu Estilo Swipe (Tabs com Indicador Deslizante) */}
+        <div className="relative border-b border-border-color mb-4">
+          <div className="flex items-center">
+            <button
+              onClick={() => switchTab('feed')}
+              className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-2 relative transition-colors ${
+                activeTab === 'feed'
+                  ? 'text-brand-600 dark:text-brand-400'
+                  : 'text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              <CheckSquare className="w-3.5 h-3.5" />
+              <span>Feed</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold transition-colors ${
+                activeTab === 'feed'
+                  ? 'bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300'
+                  : 'bg-card-bg text-text-secondary border border-border-color'
+              }`}>
+                {feedItemsRaw.length}
+              </span>
+            </button>
+            <button
+              onClick={() => switchTab('projects')}
+              className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-2 relative transition-colors ${
+                activeTab === 'projects'
+                  ? 'text-brand-600 dark:text-brand-400'
+                  : 'text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              <Folder className="w-3.5 h-3.5" />
+              <span>Projetos</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold transition-colors ${
+                activeTab === 'projects'
+                  ? 'bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300'
+                  : 'bg-card-bg text-text-secondary border border-border-color'
+              }`}>
+                {projects.length}
+              </span>
+            </button>
+          </div>
+
+          {/* Linha indicadora deslizante da aba ativa */}
           <div 
-            className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-brand-50 dark:bg-brand-900/20 rounded-lg shadow-sm border border-brand-200/50 dark:border-brand-700/30 transition-all duration-300 ease-spring"
-            style={{ left: activeTab === 'feed' ? '4px' : 'calc(50%)' }}
+            className="absolute bottom-0 h-0.5 bg-brand-600 dark:bg-brand-400 rounded-full transition-all duration-300 ease-out"
+            style={{
+              width: '50%',
+              left: activeTab === 'feed' ? '0%' : '50%'
+            }}
           />
-          <button
-            onClick={() => { audio.playClick(); setActiveTab('feed'); }}
-            className={`flex-1 py-2 text-[11px] font-bold flex items-center justify-center gap-2 relative z-10 transition-colors ${
-              activeTab === 'feed' ? 'text-brand-600 dark:text-brand-400' : 'text-text-secondary'
-            }`}
-          >
-            <CheckSquare className="w-3.5 h-3.5" /> Feed
-          </button>
-          <button
-            onClick={() => { audio.playClick(); setActiveTab('projects'); }}
-            className={`flex-1 py-2 text-[11px] font-bold flex items-center justify-center gap-2 relative z-10 transition-colors ${
-              activeTab === 'projects' ? 'text-brand-600 dark:text-brand-400' : 'text-text-secondary'
-            }`}
-          >
-            <Folder className="w-3.5 h-3.5" /> Projetos
-          </button>
         </div>
         
         {/* Filters */}
         {activeTab === 'feed' ? (
           <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar items-center">
-            {['prox', 'todos', 'eventos', 'tarefas'].map((f) => (
+            {(['todos', 'eventos', 'tarefas'] as const).map((f) => (
               <button
                 key={f}
-                onClick={() => { audio.playClick(); setFeedFilter(f as any); }}
+                onClick={() => { audio.playClick(); setFeedFilter(f); }}
                 className={`shrink-0 px-3 py-1.5 text-[10px] font-bold rounded-lg border transition-colors flex items-center gap-1.5 ${
                   feedFilter === f 
                     ? 'bg-brand-50 border-brand-200 text-brand-600 dark:bg-brand-900/30 dark:border-brand-700 dark:text-brand-400' 
                     : 'bg-card-bg border-border-color text-text-secondary hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
               >
-                {f === 'prox' ? <Clock className="w-3 h-3" /> : null}
                 {f === 'todos' ? <Folder className="w-3 h-3" /> : null}
                 {f === 'eventos' ? <CalendarIcon className="w-3 h-3" /> : null}
                 {f === 'tarefas' ? <CheckSquare className="w-3 h-3" /> : null}
-                {f === 'prox' ? 'Próximos' : f === 'todos' ? 'Todos' : f === 'eventos' ? 'Eventos' : 'Tarefas'}
+                {f === 'todos' ? 'Todos' : f === 'eventos' ? 'Eventos' : 'Tarefas'}
               </button>
             ))}
-            {feedFilter === 'todos' && (
-              <button
-                onClick={() => { audio.playClick(); setTodosSortOrder(prev => prev === 'desc' ? 'asc' : 'desc'); }}
-                className="ml-auto shrink-0 px-2 py-1.5 text-text-secondary hover:text-brand-600 transition-colors flex items-center justify-center bg-card-bg rounded-lg border border-border-color"
-                title="Inverter ordem de criação"
-              >
-                <ArrowUpDown className="w-4 h-4" />
-              </button>
-            )}
           </div>
         ) : (
           <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
@@ -489,21 +569,34 @@ export const OrganizeView: React.FC = () => {
       </div>
 
       {/* Main Content (Swipeable/Animated) */}
-      <div className="flex-1 overflow-hidden relative">
-        <AnimatePresence initial={false} mode="wait">
+      <div 
+        className="flex-1 overflow-hidden relative touch-pan-y"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        <AnimatePresence initial={false} mode="wait" custom={swipeDirection}>
           {activeTab === 'feed' ? (
             <motion.div 
               key="feed"
-              initial={{ opacity: 0, x: -20 }}
+              custom={swipeDirection}
+              initial={{ opacity: 0, x: swipeDirection > 0 ? 40 : -40 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-              className="absolute inset-0 overflow-y-auto px-5 pb-[110px] custom-scrollbar"
+              exit={{ opacity: 0, x: swipeDirection > 0 ? -40 : 40 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="absolute inset-0 overflow-y-auto px-5 pb-[110px] custom-scrollbar select-none sm:select-auto"
             >
               {/* Daily summary pill */}
               <div className="flex justify-between items-center mb-4 px-2">
                  <span className="text-xs font-bold text-brand-600">Hoje, {new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</span>
-                 <button className="text-[10px] font-bold text-brand-600 flex items-center gap-1">
+                 <button 
+                   onClick={() => { audio.playClick(); setGlobalActiveTab('timeline'); }}
+                   className="text-[10px] font-bold text-brand-600 flex items-center gap-1 hover:underline cursor-pointer"
+                 >
                    <CalendarIcon className="w-3 h-3" /> Ver calendário
                  </button>
               </div>
@@ -545,11 +638,12 @@ export const OrganizeView: React.FC = () => {
           ) : (
             <motion.div 
               key="projects"
-              initial={{ opacity: 0, x: 20 }}
+              custom={swipeDirection}
+              initial={{ opacity: 0, x: swipeDirection > 0 ? 40 : -40 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.2 }}
-              className="absolute inset-0 overflow-y-auto px-5 pb-[110px] custom-scrollbar"
+              exit={{ opacity: 0, x: swipeDirection > 0 ? -40 : 40 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="absolute inset-0 overflow-y-auto px-5 pb-[110px] custom-scrollbar select-none sm:select-auto"
             >
               {projects.length === 0 && !isCreatingProject ? (
                 <div className="text-center py-10">

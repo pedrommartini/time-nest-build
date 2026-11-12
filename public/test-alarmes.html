@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TimeNest — Laboratório Visual de Alarmes</title>
+  <link rel="icon" type="image/x-icon" href="./timenest.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#F7F4FF',
+              100: '#EDE7FF',
+              200: '#D7CAFF',
+              300: '#BDA8FF',
+              400: '#866BFF',
+              500: '#6E4EFF',
+              600: '#5B3EE0',
+              700: '#4B31C0',
+              800: '#3D26A0',
+              900: '#2F1B80',
+            }
+          },
+          animation: {
+            'pulse-slow': 'pulseSlow 3.5s infinite ease-in-out',
+          },
+          keyframes: {
+            pulseSlow: {
+              '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+              '50%': { opacity: '0.85', transform: 'scale(1.02)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
+    
+    .noise-bg {
+      background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    /* TimeNest Fullscreen Alarm Concentric Halos & Animations */
+    .alarm-halo-viewport {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+      user-select: none;
+    }
+    .alarm-halo-stage {
+      position: absolute;
+      top: 41%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      width: 0;
+      height: 0;
+      will-change: transform, opacity;
+    }
+    .alarm-halo-lavender {
+      --halo-core-bg: radial-gradient(circle, rgba(168, 130, 255, 0.32) 0%, rgba(215, 195, 255, 0.16) 45%, transparent 70%);
+      --halo-ring-1-border: rgba(185, 155, 255, 0.40);
+      --halo-ring-1-shadow: 0 0 25px rgba(168, 130, 255, 0.20), inset 0 0 20px rgba(168, 130, 255, 0.10);
+      --halo-ring-2-border: rgba(167, 139, 250, 0.32);
+      --halo-ring-2-shadow: 0 0 35px rgba(185, 155, 255, 0.15), inset 0 0 25px rgba(185, 155, 255, 0.06);
+      --halo-ring-3-border: rgba(197, 175, 255, 0.22);
+      --halo-ring-3-shadow: 0 0 50px rgba(197, 175, 255, 0.10);
+      --halo-ring-4-border: rgba(220, 205, 255, 0.14);
+      --halo-ring-4-shadow: 0 0 65px rgba(220, 205, 255, 0.06);
+      --halo-ambient-bg: radial-gradient(circle, rgba(168, 130, 255, 0.12) 0%, rgba(200, 180, 255, 0.06) 50%, transparent 75%);
+    }
+    .dark .alarm-halo-lavender,
+    .dark.alarm-halo-lavender {
+      --halo-core-bg: radial-gradient(circle, rgba(140, 95, 255, 0.38) 0%, rgba(95, 60, 200, 0.20) 50%, transparent 70%);
+      --halo-ring-1-border: rgba(175, 140, 255, 0.40);
+      --halo-ring-1-shadow: 0 0 30px rgba(140, 95, 255, 0.28), inset 0 0 25px rgba(140, 95, 255, 0.14);
+      --halo-ring-2-border: rgba(145, 105, 255, 0.30);
+      --halo-ring-2-shadow: 0 0 40px rgba(140, 95, 255, 0.20), inset 0 0 30px rgba(140, 95, 255, 0.10);
+      --halo-ring-3-border: rgba(120, 80, 230, 0.22);
+      --halo-ring-3-shadow: 0 0 60px rgba(140, 95, 255, 0.14);
+      --halo-ring-4-border: rgba(88, 28, 135, 0.18);
+      --halo-ring-4-shadow: 0 0 75px rgba(140, 95, 255, 0.10);
+      --halo-ambient-bg: radial-gradient(circle, rgba(110, 78, 255, 0.20) 0%, rgba(75, 45, 180, 0.10) 50%, transparent 75%);
+    }
+    .alarm-halo-critical {
+      --halo-core-bg: radial-gradient(circle, rgba(255, 105, 65, 0.35) 0%, rgba(255, 160, 120, 0.18) 45%, transparent 70%);
+      --halo-ring-1-border: rgba(255, 133, 102, 0.42);
+      --halo-ring-1-shadow: 0 0 25px rgba(255, 105, 65, 0.22), inset 0 0 20px rgba(255, 105, 65, 0.12);
+      --halo-ring-2-border: rgba(255, 110, 80, 0.35);
+      --halo-ring-2-shadow: 0 0 35px rgba(255, 130, 95, 0.18), inset 0 0 25px rgba(255, 130, 95, 0.08);
+      --halo-ring-3-border: rgba(254, 160, 130, 0.25);
+      --halo-ring-3-shadow: 0 0 50px rgba(254, 160, 130, 0.12);
+      --halo-ring-4-border: rgba(255, 200, 180, 0.15);
+      --halo-ring-4-shadow: 0 0 65px rgba(255, 200, 180, 0.08);
+      --halo-ambient-bg: radial-gradient(circle, rgba(255, 105, 65, 0.16) 0%, rgba(255, 160, 120, 0.08) 50%, transparent 75%);
+    }
+    .dark .alarm-halo-critical,
+    .dark.alarm-halo-critical {
+      --halo-core-bg: radial-gradient(circle, rgba(255, 75, 45, 0.45) 0%, rgba(180, 40, 20, 0.22) 50%, transparent 70%);
+      --halo-ring-1-border: rgba(255, 85, 55, 0.48);
+      --halo-ring-1-shadow: 0 0 30px rgba(255, 75, 45, 0.28), inset 0 0 25px rgba(255, 75, 45, 0.14);
+      --halo-ring-2-border: rgba(230, 65, 40, 0.35);
+      --halo-ring-2-shadow: 0 0 40px rgba(255, 75, 45, 0.20), inset 0 0 30px rgba(255, 75, 45, 0.10);
+      --halo-ring-3-border: rgba(190, 45, 25, 0.25);
+      --halo-ring-3-shadow: 0 0 60px rgba(255, 75, 45, 0.14);
+      --halo-ring-4-border: rgba(150, 30, 15, 0.18);
+      --halo-ring-4-shadow: 0 0 75px rgba(255, 75, 45, 0.10);
+      --halo-ambient-bg: radial-gradient(circle, rgba(230, 50, 30, 0.22) 0%, rgba(160, 30, 15, 0.10) 50%, transparent 75%);
+    }
+    .alarm-halo-core {
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      border-radius: 9999px;
+      background: var(--halo-core-bg);
+      filter: blur(28px);
+      pointer-events: none;
+      flex-shrink: 0;
+      will-change: transform, opacity;
+    }
+    .alarm-halo-ring-1 {
+      position: absolute;
+      width: 340px;
+      height: 340px;
+      border-radius: 9999px;
+      border: 1.5px solid var(--halo-ring-1-border);
+      box-shadow: var(--halo-ring-1-shadow);
+      pointer-events: none;
+      flex-shrink: 0;
+      will-change: transform, opacity;
+    }
+    .alarm-halo-ring-2 {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 9999px;
+      border: 1.5px solid var(--halo-ring-2-border);
+      box-shadow: var(--halo-ring-2-shadow);
+      pointer-events: none;
+      flex-shrink: 0;
+      will-change: transform, opacity;
+    }
+    .alarm-halo-ring-3 {
+      position: absolute;
+      width: 680px;
+      height: 680px;
+      border-radius: 9999px;
+      border: 1px solid var(--halo-ring-3-border);
+      box-shadow: var(--halo-ring-3-shadow);
+      pointer-events: none;
+      flex-shrink: 0;
+      will-change: transform, opacity;
+    }
+    .alarm-halo-ring-4 {
+      position: absolute;
+      width: 880px;
+      height: 880px;
+      border-radius: 9999px;
+      border: 1px solid var(--halo-ring-4-border, transparent);
+      box-shadow: var(--halo-ring-4-shadow, none);
+      background: var(--halo-ambient-bg);
+      filter: blur(48px);
+      pointer-events: none;
+      flex-shrink: 0;
+      will-change: transform, opacity;
+    }
+    .alarm-halo-core-static {
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      border-radius: 9999px;
+      background: var(--halo-core-bg);
+      filter: blur(24px);
+      opacity: 0.35;
+      pointer-events: none;
+      flex-shrink: 0;
+    }
+    @keyframes halo-breathe-standard {
+      0%, 100% { transform: scale(1); opacity: 0.88; }
+      50% { transform: scale(1.035); opacity: 1; }
+    }
+    @keyframes halo-breathe-critical {
+      0%, 100% { transform: scale(1); opacity: 0.85; }
+      50% { transform: scale(1.045); opacity: 1; }
+    }
+    .animate-halo-breathe-standard {
+      animation: halo-breathe-standard 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+    .animate-halo-breathe-critical {
+      animation: halo-breathe-critical 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+    /* Low-Stimulation */
+    .low-stim [class*="alarm-halo-ring"] {
+      display: none !important;
+    }
+    .low-stim .alarm-halo-viewport,
+    .low-stim .alarm-halo-viewport *,
+    .low-stim .alarm-halo-stage,
+    .low-stim .alarm-halo-core {
+      animation: none !important;
+      transform: scale(1) !important;
+    }
+    .low-stim .alarm-halo-core {
+      opacity: 0.35 !important;
+      filter: blur(24px) !important;
+    }
+  </style>
+</head>
+<body class="bg-[#0B0913] text-[#ECE8F5] min-h-screen flex flex-col font-sans select-none overflow-x-hidden antialiased">
+
+  <!-- Top Studio Header -->
+  <header class="h-14 border-b border-white/10 bg-[#131021] px-4 sm:px-6 flex items-center justify-between shrink-0 shadow-md z-30">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#6E4EFF] to-[#A78BFA] flex items-center justify-center shadow-lg shadow-purple-500/20">
+        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-black text-sm tracking-tight text-white">TimeNest — Laboratório Visual de Alarmes</h1>
+          <span class="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30">
+            Interface Web
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="flex items-center gap-2">
+      <!-- Theme Toggle -->
+      <button id="themeToggleBtn" onclick="toggleTheme()" class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white flex items-center gap-1.5 transition-all cursor-pointer" title="Alternar entre visual Claro e Escuro">
+        <span id="themeIcon">☀️</span>
+        <span id="themeLabel" class="hidden sm:inline">Tema Claro</span>
+      </button>
+
+      <!-- Low Stimulation -->
+      <button id="lowStimBtn" onclick="toggleLowStim()" class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white/80 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer" title="Ativar/desativar modo baixo estímulo (sem halos animados)">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+        <span class="hidden md:inline">Baixo Estímulo</span>
+      </button>
+
+      <!-- Audio Mute / Unmute -->
+      <button id="soundToggleBtn" onclick="toggleSound()" class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white/80 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer" title="Ativar/desativar som">
+        <span id="soundIcon">🔇</span>
+        <span id="soundLabel" class="hidden md:inline">Mudo</span>
+      </button>
+
+      <!-- Side-by-Side Comparison Toggle -->
+      <button id="headerSplitBtn" onclick="toggleSideBySide()" class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white/80 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer" title="Alternar Comparação Lado a Lado com Referência">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16m6-16v16"/></svg>
+        <span class="hidden sm:inline">Lado a Lado</span>
+      </button>
+
+      <!-- Fullscreen Toggle -->
+      <button onclick="toggleFullscreen()" class="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md cursor-pointer" title="Alternar tela cheia">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+        <span class="hidden sm:inline">Tela Cheia</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Workspace Container -->
+  <div class="flex-1 flex overflow-hidden relative">
+    
+    <!-- Left Sidebar: Presets and Live Controls -->
+    <aside id="sidebar" class="w-80 md:w-96 bg-[#110E1D] border-r border-white/10 flex flex-col shrink-0 z-20 overflow-hidden shadow-xl">
+      
+      <!-- Tabs -->
+      <div class="flex border-b border-white/10 bg-[#0D0B16] p-1 gap-1 shrink-0">
+        <button onclick="switchTab('presets')" id="tabBtn-presets" class="flex-1 py-2 rounded-lg text-xs font-bold transition-all text-white bg-brand-600 shadow-xs cursor-pointer">
+          Cenários
+        </button>
+        <button onclick="switchTab('screens')" id="tabBtn-screens" class="flex-1 py-2 rounded-lg text-xs font-bold transition-all text-white/60 hover:text-white hover:bg-white/5 cursor-pointer">
+          Telas
+        </button>
+        <button onclick="switchTab('editor')" id="tabBtn-editor" class="flex-1 py-2 rounded-lg text-xs font-bold transition-all text-white/60 hover:text-white hover:bg-white/5 cursor-pointer">
+          Editor
+        </button>
+        <button onclick="switchTab('specs')" id="tabBtn-specs" class="flex-1 py-2 rounded-lg text-xs font-bold transition-all text-white/60 hover:text-white hover:bg-white/5 cursor-pointer">
+          Specs
+        </button>
+      </div>
+
+      <!-- Tab Content Area -->
+      <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+        
+        <!-- SECTION 1: PRESETS -->
+        <div id="tabContent-presets" class="flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-white/50">Cenários Canônicos (00-05)</span>
+            <span class="text-[10px] text-brand-400 font-bold">6 Aprovados</span>
+          </div>
+
+          <div id="presetsListCanonical" class="flex flex-col gap-2">
+            <!-- Populated via JS -->
+          </div>
+
+          <div class="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-white/50">Outros Cenários do App</span>
+            <span class="text-[10px] text-white/40 font-bold">3 Cenários</span>
+          </div>
+
+          <div id="presetsListOther" class="flex flex-col gap-2">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+
+        <!-- SECTION 2: SCREENS OF THE FLOW -->
+        <div id="tabContent-screens" class="hidden flex flex-col gap-3">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-white/50">Alternar Telas do Alarme</span>
+          
+          <button onclick="setAlarmScreen('main')" id="screenBtn-main" class="p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between bg-brand-600/20 border-brand-500 text-white ring-1 ring-brand-500/50 cursor-pointer">
+            <div>
+              <p class="text-xs font-black">1. Tela Principal do Alarme</p>
+              <p class="text-[10px] text-white/60 mt-0.5">Halos lavanda pulsantes, badge, título grande e CTAs</p>
+            </div>
+            <span class="text-brand-400 font-bold">✓</span>
+          </button>
+
+          <button onclick="setAlarmScreen('snooze')" id="screenBtn-snooze" class="p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between bg-white/5 border-white/5 text-white/70 hover:bg-white/10 hover:text-white cursor-pointer">
+            <div>
+              <p class="text-xs font-black">2. Tela de Adiar (Snooze)</p>
+              <p class="text-[10px] text-white/60 mt-0.5">+5 min, +10 min, +15 min e fim da tarefa</p>
+            </div>
+            <span class="text-white/30 font-bold">›</span>
+          </button>
+
+          <button onclick="setAlarmScreen('difficulty')" id="screenBtn-difficulty" class="p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between bg-white/5 border-white/5 text-white/70 hover:bg-white/10 hover:text-white cursor-pointer">
+            <div>
+              <p class="text-xs font-black">3. Apoio TDAH (Bloqueio)</p>
+              <p class="text-[10px] text-white/60 mt-0.5">Micro-passos, pausas de respiração e descompressão</p>
+            </div>
+            <span class="text-white/30 font-bold">›</span>
+          </button>
+
+          <!-- Audio Simulator -->
+          <div class="mt-4 pt-4 border-t border-white/10 flex flex-col gap-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-white/50">Sons do Alarme (Web Audio)</span>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="playTestSound('gentle')" class="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-[11px] font-bold text-left flex items-center justify-between cursor-pointer">
+                <span>Gentle Kalimba</span>
+                <span class="opacity-50">♫</span>
+              </button>
+              <button onclick="playTestSound('chime')" class="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-[11px] font-bold text-left flex items-center justify-between cursor-pointer">
+                <span>Chime Arpeggio</span>
+                <span class="opacity-50">♫</span>
+              </button>
+              <button onclick="playTestSound('radar')" class="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-[11px] font-bold text-left flex items-center justify-between cursor-pointer">
+                <span>Radar Alerta</span>
+                <span class="opacity-50">♫</span>
+              </button>
+              <button onclick="stopTestSound()" class="p-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-950/60 border border-rose-800/40 text-rose-300 text-[11px] font-bold text-center cursor-pointer">
+                Silenciar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 3: LIVE EDITOR -->
+        <div id="tabContent-editor" class="hidden flex flex-col gap-3">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-white/50">Editar em Tempo Real</span>
+
+          <div class="flex flex-col gap-1">
+            <label class="text-[11px] font-bold text-white/70">Título do Alarme</label>
+            <input type="text" id="inputTitle" oninput="updateCurrentAlarm()" class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold focus:outline-none focus:border-brand-500">
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label class="text-[11px] font-bold text-white/70">Horário ou Duração</label>
+            <input type="text" id="inputTime" oninput="updateCurrentAlarm()" class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold focus:outline-none focus:border-brand-500">
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label class="text-[11px] font-bold text-white/70">Metadado / Origem</label>
+            <input type="text" id="inputMetadata" oninput="updateCurrentAlarm()" class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold focus:outline-none focus:border-brand-500">
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label class="text-[11px] font-bold text-white/70">Texto da Badge</label>
+            <input type="text" id="inputBadge" oninput="updateCurrentAlarm()" class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold uppercase focus:outline-none focus:border-brand-500">
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label class="text-[11px] font-bold text-white/70">Texto da Ação Principal (CTA)</label>
+            <input type="text" id="inputCta" oninput="updateCurrentAlarm()" class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold focus:outline-none focus:border-brand-500">
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 pt-2">
+            <div class="flex flex-col gap-1">
+              <label class="text-[11px] font-bold text-white/70">Tipo de Alarme</label>
+              <select id="inputType" onchange="updateCurrentAlarm()" class="w-full px-2.5 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold focus:outline-none focus:border-brand-500">
+                <option value="event" class="bg-[#110E1D]">Evento</option>
+                <option value="task" class="bg-[#110E1D]">Tarefa</option>
+                <option value="medication" class="bg-[#110E1D]">Medicamento</option>
+                <option value="sleep" class="bg-[#110E1D]">Sono</option>
+                <option value="wake" class="bg-[#110E1D]">Acordar</option>
+              </select>
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-[11px] font-bold text-white/70">Nível de Urgência</label>
+              <select id="inputIntent" onchange="updateCurrentAlarm()" class="w-full px-2.5 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold focus:outline-none focus:border-brand-500">
+                <option value="pre-event" class="bg-[#110E1D]">Pré-Evento</option>
+                <option value="task-now" class="bg-[#110E1D]">Começa Agora</option>
+                <option value="critical" class="bg-[#110E1D]">Crítico / Urgente</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 4: SPECS & OFFICIAL DESIGN REFERENCES -->
+        <div id="tabContent-specs" class="hidden flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-white/50">Diretrizes Oficiais</span>
+            <button onclick="toggleSideBySide()" id="sideBySideBtn" class="text-[10px] font-bold px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer">
+              Lado a Lado
+            </button>
+          </div>
+
+          <div class="p-3 rounded-2xl bg-white/5 border border-white/5 text-xs text-white/80 leading-relaxed flex flex-col gap-2">
+            <p><strong class="text-white">Princípio Central:</strong> Interromper o suficiente para funcionar, sem transformar organização em ansiedade.</p>
+            <ul class="list-disc list-inside text-[11px] text-white/70 flex flex-col gap-1">
+              <li>Tela cheia pura, sem timeline ou barra.</li>
+              <li>Tipografia gigante para título e horário.</li>
+              <li>Halos radiais suaves que respiram.</li>
+              <li>Ação contextual ("Começar foco", "Vou me preparar").</li>
+            </ul>
+          </div>
+
+          <span class="text-[11px] font-bold uppercase tracking-wider text-white/50 mt-2">6 Mockups Aprovados</span>
+          <div class="grid grid-cols-2 gap-2">
+            <a href="./alarm-references/00_referencia_visual_aprovada.png" target="_blank" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-[10px] font-bold flex flex-col gap-1">
+              <img src="./alarm-references/00_referencia_visual_aprovada.png" alt="Base" class="h-20 object-cover rounded-lg">
+              <span>00 · Referência Base</span>
+            </a>
+            <a href="./alarm-references/01_alarme_tarefa_comeca_agora.png" target="_blank" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-[10px] font-bold flex flex-col gap-1">
+              <img src="./alarm-references/01_alarme_tarefa_comeca_agora.png" alt="Tarefa" class="h-20 object-cover rounded-lg">
+              <span>01 · Tarefa Começa Agora</span>
+            </a>
+            <a href="./alarm-references/02_pre_evento_15min.png" target="_blank" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-[10px] font-bold flex flex-col gap-1">
+              <img src="./alarm-references/02_pre_evento_15min.png" alt="Pré-evento" class="h-20 object-cover rounded-lg">
+              <span>02 · Pré-Evento 15 min</span>
+            </a>
+            <a href="./alarm-references/03_alarme_critico.png" target="_blank" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-[10px] font-bold flex flex-col gap-1">
+              <img src="./alarm-references/03_alarme_critico.png" alt="Crítico" class="h-20 object-cover rounded-lg">
+              <span>03 · Alarme Crítico</span>
+            </a>
+            <a href="./alarm-references/04_snooze_adiar.png" target="_blank" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-[10px] font-bold flex flex-col gap-1">
+              <img src="./alarm-references/04_snooze_adiar.png" alt="Adiar" class="h-20 object-cover rounded-lg">
+              <span>04 · Tela de Adiar</span>
+            </a>
+            <a href="./alarm-references/05_nao_consegui_comecar.png" target="_blank" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-[10px] font-bold flex flex-col gap-1">
+              <img src="./alarm-references/05_nao_consegui_comecar.png" alt="Apoio TDAH" class="h-20 object-cover rounded-lg">
+              <span>05 · Apoio TDAH</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer Info -->
+      <div class="p-3 border-t border-white/10 bg-[#0D0B16] text-[10px] text-white/50 flex items-center justify-between">
+        <span id="logStatus">Pronto para testar</span>
+        <a href="./" class="text-brand-400 hover:underline font-bold">Abrir App Principal →</a>
+      </div>
+    </aside>
+
+    <!-- Center Interactive Canvas -->
+    <main id="mainCanvas" class="flex-1 bg-[#08070D] noise-bg relative flex flex-col items-center justify-center p-4 sm:p-8 overflow-y-auto">
+      
+      <!-- Device Selector -->
+      <div id="deviceBar" class="mb-4 z-10 flex items-center gap-2 bg-[#161324]/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
+        <span class="text-[10px] uppercase font-bold text-white/40 tracking-wider">Moldura:</span>
+        <button onclick="setDevice('iphone')" id="devBtn-iphone" class="px-2.5 py-1 rounded-full text-xs font-bold bg-brand-500 text-white transition-all cursor-pointer">iPhone 15</button>
+        <button onclick="setDevice('galaxy')" id="devBtn-galaxy" class="px-2.5 py-1 rounded-full text-xs font-bold text-white/60 hover:text-white transition-all cursor-pointer">Galaxy S24</button>
+        <button onclick="setDevice('compact')" id="devBtn-compact" class="px-2.5 py-1 rounded-full text-xs font-bold text-white/60 hover:text-white transition-all cursor-pointer">Compacto</button>
+      </div>
+
+      <!-- Preview Wrapper -->
+      <div class="flex items-center justify-center gap-8 max-w-full">
+        
+        <!-- Live Mobile Screen Mockup -->
+        <div id="phoneMockup" class="relative shadow-[0_25px_80px_rgba(0,0,0,0.9)] border-4 border-[#2A263D] overflow-hidden rounded-[48px] transition-all duration-300" style="width: 380px; height: 780px;">
+          
+          <!-- Dynamic Island Notch -->
+          <div id="phoneNotch" class="absolute top-3 left-1/2 -translate-x-1/2 z-[600] w-24 h-5 bg-black rounded-full flex items-center justify-center pointer-events-none shadow-sm">
+            <div class="w-2.5 h-2.5 rounded-full bg-[#111] mr-3"></div>
+            <div class="w-2 h-2 rounded-full bg-[#182035]"></div>
+          </div>
+
+          <!-- Status Bar -->
+          <div id="phoneStatusBar" class="absolute top-2 left-0 right-0 z-[550] px-7 flex items-center justify-between text-[11px] font-bold text-white/50 pointer-events-none">
+            <span id="statusBarTime">09:41</span>
+            <div class="flex items-center gap-1.5 opacity-70">
+              <span class="text-[10px]">5G</span>
+              <div class="w-5 h-2.5 border border-white/60 rounded-xs p-0.5 flex items-center">
+                <div class="w-full h-full bg-white/80 rounded-xs"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Home Bar -->
+          <div id="phoneHomeBar" class="absolute bottom-2 left-1/2 -translate-x-1/2 z-[550] w-32 h-1 bg-white/30 rounded-full pointer-events-none"></div>
+
+          <!-- ALARM VIEWPORT (Rendered by JS) -->
+          <div id="alarmViewport" class="w-full h-full relative overflow-hidden select-none">
+            <!-- Dynamically injected with TimeNest visual -->
+          </div>
+
+        </div>
+
+        <!-- Split View Mockup (Reference Image) -->
+        <div id="splitComparison" class="hidden relative shadow-[0_25px_80px_rgba(0,0,0,0.9)] border-4 border-brand-500/40 overflow-hidden rounded-[48px] bg-black" style="width: 380px; height: 780px;">
+          <div class="absolute top-2 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
+            <div id="splitLabel" class="px-2.5 py-1 rounded bg-brand-500/90 text-white text-[10px] font-black tracking-wider uppercase backdrop-blur-md shadow-xs">
+              00 · Referência Visual Base
+            </div>
+            <div id="splitCode" class="px-2 py-0.5 rounded bg-black/60 text-white/80 text-[10px] font-mono backdrop-blur-md">
+              00_referencia_visual_aprovada.png
+            </div>
+          </div>
+          <img id="splitImg" src="./alarm-references/00_referencia_visual_aprovada.png" alt="Referência" class="w-full h-full object-cover">
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- Audio System & Script Logic -->
+  <script>
+    // Inline SVG Dictionary
+    function renderIcon(name, className = 'w-4 h-4', strokeWidth = 2) {
+      const icons = {
+        bell: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>`,
+        zap: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
+        clock: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/></svg>`,
+        lock: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M7 11V7a5 5 0 0110 0v4"/></svg>`,
+        calendar: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+        checkSquare: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><polyline points="9 11 12 14 22 4"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>`,
+        arrowRight: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/></svg>`,
+        compass: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>`,
+        rotateCcw: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><path stroke-linecap="round" stroke-linejoin="round" d="M3 2v6h6"/><path stroke-linecap="round" stroke-linejoin="round" d="M3 13a9 9 0 102.13-5.36L3 8"/></svg>`,
+        batteryLow: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><rect x="2" y="7" width="16" height="10" rx="2" ry="2"/><line x1="22" y1="11" x2="22" y2="13"/><line x1="6" y1="11" x2="6" y2="13"/></svg>`,
+        sparkles: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3m-2.636-6.364l-2.121 2.121M7.757 16.243l-2.121 2.121m12.728 0l-2.121-2.121M7.757 7.757L5.636 5.636"/></svg>`,
+        sun: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
+        moon: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>`,
+        pill: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 20.5l10-10a4.95 4.95 0 10-7-7l-10 10a4.95 4.95 0 107 7z"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/></svg>`
+      };
+      return icons[name] || '';
+    }
+
+    // 6 Approved Canonical States + Utility Presets
+    const PRESETS = [
+      // 00 · Base Canonical Reference
+      {
+        id: '00-base',
+        name: '00 · Referência Visual Base',
+        category: 'Conceito Oficial',
+        icon: 'bell',
+        referenceImage: './alarm-references/00_referencia_visual_aprovada.png',
+        defaultScreen: 'main',
+        alarm: {
+          type: 'event',
+          intent: 'pre-event',
+          title: 'Jantar com Maria',
+          durationOrTime: '19:30',
+          metadata: 'Evento · Google Agenda',
+          badge: 'EM 15 MIN',
+          ctaText: 'Vou me preparar agora',
+          sound: 'gentle',
+        }
+      },
+      // 01 · Tarefa Começa Agora
+      {
+        id: '01-task-now',
+        name: '01 · Tarefa (Começa agora)',
+        category: 'Conceito Oficial',
+        icon: 'zap',
+        referenceImage: './alarm-references/01_alarme_tarefa_comeca_agora.png',
+        defaultScreen: 'main',
+        alarm: {
+          type: 'task',
+          intent: 'task-now',
+          title: 'Editar vídeo',
+          durationOrTime: '45 min',
+          metadata: 'Tarefa · Projeto Trabalho',
+          badge: 'AGORA',
+          ctaText: 'Começar foco agora',
+          sound: 'chime',
+        }
+      },
+      // 02 · Pré-evento 15 min
+      {
+        id: '02-pre-event',
+        name: '02 · Pré-evento (15 min antes)',
+        category: 'Conceito Oficial',
+        icon: 'calendar',
+        referenceImage: './alarm-references/02_pre_evento_15min.png',
+        defaultScreen: 'main',
+        alarm: {
+          type: 'event',
+          intent: 'pre-event',
+          title: 'Jantar com Maria',
+          durationOrTime: '19:30',
+          metadata: 'Evento · Google Agenda',
+          badge: 'EM 15 MIN',
+          ctaText: 'Vou me preparar agora',
+          sound: 'gentle',
+        }
+      },
+      // 03 · Alarme Crítico
+      {
+        id: '03-critical',
+        name: '03 · Alarme Crítico (Urgente)',
+        category: 'Conceito Oficial',
+        icon: 'bell',
+        referenceImage: './alarm-references/03_alarme_critico.png',
+        defaultScreen: 'main',
+        alarm: {
+          type: 'event',
+          intent: 'critical',
+          title: 'Consulta médica',
+          durationOrTime: '14:30',
+          metadata: 'Evento · Google Agenda',
+          badge: 'URGENTE',
+          ctaText: 'Estou saindo agora',
+          sound: 'radar',
+        }
+      },
+      // 04 · Tela de Adiar / Snooze
+      {
+        id: '04-snooze',
+        name: '04 · Tela de Adiar (Snooze)',
+        category: 'Conceito Oficial',
+        icon: 'clock',
+        referenceImage: './alarm-references/04_snooze_adiar.png',
+        defaultScreen: 'snooze',
+        alarm: {
+          type: 'event',
+          intent: 'pre-event',
+          title: 'Jantar com Maria',
+          durationOrTime: '19:30',
+          metadata: 'Evento • 19:30',
+          badge: 'ADIAR',
+          ctaText: 'Vou me preparar agora',
+          sound: 'gentle',
+        }
+      },
+      // 05 · Apoio TDAH / Bloqueio
+      {
+        id: '05-adhd',
+        name: '05 · Apoio TDAH (Bloqueio)',
+        category: 'Conceito Oficial',
+        icon: 'lock',
+        referenceImage: './alarm-references/05_nao_consegui_comecar.png',
+        defaultScreen: 'difficulty',
+        alarm: {
+          type: 'task',
+          intent: 'task-now',
+          title: 'Editar vídeo',
+          durationOrTime: '45 min',
+          metadata: 'Tarefa • 45 min',
+          badge: 'BLOQUEIO',
+          ctaText: 'Começar foco agora',
+          sound: 'chime',
+        }
+      },
+      // Outros cenários
+      {
+        id: 'medication',
+        name: 'Medicamento (Venvanse)',
+        category: 'Rotina & Saúde',
+        icon: 'pill',
+        referenceImage: './alarm-references/00_referencia_visual_aprovada.png',
+        defaultScreen: 'main',
+        alarm: {
+          type: 'medication',
+          intent: 'task-now',
+          title: 'Venvanse 50mg',
+          durationOrTime: '08:00',
+          metadata: 'Tomar com água após o café da manhã',
+          badge: '💊 MEDICAMENTO',
+          ctaText: 'Tomar agora',
+          sound: 'chime',
+        }
+      },
+      {
+        id: 'sleep',
+        name: 'Hora de Dormir',
+        category: 'Rotina & Saúde',
+        icon: 'moon',
+        referenceImage: './alarm-references/00_referencia_visual_aprovada.png',
+        defaultScreen: 'main',
+        alarm: {
+          type: 'sleep',
+          intent: 'pre-event',
+          title: 'Hora de desacelerar',
+          durationOrTime: '23:00',
+          metadata: 'Rotina Noturna • Modo Descanso',
+          badge: '🌙 HORA DE DORMIR',
+          ctaText: 'Vou me preparar agora',
+          sound: 'gentle',
+        }
+      },
+      {
+        id: 'wake',
+        name: 'Hora de Acordar',
+        category: 'Rotina & Saúde',
+        icon: 'sun',
+        referenceImage: './alarm-references/00_referencia_visual_aprovada.png',
+        defaultScreen: 'main',
+        alarm: {
+          type: 'wake',
+          intent: 'pre-event',
+          title: 'Bom dia! Começar o dia',
+          durationOrTime: '07:00',
+          metadata: 'Despertador TimeNest',
+          badge: '☀️ HORA DE ACORDAR',
+          ctaText: 'Acordei! Iniciar dia',
+          sound: 'chime',
+        }
+      }
+    ];
+
+    // State
+    let currentAlarm = { ...PRESETS[0].alarm };
+    let currentPreset = PRESETS[0];
+    let currentScreen = 'main'; // 'main' | 'snooze' | 'difficulty'
+    let isDark = false;
+    let isLowStim = false;
+    let isSoundOn = false;
+    let isFullscreen = false;
+    let isSplitOn = false;
+
+    // Web Audio System
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let soundInterval = null;
+
+    function getAudioCtx() {
+      if (!audioCtx && AudioCtx) {
+        audioCtx = new AudioCtx();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playClick() {
+      try {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.05);
+      } catch (e) {}
+    }
+
+    function playTestSound(type = 'chime') {
+      stopTestSound();
+      const ctx = getAudioCtx();
+      if (!ctx) return;
+
+      const playNote = () => {
+        const t = ctx.currentTime;
+        if (type === 'radar') {
+          [880, 1320].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, t + idx * 0.12);
+            gain.gain.setValueAtTime(0.3, t + idx * 0.12);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.12 + 0.18);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(t + idx * 0.12);
+            osc.stop(t + idx * 0.12 + 0.2);
+          });
+        } else if (type === 'gentle') {
+          [440, 554.37, 659.25, 830.61].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, t + idx * 0.15);
+            gain.gain.setValueAtTime(0.2, t + idx * 0.15);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.15 + 1.2);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(t + idx * 0.15);
+            osc.stop(t + idx * 0.15 + 1.25);
+          });
+        } else {
+          // Chime
+          [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, t + idx * 0.1);
+            gain.gain.setValueAtTime(0.25, t + idx * 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.1 + 0.8);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(t + idx * 0.1);
+            osc.stop(t + idx * 0.1 + 0.85);
+          });
+        }
+      };
+
+      playNote();
+      soundInterval = setInterval(playNote, type === 'radar' ? 2200 : 3500);
+      setLog(`Tocando áudio: ${type}`);
+    }
+
+    function stopTestSound() {
+      if (soundInterval) {
+        clearInterval(soundInterval);
+        soundInterval = null;
+      }
+    }
+
+    // Populate presets
+    function initPresets() {
+      const renderPresetBtn = (p) => {
+        const isSelected = p.id === currentPreset.id;
+        return `
+          <button onclick="selectPreset('${p.id}')" class="p-3 rounded-2xl border text-left transition-all flex items-start gap-3 cursor-pointer ${
+            isSelected 
+              ? 'bg-brand-600/20 border-brand-500 text-white ring-1 ring-brand-500/50 shadow-md' 
+              : 'bg-white/5 border-white/5 text-white/70 hover:bg-white/10 hover:text-white'
+          }" id="presetItem-${p.id}">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${isSelected ? 'bg-brand-500 text-white' : 'bg-white/10 text-white/60'}">
+              ${renderIcon(p.icon || 'bell', 'w-4 h-4')}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-white truncate">${p.name}</span>
+                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${p.id.startsWith('0') ? 'bg-brand-500/20 text-brand-300 border border-brand-500/30' : 'bg-white/10 text-white/60'} uppercase">${p.category}</span>
+              </div>
+              <p class="text-[11px] text-white/60 mt-0.5 truncate">"${p.alarm.title}" • ${p.alarm.durationOrTime}</p>
+            </div>
+          </button>
+        `;
+      };
+
+      const canonContainer = document.getElementById('presetsListCanonical');
+      if (canonContainer) {
+        canonContainer.innerHTML = PRESETS.slice(0, 6).map(renderPresetBtn).join('');
+      }
+
+      const otherContainer = document.getElementById('presetsListOther');
+      if (otherContainer) {
+        otherContainer.innerHTML = PRESETS.slice(6).map(renderPresetBtn).join('');
+      }
+    }
+
+    function selectPreset(id) {
+      playClick();
+      currentPreset = PRESETS.find(p => p.id === id) || PRESETS[0];
+      currentAlarm = { ...currentPreset.alarm };
+      setAlarmScreen(currentPreset.defaultScreen || 'main');
+      
+      initPresets();
+      syncInputs();
+      renderAlarm();
+      updateSplitImage();
+      
+      setLog(`Cenário carregado: ${currentPreset.name}`);
+    }
+
+    function syncInputs() {
+      document.getElementById('inputTitle').value = currentAlarm.title;
+      document.getElementById('inputTime').value = currentAlarm.durationOrTime;
+      document.getElementById('inputMetadata').value = currentAlarm.metadata || '';
+      document.getElementById('inputBadge').value = currentAlarm.badge || '';
+      document.getElementById('inputCta').value = currentAlarm.ctaText || '';
+      document.getElementById('inputType').value = currentAlarm.type;
+      document.getElementById('inputIntent').value = currentAlarm.intent;
+    }
+
+    function updateCurrentAlarm() {
+      currentAlarm.title = document.getElementById('inputTitle').value;
+      currentAlarm.durationOrTime = document.getElementById('inputTime').value;
+      currentAlarm.metadata = document.getElementById('inputMetadata').value;
+      currentAlarm.badge = document.getElementById('inputBadge').value;
+      currentAlarm.ctaText = document.getElementById('inputCta').value;
+      currentAlarm.type = document.getElementById('inputType').value;
+      currentAlarm.intent = document.getElementById('inputIntent').value;
+      renderAlarm();
+    }
+
+    function updateSplitImage() {
+      const splitImg = document.getElementById('splitImg');
+      const splitLabel = document.getElementById('splitLabel');
+      const splitCode = document.getElementById('splitCode');
+      if (!splitImg) return;
+
+      if (currentScreen === 'snooze') {
+        splitImg.src = './alarm-references/04_snooze_adiar.png';
+        if (splitLabel) splitLabel.textContent = '04 · Adiar / Snooze';
+        if (splitCode) splitCode.textContent = '04_snooze_adiar.png';
+      } else if (currentScreen === 'difficulty') {
+        splitImg.src = './alarm-references/05_nao_consegui_comecar.png';
+        if (splitLabel) splitLabel.textContent = '05 · Apoio TDAH';
+        if (splitCode) splitCode.textContent = '05_nao_consegui_comecar.png';
+      } else {
+        splitImg.src = currentPreset.referenceImage || './alarm-references/00_referencia_visual_aprovada.png';
+        if (splitLabel) splitLabel.textContent = currentPreset.id.startsWith('0') ? currentPreset.name.split('·')[0].trim() : 'Referência Oficial';
+        if (splitCode) splitCode.textContent = currentPreset.referenceImage ? currentPreset.referenceImage.split('/').pop() : '00_referencia_visual_aprovada.png';
+      }
+    }
+
+    function setAlarmScreen(s) {
+      playClick();
+      currentScreen = s;
+      
+      ['main', 'snooze', 'difficulty'].forEach(screenId => {
+        const btn = document.getElementById(`screenBtn-${screenId}`);
+        if (!btn) return;
+        const lastSpan = btn.querySelector('span:last-child');
+        if (screenId === s) {
+          btn.className = 'p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between bg-brand-600/20 border-brand-500 text-white ring-1 ring-brand-500/50 cursor-pointer';
+          if (lastSpan) {
+            lastSpan.textContent = '✓';
+            lastSpan.className = 'text-brand-400 font-bold';
+          }
+        } else {
+          btn.className = 'p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between bg-white/5 border-white/5 text-white/70 hover:bg-white/10 hover:text-white cursor-pointer';
+          if (lastSpan) {
+            lastSpan.textContent = '›';
+            lastSpan.className = 'text-white/30 font-bold';
+          }
+        }
+      });
+
+      updateSplitImage();
+      renderAlarm();
+      setLog(`Tela alterada para: ${s}`);
+    }
+
+    function toggleTheme() {
+      playClick();
+      isDark = !isDark;
+      document.getElementById('themeIcon').textContent = isDark ? '🌙' : '☀️';
+      document.getElementById('themeLabel').textContent = isDark ? 'Tema Escuro' : 'Tema Claro';
+      renderAlarm();
+      setLog(`Tema alternado: ${isDark ? 'Escuro' : 'Claro'}`);
+    }
+
+    function toggleLowStim() {
+      playClick();
+      isLowStim = !isLowStim;
+      const btn = document.getElementById('lowStimBtn');
+      btn.className = isLowStim 
+        ? 'px-3 py-1.5 rounded-xl bg-purple-950/70 border border-purple-500/50 text-purple-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer'
+        : 'px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white/80 hover:text-white flex items-center gap-1.5 cursor-pointer';
+      renderAlarm();
+      setLog(`Modo baixo estímulo: ${isLowStim ? 'Ligado' : 'Desligado'}`);
+    }
+
+    function toggleSound() {
+      playClick();
+      isSoundOn = !isSoundOn;
+      document.getElementById('soundIcon').textContent = isSoundOn ? '🔊' : '🔇';
+      document.getElementById('soundLabel').textContent = isSoundOn ? 'Som Ativo' : 'Mudo';
+      if (!isSoundOn) stopTestSound();
+      else playTestSound(currentAlarm.sound || 'gentle');
+    }
+
+    function toggleFullscreen() {
+      playClick();
+      isFullscreen = !isFullscreen;
+      const mockup = document.getElementById('phoneMockup');
+      const sidebar = document.getElementById('sidebar');
+      const deviceBar = document.getElementById('deviceBar');
+      const phoneNotch = document.getElementById('phoneNotch');
+      const phoneStatusBar = document.getElementById('phoneStatusBar');
+      const phoneHomeBar = document.getElementById('phoneHomeBar');
+
+      if (isFullscreen) {
+        sidebar.classList.add('hidden');
+        deviceBar.classList.add('hidden');
+        phoneNotch.classList.add('hidden');
+        phoneStatusBar.classList.add('hidden');
+        phoneHomeBar.classList.add('hidden');
+        mockup.className = 'fixed inset-0 z-[500] w-full h-full border-none rounded-none';
+        mockup.style.width = '100vw';
+        mockup.style.height = '100vh';
+      } else {
+        sidebar.classList.remove('hidden');
+        deviceBar.classList.remove('hidden');
+        phoneNotch.classList.remove('hidden');
+        phoneStatusBar.classList.remove('hidden');
+        phoneHomeBar.classList.remove('hidden');
+        setDevice('iphone');
+      }
+      renderAlarm();
+    }
+
+    function toggleSideBySide() {
+      playClick();
+      isSplitOn = !isSplitOn;
+      const split = document.getElementById('splitComparison');
+      const sideBtn = document.getElementById('sideBySideBtn');
+      const headerBtn = document.getElementById('headerSplitBtn');
+
+      if (isSplitOn) {
+        split.classList.remove('hidden');
+        if (sideBtn) sideBtn.className = 'text-[10px] font-bold px-2 py-1 rounded-lg bg-brand-600 text-white cursor-pointer';
+        if (headerBtn) headerBtn.className = 'px-3 py-1.5 rounded-xl bg-brand-950/80 border border-brand-500/60 text-brand-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-[0_0_12px_rgba(110,78,255,0.25)] cursor-pointer';
+      } else {
+        split.classList.add('hidden');
+        if (sideBtn) sideBtn.className = 'text-[10px] font-bold px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer';
+        if (headerBtn) headerBtn.className = 'px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white/80 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer';
+      }
+      updateSplitImage();
+    }
+
+    function setDevice(model) {
+      playClick();
+      const mockup = document.getElementById('phoneMockup');
+      const split = document.getElementById('splitComparison');
+      const dims = {
+        iphone: { w: '380px', h: '780px', r: 'rounded-[48px]' },
+        galaxy: { w: '400px', h: '820px', r: 'rounded-[38px]' },
+        compact: { w: '340px', h: '700px', r: 'rounded-[32px]' },
+      }[model];
+
+      mockup.className = `relative shadow-[0_25px_80px_rgba(0,0,0,0.9)] border-4 border-[#2A263D] overflow-hidden ${dims.r} transition-all duration-300`;
+      mockup.style.width = dims.w;
+      mockup.style.height = dims.h;
+
+      split.style.width = dims.w;
+      split.style.height = dims.h;
+
+      ['iphone', 'galaxy', 'compact'].forEach(m => {
+        const b = document.getElementById(`devBtn-${m}`);
+        b.className = m === model 
+          ? 'px-2.5 py-1 rounded-full text-xs font-bold bg-brand-500 text-white transition-all cursor-pointer'
+          : 'px-2.5 py-1 rounded-full text-xs font-bold text-white/60 hover:text-white transition-all cursor-pointer';
+      });
+    }
+
+    function switchTab(t) {
+      playClick();
+      ['presets', 'screens', 'editor', 'specs'].forEach(tabId => {
+        const btn = document.getElementById(`tabBtn-${tabId}`);
+        const content = document.getElementById(`tabContent-${tabId}`);
+        if (tabId === t) {
+          btn.className = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all text-white bg-brand-600 shadow-xs cursor-pointer';
+          content.classList.remove('hidden');
+        } else {
+          btn.className = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all text-white/60 hover:text-white hover:bg-white/5 cursor-pointer';
+          content.classList.add('hidden');
+        }
+      });
+    }
+
+    function setLog(msg) {
+      document.getElementById('logStatus').textContent = msg;
+    }
+
+    // Render the alarm visual identical to TimeNest's AlarmVisualDisplay
+    function renderAlarm() {
+      const container = document.getElementById('alarmViewport');
+      const isCritical = currentAlarm.intent === 'critical';
+      const isTask = currentAlarm.type === 'task' || currentAlarm.intent === 'task-now';
+      const isSleep = currentAlarm.type === 'sleep';
+      const isWake = currentAlarm.type === 'wake';
+      const isMed = currentAlarm.type === 'medication';
+
+      // Visual Palette Tokens matching production
+      const bgClass = isDark
+        ? 'bg-[#120E1F] text-white'
+        : isCritical
+          ? 'bg-[#FFF8F5] text-[#380A0A]'
+          : 'bg-[#FAF9F6] text-[#110E2E]';
+
+      const haloThemeClass = isCritical ? 'alarm-halo-critical' : 'alarm-halo-lavender';
+
+      const badgeClass = isDark
+        ? isCritical
+          ? 'bg-rose-950/90 text-rose-300 border border-rose-800/60'
+          : isWake
+            ? 'bg-amber-950/90 text-amber-300 border border-amber-800/60'
+            : isSleep
+              ? 'bg-indigo-950/90 text-indigo-300 border border-indigo-800/60'
+              : isMed
+                ? 'bg-pink-950/90 text-pink-300 border border-pink-800/60'
+                : 'bg-purple-950/80 text-purple-300 border border-purple-800/50'
+        : isCritical
+          ? 'bg-[#FFF1ED] text-[#DC2626] border border-rose-200'
+          : isWake
+            ? 'bg-amber-100 text-amber-900 border border-amber-200'
+            : isSleep
+              ? 'bg-indigo-100 text-indigo-900 border border-indigo-200'
+              : isMed
+                ? 'bg-pink-100 text-pink-900 border border-pink-200'
+                : 'bg-purple-100/80 text-[#4338CA] border border-purple-200';
+
+      const timeColorClass = isDark
+        ? isCritical
+          ? 'bg-gradient-to-r from-orange-400 to-rose-400 bg-clip-text text-transparent text-rose-400'
+          : 'text-[#9B83FF]'
+        : isCritical
+          ? 'bg-gradient-to-r from-[#F95721] to-[#DC2626] bg-clip-text text-transparent text-[#EA3A2A]'
+          : 'text-[#6E4EFF]';
+
+      const metadataColorClass = isDark
+        ? 'text-[#A19DB8]'
+        : isCritical
+          ? 'text-[#8C4A4A]'
+          : 'text-[#6B6684]';
+
+      // Primary Compound CTA Styling
+      const primaryCtaStyle = isCritical
+        ? 'background: linear-gradient(135deg, #F94A1E 0%, #D81414 100%); box-shadow: 0 14px 34px -4px rgba(220, 38, 38, 0.50);'
+        : 'background: linear-gradient(135deg, #4F17C5 0%, #2F0A9E 100%); box-shadow: 0 14px 34px -4px rgba(79, 23, 197, 0.45);';
+
+      const primaryIconColor = isCritical ? 'text-[#DC2626]' : 'text-[#3E12B3]';
+
+      // Secondary Outline Pill Styling
+      const secondaryBtnStyle = isCritical
+        ? 'border: 1.5px solid rgba(220, 38, 38, 0.35);'
+        : 'border: 1.5px solid rgba(139, 92, 246, 0.35);';
+
+      const secondaryBtnClass = isCritical
+        ? (isDark 
+            ? 'bg-rose-950/20 hover:bg-rose-950/40 active:bg-rose-950/60 text-rose-300 border-rose-800/40' 
+            : 'bg-white/40 hover:bg-rose-50/50 active:bg-rose-100/50 text-[#DC2626] border-rose-200')
+        : (isDark 
+            ? 'bg-purple-950/20 hover:bg-purple-950/40 active:bg-purple-950/60 text-purple-300 border-purple-800/40' 
+            : 'bg-white/40 hover:bg-purple-50/50 active:bg-purple-100/50 text-[#4338CA] border-purple-200');
+
+      const secondaryIconColor = isCritical 
+        ? (isDark ? 'text-rose-300' : 'text-[#DC2626]')
+        : (isDark ? 'text-purple-300' : 'text-[#4338CA]');
+
+      // Tertiary Text Link Styling
+      const tertiaryBtnClass = isCritical
+        ? (isDark ? 'text-rose-300 hover:text-white' : 'text-[#6B2B2B] hover:text-[#380A0A]')
+        : (isDark ? 'text-[#A19DB8] hover:text-white' : 'text-[#5B557C] hover:text-[#110E2E]');
+
+      // Update status bar time
+      const timeStr = currentAlarm.durationOrTime?.includes(':') ? currentAlarm.durationOrTime : '09:41';
+      const statusBarElem = document.getElementById('statusBarTime');
+      if (statusBarElem) statusBarElem.textContent = timeStr;
+
+      // Halo Viewport Markup
+      const haloMarkup = !isLowStim ? `
+        <div class="alarm-halo-viewport pointer-events-none" aria-hidden="true">
+          <div class="alarm-halo-stage animate-pulse-slow ${isCritical ? 'animate-halo-breathe-critical' : 'animate-halo-breathe-standard'}">
+            <div class="alarm-halo-ring-4"></div>
+            <div class="alarm-halo-ring-3"></div>
+            <div class="alarm-halo-ring-2"></div>
+            <div class="alarm-halo-ring-1"></div>
+            <div class="alarm-halo-core"></div>
+          </div>
+        </div>
+      ` : `
+        <div class="alarm-halo-viewport low-stim pointer-events-none" aria-hidden="true">
+          <div class="alarm-halo-stage">
+            <div class="alarm-halo-core-static"></div>
+          </div>
+        </div>
+      `;
+
+      // Badge Icon Name
+      let badgeIconName = 'bell';
+      if (isWake) badgeIconName = 'sun';
+      else if (isSleep) badgeIconName = 'moon';
+      else if (isMed) badgeIconName = 'pill';
+      else if (isCritical) badgeIconName = 'bell';
+      else if (isTask) badgeIconName = 'zap';
+
+      // SCREEN: SNOOZE (State 4)
+      if (currentScreen === 'snooze') {
+        container.innerHTML = `
+          <div class="w-full h-full flex flex-col items-center justify-between p-6 sm:p-8 ${bgClass} ${haloThemeClass} ${isDark ? 'dark' : ''} ${isLowStim ? 'low-stim' : ''} select-none overflow-y-auto relative">
+            ${haloMarkup}
+            <div class="relative z-10 flex-1 flex flex-col items-center justify-center text-center w-full max-w-md mx-auto my-auto px-2">
+              <!-- Centered Badge: Clock icon + ADIAR -->
+              <div class="inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black tracking-wider mb-5 sm:mb-6 shadow-xs self-center mx-auto ${
+                isDark 
+                  ? 'bg-purple-950/60 text-purple-300 border border-purple-800/40' 
+                  : 'bg-white/80 text-[#4A2EB7] border border-[#D6CEF1]'
+              }">
+                ${renderIcon('clock', `w-3.5 h-3.5 stroke-[2.2] ${isDark ? 'text-purple-300' : 'text-[#4A2EB7]'}`)}
+                <span>ADIAR</span>
+              </div>
+
+              <!-- 2-line Centered Title -->
+              <h1 class="text-4xl sm:text-5xl font-black tracking-tight leading-[1.08] text-[#110E2E] dark:text-white text-center mx-auto mb-2.5 sm:mb-3 drop-shadow-xs">
+                <span class="block">Precisa de</span>
+                <span class="block">mais tempo?</span>
+              </h1>
+
+              <!-- Context Subtitle in royal purple -->
+              <p class="text-xl sm:text-2xl font-bold tracking-tight mb-1 text-center mx-auto max-w-full truncate ${
+                isDark ? 'text-purple-400' : 'text-[#6E4EFF]'
+              }">
+                ${currentAlarm.title}
+              </p>
+
+              <!-- Context Metadata -->
+              <p class="text-sm sm:text-base font-semibold text-center mx-auto ${
+                isDark ? 'text-purple-300/70' : 'text-[#6B6684]'
+              }">
+                ${currentAlarm.metadata && currentAlarm.metadata.includes('•')
+                  ? currentAlarm.metadata
+                  : (currentAlarm.metadata || `Evento • ${currentAlarm.durationOrTime || '19:30'}`)}
+              </p>
+            </div>
+
+            <!-- 4-Pill Vertical Stack -->
+            <div class="relative z-10 w-full flex flex-col gap-3.5 mt-auto pb-2 max-w-md mx-auto">
+              <!-- Pill 1 (+5 min): Primary Royal Purple Gradient -->
+              <button onclick="handleSnoozeClick(5)" class="group relative w-full h-[58px] sm:h-[62px] rounded-full p-2 flex items-center justify-between transition-all duration-200 active:scale-[0.985] hover:scale-[1.01] cursor-pointer select-none bg-gradient-to-r from-[#4F17C5] to-[#2F0A9E] text-white shadow-lg shadow-purple-600/30 ring-1 ring-white/20">
+                <span class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white flex items-center justify-center shrink-0 shadow-xs ml-1">
+                  ${renderIcon('clock', 'w-5 h-5 stroke-[2.4] text-[#4F17C5]')}
+                </span>
+                <span class="flex-1 text-center font-bold text-white text-lg sm:text-xl tracking-tight pr-12 drop-shadow-xs">
+                  +5 min
+                </span>
+              </button>
+
+              <!-- Pill 2 (+10 min): Outline Pill -->
+              <button onclick="handleSnoozeClick(10)" class="group relative w-full h-[58px] sm:h-[62px] rounded-full p-2 flex items-center justify-between border transition-all duration-150 active:scale-[0.985] cursor-pointer select-none ${
+                isDark
+                  ? 'border-purple-800/50 bg-purple-950/30 hover:bg-purple-950/50 text-purple-200'
+                  : 'border-[#D6CEF1] bg-white/70 hover:bg-[#F5F2FC] text-[#4A2EB7]'
+              }">
+                <span class="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 border ml-1 ${
+                  isDark ? 'border-purple-800/50 bg-purple-950/40' : 'border-[#D6CEF1] bg-[#F7F5FC]'
+                }">
+                  ${renderIcon('clock', `w-5 h-5 stroke-[2.2] ${isDark ? 'text-purple-300' : 'text-[#4A2EB7]'}`)}
+                </span>
+                <span class="flex-1 text-center font-bold text-lg sm:text-xl tracking-tight pr-12">
+                  +10 min
+                </span>
+              </button>
+
+              <!-- Pill 3 (+15 min): Outline Pill -->
+              <button onclick="handleSnoozeClick(15)" class="group relative w-full h-[58px] sm:h-[62px] rounded-full p-2 flex items-center justify-between border transition-all duration-150 active:scale-[0.985] cursor-pointer select-none ${
+                isDark
+                  ? 'border-purple-800/50 bg-purple-950/30 hover:bg-purple-950/50 text-purple-200'
+                  : 'border-[#D6CEF1] bg-white/70 hover:bg-[#F5F2FC] text-[#4A2EB7]'
+              }">
+                <span class="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 border ml-1 ${
+                  isDark ? 'border-purple-800/50 bg-purple-950/40' : 'border-[#D6CEF1] bg-[#F7F5FC]'
+                }">
+                  ${renderIcon('clock', `w-5 h-5 stroke-[2.2] ${isDark ? 'text-purple-300' : 'text-[#4A2EB7]'}`)}
+                </span>
+                <span class="flex-1 text-center font-bold text-lg sm:text-xl tracking-tight pr-12">
+                  +15 min
+                </span>
+              </button>
+
+              <!-- Pill 4 (Quando terminar): Outline Pill -->
+              <button onclick="handleSnoozeClick('task_end')" class="group relative w-full min-h-[58px] sm:min-h-[62px] py-2 px-2 rounded-full flex items-center justify-between border transition-all duration-150 active:scale-[0.985] cursor-pointer select-none ${
+                isDark
+                  ? 'border-purple-800/50 bg-purple-950/30 hover:bg-purple-950/50 text-purple-200'
+                  : 'border-[#D6CEF1] bg-white/70 hover:bg-[#F5F2FC] text-[#4A2EB7]'
+              }">
+                <span class="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 border ml-1 ${
+                  isDark ? 'border-purple-800/50 bg-purple-950/40' : 'border-[#D6CEF1] bg-[#F7F5FC]'
+                }">
+                  ${renderIcon('clock', `w-5 h-5 stroke-[2.2] ${isDark ? 'text-purple-300' : 'text-[#4A2EB7]'}`)}
+                </span>
+                <span class="flex-1 text-center font-bold text-sm sm:text-base leading-tight tracking-tight pr-12">
+                  <span class="block">Quando eu terminar</span>
+                  <span class="block">a tarefa atual</span>
+                </span>
+              </button>
+
+              <!-- Plain Text Return Link -->
+              <button onclick="setAlarmScreen('main')" class="w-full py-2.5 px-4 font-semibold text-sm sm:text-base tracking-wide text-center cursor-pointer opacity-75 hover:opacity-100 hover:underline underline-offset-4 transition-all mt-1 ${
+                isDark ? 'text-purple-300 hover:text-white' : 'text-[#6B6684] hover:text-[#110E2E]'
+              }">
+                Voltar
+              </button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // SCREEN: DIFFICULTY (State 5: Apoio TDAH / Bloqueio)
+      if (currentScreen === 'difficulty') {
+        container.innerHTML = `
+          <div class="w-full h-full flex flex-col items-center justify-between p-6 sm:p-8 ${bgClass} ${haloThemeClass} ${isDark ? 'dark' : ''} ${isLowStim ? 'low-stim' : ''} select-none overflow-y-auto relative">
+            ${haloMarkup}
+            <div class="relative z-10 flex-1 flex flex-col items-center justify-center text-center w-full max-w-md mx-auto my-auto px-2">
+              <!-- Centered Badge: Lock icon + BLOQUEIO -->
+              <div class="inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black tracking-wider mb-5 sm:mb-6 shadow-xs self-center mx-auto ${
+                isDark 
+                  ? 'bg-purple-950/60 text-purple-300 border border-purple-800/40' 
+                  : 'bg-white/80 text-[#4A2EB7] border border-[#D6CEF1]'
+              }">
+                ${renderIcon('lock', `w-3.5 h-3.5 stroke-[2.2] ${isDark ? 'text-purple-300' : 'text-[#4A2EB7]'}`)}
+                <span>BLOQUEIO</span>
+              </div>
+
+              <!-- 2-line Centered Title -->
+              <h1 class="text-4xl sm:text-5xl font-black tracking-tight leading-[1.08] text-[#110E2E] dark:text-white text-center mx-auto mb-2.5 sm:mb-3 drop-shadow-xs">
+                <span class="block">O que está</span>
+                <span class="block">dificultando?</span>
+              </h1>
+
+              <!-- Task Subtitle in Bold -->
+              <p class="text-xl sm:text-2xl font-bold tracking-tight mb-1 text-center mx-auto max-w-full truncate text-[#110E2E] dark:text-white">
+                ${currentAlarm.title}
+              </p>
+
+              <!-- Task Metadata: CheckSquare + "Tarefa • 45 min" -->
+              <div class="inline-flex items-center justify-center gap-1.5 text-sm sm:text-base font-semibold text-center mx-auto ${
+                isDark ? 'text-purple-300/70' : 'text-[#6B6684]'
+              }">
+                ${renderIcon('checkSquare', 'w-4 h-4 stroke-[2.2] opacity-80')}
+                <span>
+                  ${currentAlarm.metadata && currentAlarm.metadata.includes('•')
+                    ? currentAlarm.metadata
+                    : `Tarefa • ${currentAlarm.durationOrTime || currentAlarm.metadata || '45 min'}`}
+                </span>
+              </div>
+            </div>
+
+            <!-- 4-Pill Vertical Stack -->
+            <div class="relative z-10 w-full flex flex-col gap-3.5 mt-auto pb-2 max-w-md mx-auto">
+              <!-- Pill 1 ("Não sei por onde começar"): Primary Purple Gradient + Compass disc -->
+              <button onclick="handleDiffClick('no-start')" class="group relative w-full h-[58px] sm:h-[62px] rounded-full p-2 flex items-center justify-between transition-all duration-200 active:scale-[0.985] hover:scale-[1.01] cursor-pointer select-none bg-gradient-to-r from-[#4F17C5] to-[#2F0A9E] text-white shadow-lg shadow-purple-600/30 ring-1 ring-white/20">
+                <span class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white flex items-center justify-center shrink-0 shadow-xs ml-1">
+                  ${renderIcon('compass', 'w-5 h-5 stroke-[2.4] text-[#4F17C5]')}
+                </span>
+                <span class="flex-1 text-center font-bold text-white text-[15px] sm:text-base tracking-tight pr-12 truncate drop-shadow-xs">
+                  Não sei por onde começar
+                </span>
+              </button>
+
+              <!-- Pill 2 ("Estou terminando outra coisa"): Outline Pill + RotateCcw disc -->
+              <button onclick="handleDiffClick('finishing-other')" class="group relative w-full h-[58px] sm:h-[62px] rounded-full p-2 flex items-center justify-between border transition-all duration-150 active:scale-[0.985] cursor-pointer select-none ${
+                isDark
+                  ? 'border-purple-800/50 bg-purple-950/30 hover:bg-purple-950/50 text-purple-200'
+                  : 'border-[#D6CEF1] bg-white/70 hover:bg-[#F5F2FC] text-[#4A2EB7]'
+              }">
+                <span class="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 border ml-1 ${
+                  isDark ? 'border-purple-800/50 bg-purple-950/40' : 'border-[#D6CEF1] bg-[#F7F5FC]'
+                }">
+                  ${renderIcon('rotateCcw', `w-5 h-5 stroke-[2.2] ${isDark ? 'text-purple-300' : 'text-[#4A2EB7]'}`)}
+                </span>
+                <span class="flex-1 text-center font-bold text-[15px] sm:text-base tracking-tight pr-12 truncate">
+                  Estou terminando outra coisa
+                </span>
+              </button>
+
+              <!-- Pill 3 ("Estou cansado"): Outline Pill + BatteryLow disc -->
+              <button onclick="handleDiffClick('tired')" class="group relative w-full h-[58px] sm:h-[62px] rounded-full p-2 flex items-center justify-between border transition-all duration-150 active:scale-[0.985] cursor-pointer select-none ${
+                isDark
+                  ? 'border-purple-800/50 bg-purple-950/30 hover:bg-purple-950/50 text-purple-200'
+                  : 'border-[#D6CEF1] bg-white/70 hover:bg-[#F5F2FC] text-[#4A2EB7]'
+              }">
+                <span class="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 border ml-1 ${
+                  isDark ? 'border-purple-800/50 bg-purple-950/40' : 'border-[#D6CEF1] bg-[#F7F5FC]'
+                }">
+                  ${renderIcon('batteryLow', `w-5 h-5 stroke-[2.2] ${isDark ? 'text-purple-300' : 'text-[#4A2EB7]'}`)}
+                </span>
+                <span class="flex-1 text-center font-bold text-[15px] sm:text-base tracking-tight pr-12 truncate">
+                  Estou cansado
+                </span>
+              </button>
+
+              <!-- Pill 4 ("Me distraí"): Outline Pill + Sparkles disc -->
+              <button onclick="handleDiffClick('distracted')" class="group relative w-full h-[58px] sm:h-[62px] rounded-full p-2 flex items-center justify-between border transition-all duration-150 active:scale-[0.985] cursor-pointer select-none ${
+                isDark
+                  ? 'border-purple-800/50 bg-purple-950/30 hover:bg-purple-950/50 text-purple-200'
+                  : 'border-[#D6CEF1] bg-white/70 hover:bg-[#F5F2FC] text-[#4A2EB7]'
+              }">
+                <span class="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 border ml-1 ${
+                  isDark ? 'border-purple-800/50 bg-purple-950/40' : 'border-[#D6CEF1] bg-[#F7F5FC]'
+                }">
+                  ${renderIcon('sparkles', `w-5 h-5 stroke-[2.2] ${isDark ? 'text-purple-300' : 'text-[#4A2EB7]'}`)}
+                </span>
+                <span class="flex-1 text-center font-bold text-[15px] sm:text-base tracking-tight pr-12 truncate">
+                  Me distraí
+                </span>
+              </button>
+
+              <!-- Plain Text Return Link -->
+              <button onclick="setAlarmScreen('main')" class="w-full py-2.5 px-4 font-semibold text-sm sm:text-base tracking-wide text-center cursor-pointer opacity-75 hover:opacity-100 hover:underline underline-offset-4 transition-all mt-1 ${
+                isDark ? 'text-purple-300 hover:text-white' : 'text-[#6B6684] hover:text-[#110E2E]'
+              }">
+                Voltar
+              </button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // SCREEN: MAIN FULLSCREEN ALARM
+      container.innerHTML = `
+        <div class="w-full h-full flex flex-col items-center justify-between p-6 sm:p-8 ${bgClass} ${haloThemeClass} ${isDark ? 'dark' : ''} ${isLowStim ? 'low-stim' : ''} select-none overflow-hidden relative">
+          
+          ${haloMarkup}
+
+          <!-- Top Centered Content Area -->
+          <div class="relative z-10 flex-1 flex flex-col items-center justify-center text-center w-full max-w-md mx-auto my-auto px-2">
+            
+            <!-- Badge Pill -->
+            <div class="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black tracking-wider mb-5 sm:mb-6 shadow-xs self-center mx-auto ${badgeClass}">
+              ${renderIcon(badgeIconName, 'w-3.5 h-3.5')}
+              <span>${currentAlarm.badge || 'LEMBRETE'}</span>
+            </div>
+            
+            <!-- Large Bold Title -->
+            <h1 class="text-4xl sm:text-5xl font-black tracking-tight leading-[1.08] text-center mx-auto max-w-full break-words mb-2.5 sm:mb-3 drop-shadow-xs">
+              ${currentAlarm.title}
+            </h1>
+            
+            <!-- Proportional Geometric Sans-serif Time/Duration Numerals (NO font-mono!) -->
+            ${currentAlarm.durationOrTime ? `
+              <h2 class="text-4xl sm:text-5xl font-black tracking-tight text-center mx-auto mb-3 sm:mb-4 select-text ${timeColorClass}">
+                ${currentAlarm.durationOrTime}
+              </h2>
+            ` : ''}
+            
+            <!-- Discreet Centered Metadata with Context Icon -->
+            ${currentAlarm.metadata ? `
+              <div class="inline-flex items-center justify-center gap-1.5 text-xs sm:text-sm font-semibold opacity-75 text-center mx-auto max-w-full ${metadataColorClass}">
+                ${isTask || currentAlarm.metadata.startsWith('Tarefa')
+                  ? renderIcon('checkSquare', 'w-4 h-4 shrink-0 opacity-80')
+                  : renderIcon('calendar', 'w-4 h-4 shrink-0 opacity-80')}
+                <span class="truncate">${currentAlarm.metadata}</span>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Bottom Action Stack: Symmetrical Centered Column -->
+          <div class="relative z-10 w-full flex flex-col items-center gap-3 mt-auto pb-2 sm:pb-4 max-w-md mx-auto">
+            
+            <!-- 1. Signature Compound Primary CTA Pill with white disc and ArrowRight -->
+            <button onclick="handlePrimaryAction()" class="group relative w-full h-16 sm:h-[66px] rounded-full p-2 flex items-center justify-between transition-all duration-200 active:scale-[0.98] hover:scale-[1.01] cursor-pointer select-none" style="${primaryCtaStyle}">
+              <span class="w-12 h-12 rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm ml-1 transition-transform duration-200 group-hover:scale-105 active:scale-95">
+                ${renderIcon('arrowRight', `w-5 h-5 stroke-[2.75] ${primaryIconColor}`)}
+              </span>
+              <span class="flex-1 text-center font-bold text-white text-[16px] sm:text-[17px] tracking-tight pr-12 drop-shadow-xs truncate">
+                ${currentAlarm.ctaText || 'Confirmar'}
+              </span>
+            </button>
+            
+            <!-- 2. Secondary Action Button ("+5 min" Outline Pill with embedded Clock) -->
+            <button onclick="setAlarmScreen('snooze')" class="w-full h-[54px] sm:h-[56px] rounded-full font-bold text-[15px] sm:text-base tracking-wide transition-all duration-150 active:scale-[0.985] flex items-center justify-center gap-2 cursor-pointer select-none ${secondaryBtnClass}" style="${secondaryBtnStyle}">
+              ${renderIcon('clock', `w-[18px] h-[18px] stroke-[2.2] ${secondaryIconColor}`)}
+              <span>+5 min</span>
+            </button>
+            
+            <!-- 3. Tertiary Action Button(s) (Clean Plain Text Links) -->
+            ${isTask ? `
+              <div class="flex flex-col items-center gap-1.5 w-full mt-0.5">
+                <button onclick="handleDismiss()" class="w-full py-2 px-4 font-semibold text-sm tracking-wide text-center opacity-80 hover:opacity-100 hover:underline underline-offset-4 transition-all cursor-pointer ${tertiaryBtnClass}">
+                  Pular por enquanto
+                </button>
+                <button onclick="setAlarmScreen('difficulty')" class="w-full py-1 px-4 font-semibold text-xs tracking-wide text-center opacity-75 hover:opacity-100 hover:underline underline-offset-4 transition-all cursor-pointer ${tertiaryBtnClass}">
+                  Não consigo começar
+                </button>
+              </div>
+            ` : (isCritical ? `
+              <button onclick="handleDismiss()" class="w-full py-2 px-4 font-semibold text-sm tracking-wide text-center opacity-80 hover:opacity-100 hover:underline underline-offset-4 transition-all cursor-pointer ${tertiaryBtnClass}">
+                Não posso ir
+              </button>
+            ` : `
+              <button onclick="handleDismiss()" class="w-full py-2 px-4 font-semibold text-sm tracking-wide text-center opacity-80 hover:opacity-100 hover:underline underline-offset-4 transition-all cursor-pointer ${tertiaryBtnClass}">
+                Dispensar
+              </button>
+            `)}
+          </div>
+
+        </div>
+      `;
+    }
+
+    function handlePrimaryAction() {
+      playClick();
+      setLog(`Ação principal executada: "${currentAlarm.ctaText}"`);
+    }
+
+    function handleDismiss() {
+      playClick();
+      setLog(`Alarme dispensado!`);
+    }
+
+    function handleSnoozeClick(minutes) {
+      playClick();
+      setLog(`Alarme adiado: ${minutes === 'task_end' ? 'Fim da tarefa' : `+${minutes} min`}`);
+      setAlarmScreen('main');
+    }
+
+    function handleDiffClick(reason) {
+      playClick();
+      setLog(`Apoio TDAH selecionado: ${reason}`);
+      setAlarmScreen('main');
+    }
+
+    // Keyboard ESC to exit fullscreen
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        toggleFullscreen();
+      }
+    });
+
+    // Boot
+    initPresets();
+    syncInputs();
+    renderAlarm();
+    updateSplitImage();
+  </script>
+</body>
+</html>
