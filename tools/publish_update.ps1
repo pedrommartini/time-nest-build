@@ -1,11 +1,11 @@
-# ==============================================================================
+﻿# ==============================================================================
 # TimeNest - Script de Publicação Automática de Atualizações (1-Clique para Usuários)
 # ==============================================================================
 
 param (
     [string]$NewVersion = "",
     [string]$Notes = "",
-    [switch]$BuildApk = $false,
+    [switch]$BuildApk = $true,
     [switch]$SkipPush = $false
 )
 
@@ -133,9 +133,10 @@ try {
     
     if (-not $SkipPush) {
         Write-Host "`n[5/5] Enviando atualizacao para o repositorio remoto (GitHub/Vercel)..." -ForegroundColor Green
-        & $gitCmd push
-        Write-Host "`n>>> SUCESSO! Atualizacao v$NewVersion publicada com sucesso! <<<" -ForegroundColor Cyan
-        Write-Host "O Vercel realizara o deploy automaticamente." -ForegroundColor White
+        & $gitCmd push origin master
+        & $gitCmd push origin master:main
+        Write-Host "`n>>> SUCESSO! Atualizacao v$NewVersion publicada com sucesso em master e main! <<<" -ForegroundColor Cyan
+        Write-Host "O Vercel realizara o deploy automaticamente a partir da branch principal." -ForegroundColor White
         Write-Host "Todos os usuarios que abrirem o TimeNest poderao atualizar com 1 clique!" -ForegroundColor Yellow
     } else {
         Write-Host "`n[5/5] Push ignorado conforme solicitado (-SkipPush)." -ForegroundColor Yellow

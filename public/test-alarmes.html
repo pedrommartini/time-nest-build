@@ -229,6 +229,39 @@
       opacity: 0.35 !important;
       filter: blur(24px) !important;
     }
+
+    /* iOS Slide to Confirm */
+    @keyframes textShimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .slide-shimmer-text {
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.8) 0%,
+        rgba(255, 255, 255, 1) 35%,
+        rgba(255, 255, 255, 0.8) 70%
+      );
+      background-size: 200% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: textShimmer 2.8s infinite linear;
+    }
+    @keyframes slideNudge {
+      0%, 100% { transform: translateX(0); }
+      30% { transform: translateX(20px); }
+      60% { transform: translateX(6px); }
+    }
+    .animate-slide-nudge {
+      animation: slideNudge 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+    @keyframes scaleIn {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-scale-in {
+      animation: scaleIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
   </style>
 </head>
 <body class="bg-[#0B0913] text-[#ECE8F5] min-h-screen flex flex-col font-sans select-none overflow-x-hidden antialiased">
@@ -566,6 +599,8 @@
         calendar: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
         checkSquare: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><polyline points="9 11 12 14 22 4"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>`,
         arrowRight: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/></svg>`,
+        check: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`,
+        chevronRight: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>`,
         compass: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>`,
         rotateCcw: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><path stroke-linecap="round" stroke-linejoin="round" d="M3 2v6h6"/><path stroke-linecap="round" stroke-linejoin="round" d="M3 13a9 9 0 102.13-5.36L3 8"/></svg>`,
         batteryLow: `<svg class="${className}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="${strokeWidth}"><rect x="2" y="7" width="16" height="10" rx="2" ry="2"/><line x1="22" y1="11" x2="22" y2="13"/><line x1="6" y1="11" x2="6" y2="13"/></svg>`,
@@ -1473,15 +1508,31 @@
           <!-- Bottom Action Stack: Symmetrical Centered Column -->
           <div class="relative z-10 w-full flex flex-col items-center gap-3 mt-auto pb-2 sm:pb-4 max-w-md mx-auto">
             
-            <!-- 1. Signature Compound Primary CTA Pill with white disc and ArrowRight -->
-            <button onclick="handlePrimaryAction()" class="group relative w-full h-16 sm:h-[66px] rounded-full p-2 flex items-center justify-between transition-all duration-200 active:scale-[0.98] hover:scale-[1.01] cursor-pointer select-none" style="${primaryCtaStyle}">
-              <span class="w-12 h-12 rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm ml-1 transition-transform duration-200 group-hover:scale-105 active:scale-95">
-                ${renderIcon('arrowRight', `w-5 h-5 stroke-[2.75] ${primaryIconColor}`)}
-              </span>
-              <span class="flex-1 text-center font-bold text-white text-[16px] sm:text-[17px] tracking-tight pr-12 drop-shadow-xs truncate">
-                ${currentAlarm.ctaText || 'Confirmar'}
-              </span>
-            </button>
+            <!-- 1. Signature Compound Primary CTA Pill (iOS Slide-to-Confirm) -->
+            <div id="slideTrack" class="relative w-full h-16 sm:h-[66px] rounded-full p-2 flex items-center select-none overflow-hidden touch-none cursor-grab active:cursor-grabbing transition-shadow" style="${primaryCtaStyle}">
+              <!-- Trail behind thumb -->
+              <div id="slideTrail" class="absolute left-0 top-0 bottom-0 pointer-events-none rounded-full" style="width: 56px; background: rgba(255, 255, 255, 0.16);"></div>
+              
+              <!-- Track Label Centered -->
+              <div id="slideText" class="absolute inset-0 flex items-center justify-center pointer-events-none px-14 transition-opacity">
+                <span class="font-bold text-white text-[16px] sm:text-[17px] tracking-tight drop-shadow-xs truncate slide-shimmer-text">
+                  ${currentAlarm.ctaText || 'Confirmar'}
+                </span>
+              </div>
+
+              <!-- Visual Chevron Hint -->
+              <div id="slideChevrons" class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-0.5 pointer-events-none opacity-40 transition-opacity">
+                ${renderIcon('chevronRight', 'w-4 h-4 text-white animate-pulse')}
+                ${renderIcon('chevronRight', 'w-4 h-4 text-white animate-pulse -ml-2')}
+              </div>
+
+              <!-- Draggable White Thumb Disc -->
+              <div id="slideThumb" class="relative z-10 w-12 h-12 rounded-full bg-white flex items-center justify-center shrink-0 shadow-md select-none">
+                <span id="slideThumbIcon">
+                  ${renderIcon('arrowRight', `w-5 h-5 stroke-[2.75] ${primaryIconColor}`)}
+                </span>
+              </div>
+            </div>
             
             <!-- 2. Secondary Action Button ("+5 min" Outline Pill with embedded Clock) -->
             <button onclick="setAlarmScreen('snooze')" class="w-full h-[54px] sm:h-[56px] rounded-full font-bold text-[15px] sm:text-base tracking-wide transition-all duration-150 active:scale-[0.985] flex items-center justify-center gap-2 cursor-pointer select-none ${secondaryBtnClass}" style="${secondaryBtnStyle}">
@@ -1512,6 +1563,138 @@
 
         </div>
       `;
+
+      initSlideToConfirm();
+    }
+
+    function initSlideToConfirm() {
+      const track = document.getElementById('slideTrack');
+      const thumb = document.getElementById('slideThumb');
+      const trail = document.getElementById('slideTrail');
+      const text = document.getElementById('slideText');
+      const chevrons = document.getElementById('slideChevrons');
+      const iconSpan = document.getElementById('slideThumbIcon');
+      if (!track || !thumb) return;
+
+      let isDragging = false;
+      let startX = 0;
+      let currentDragX = 0;
+      let isCompleted = false;
+      let activePointerId = null;
+
+      function getMaxDrag() {
+        return Math.max(60, track.clientWidth - thumb.clientWidth - 16);
+      }
+
+      track.onpointerdown = (e) => {
+        if (isCompleted || e.button !== 0) return;
+        activePointerId = e.pointerId;
+        startX = e.clientX;
+        currentDragX = 0;
+        isDragging = true;
+        thumb.classList.remove('animate-slide-nudge');
+        track.classList.add('cursor-grabbing');
+        try { track.setPointerCapture(e.pointerId); } catch (_) {}
+      };
+
+      track.onpointermove = (e) => {
+        if (!isDragging || activePointerId !== e.pointerId || isCompleted) return;
+        const maxDrag = getMaxDrag();
+        const delta = e.clientX - startX;
+        currentDragX = Math.max(0, Math.min(maxDrag, delta));
+        const progress = maxDrag > 0 ? currentDragX / maxDrag : 0;
+
+        thumb.style.transition = 'none';
+        thumb.style.transform = `translateX(${currentDragX}px)`;
+        if (trail) {
+          trail.style.transition = 'none';
+          trail.style.width = `${currentDragX + 56}px`;
+        }
+        if (text) {
+          text.style.transition = 'none';
+          text.style.opacity = Math.max(0, 1 - progress * 1.45);
+        }
+        if (chevrons) {
+          chevrons.style.opacity = Math.max(0, 0.45 - progress);
+        }
+
+        if (progress >= 0.75) {
+          if (iconSpan && !iconSpan.dataset.checked) {
+            iconSpan.dataset.checked = 'true';
+            iconSpan.innerHTML = renderIcon('check', 'w-5 h-5 stroke-[3] text-emerald-600 animate-scale-in');
+            thumb.classList.add('ring-2', 'ring-emerald-400');
+          }
+        } else {
+          if (iconSpan && iconSpan.dataset.checked) {
+            iconSpan.dataset.checked = '';
+            const primaryIconColor = currentAlarm.type === 'critical' ? 'text-[#DC2626]' : 'text-[#3E12B3]';
+            iconSpan.innerHTML = renderIcon('arrowRight', `w-5 h-5 stroke-[2.75] ${primaryIconColor}`);
+            thumb.classList.remove('ring-2', 'ring-emerald-400');
+          }
+        }
+      };
+
+      const handleEnd = (e) => {
+        if (!isDragging || activePointerId !== e.pointerId) return;
+        isDragging = false;
+        activePointerId = null;
+        track.classList.remove('cursor-grabbing');
+        try {
+          if (track.hasPointerCapture(e.pointerId)) {
+            track.releasePointerCapture(e.pointerId);
+          }
+        } catch (_) {}
+
+        const maxDrag = getMaxDrag();
+        const progress = maxDrag > 0 ? currentDragX / maxDrag : 0;
+
+        if (progress >= 0.75) {
+          isCompleted = true;
+          currentDragX = maxDrag;
+          thumb.style.transition = 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+          thumb.style.transform = `translateX(${maxDrag}px)`;
+          if (trail) {
+            trail.style.transition = 'width 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            trail.style.width = `${maxDrag + 56}px`;
+          }
+          playClick();
+          if (navigator.vibrate) navigator.vibrate([25, 40, 30]);
+
+          setTimeout(() => {
+            handlePrimaryAction();
+          }, 160);
+        } else {
+          if (currentDragX <= 6) {
+            // Tapped without drag -> hint nudge
+            thumb.classList.add('animate-slide-nudge');
+            setTimeout(() => thumb.classList.remove('animate-slide-nudge'), 500);
+          }
+          // Spring back smoothly
+          currentDragX = 0;
+          thumb.style.transition = 'transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+          thumb.style.transform = 'translateX(0px)';
+          if (trail) {
+            trail.style.transition = 'width 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            trail.style.width = '56px';
+          }
+          if (text) {
+            text.style.transition = 'opacity 0.25s ease-out';
+            text.style.opacity = '1';
+          }
+          if (chevrons) {
+            chevrons.style.opacity = '0.45';
+          }
+          if (iconSpan && iconSpan.dataset.checked) {
+            iconSpan.dataset.checked = '';
+            const primaryIconColor = currentAlarm.type === 'critical' ? 'text-[#DC2626]' : 'text-[#3E12B3]';
+            iconSpan.innerHTML = renderIcon('arrowRight', `w-5 h-5 stroke-[2.75] ${primaryIconColor}`);
+            thumb.classList.remove('ring-2', 'ring-emerald-400');
+          }
+        }
+      };
+
+      track.onpointerup = handleEnd;
+      track.onpointercancel = handleEnd;
     }
 
     function handlePrimaryAction() {

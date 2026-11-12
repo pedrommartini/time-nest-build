@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { ActiveAlarm } from '../contexts/AlarmManagerContext';
 import { audio } from '../utils/audio';
+import { SlideToConfirm } from './SlideToConfirm';
 import { 
   Sparkles, 
   Moon, 
@@ -12,7 +13,6 @@ import {
   Lock, 
   Calendar, 
   CheckSquare, 
-  ArrowRight,
   Compass,
   RotateCcw,
   BatteryLow
@@ -590,7 +590,7 @@ export const AlarmVisualDisplay: React.FC<AlarmVisualDisplayProps> = ({
 
           {/* Bottom Action Stack: Symmetrical Centered Column */}
           <div className="w-full flex flex-col items-center gap-3 mt-auto pb-2 sm:pb-4 max-w-md mx-auto">
-            {/* 1. Signature Compound Primary CTA Pill */}
+            {/* 1. Signature Compound Primary CTA Pill (iOS Slide-to-Confirm) */}
             {alarm.visual === 'gamified' && gamifiedProgress < 100 ? (
               <button
                 type="button"
@@ -617,23 +617,17 @@ export const AlarmVisualDisplay: React.FC<AlarmVisualDisplayProps> = ({
                 </span>
               </button>
             ) : (
-              <button 
-                type="button"
-                onClick={() => {
+              <SlideToConfirm
+                text={ctaText}
+                isCritical={isCritical}
+                disabled={!interactive}
+                iconColor={primaryIconColor}
+                style={primaryCtaStyle}
+                onConfirm={() => {
                   if (!interactive) return;
-                  audio.playClick();
                   if (onPrimaryAction) onPrimaryAction();
                 }}
-                className="group relative w-full h-16 sm:h-[66px] rounded-full p-2 flex items-center justify-between transition-all duration-200 active:scale-[0.98] hover:scale-[1.01] cursor-pointer select-none"
-                style={primaryCtaStyle}
-              >
-                <span className="w-12 h-12 rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm transition-transform duration-200 group-hover:scale-105 active:scale-95">
-                  <ArrowRight className={`w-5 h-5 stroke-[2.75] ${primaryIconColor}`} />
-                </span>
-                <span className="flex-1 text-center font-bold text-white text-[16px] sm:text-[17px] tracking-tight pr-12 drop-shadow-xs truncate">
-                  {ctaText}
-                </span>
-              </button>
+              />
             )}
 
             {/* 2. Secondary Action Button ("+5 min" Outline Pill) */}

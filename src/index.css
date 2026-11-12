@@ -889,4 +889,59 @@ body {
   }
 }
 
+/* iOS-Style Slide to Confirm Button Styles */
+@keyframes textShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.slide-shimmer-text {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 1) 35%,
+    rgba(255, 255, 255, 0.8) 70%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmer 2.8s infinite linear;
+}
+
+@keyframes slideNudge {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  30% {
+    transform: translateX(20px);
+  }
+  60% {
+    transform: translateX(6px);
+  }
+}
+
+.animate-slide-nudge {
+  animation: slideNudge 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@keyframes scaleIn {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+
 
