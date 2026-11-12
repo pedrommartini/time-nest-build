@@ -23,7 +23,8 @@ cd ..
 Write-Output "Build completed. Copying fresh clean APK (timenest.apk) to public and dist..."
 Copy-Item "android\app\build\outputs\apk\debug\app-debug.apk" -Destination "public\timenest.apk" -Force
 Copy-Item "android\app\build\outputs\apk\debug\app-debug.apk" -Destination "dist\timenest.apk" -Force
-Copy-Item "android\app\build\outputs\apk\debug\app-debug.apk" -Destination "public\timenest_v3.1.0.apk" -Force -ErrorAction SilentlyContinue
+Copy-Item "android\app\build\outputs\apk\debug\app-debug.apk" -Destination "public\timenest_v3.1.1.apk" -Force -ErrorAction SilentlyContinue
+Copy-Item "android\app\build\outputs\apk\debug\app-debug.apk" -Destination "dist\timenest_v3.1.1.apk" -Force -ErrorAction SilentlyContinue
 
 $apkSize = (Get-Item "public\timenest.apk").Length / 1MB
 Write-Output ("Clean APK generated! File size: {0:N2} MB" -f $apkSize)

@@ -118,11 +118,22 @@ export const UpdateOverlay: React.FC<UpdateOverlayProps> = ({
             ) : (
               <>
                 <DownloadCloud className="w-4 h-4" />
-                <span>{isNative ? 'Baixar & Atualizar (1 Clique)' : 'Atualizar Agora (1 Clique)'}</span>
+                <span>{isNative ? 'Baixar & Atualizar (1 Clique)' : 'Atualizar Web Agora (1 Clique)'}</span>
                 <ArrowRight className="w-4 h-4 opacity-70" />
               </>
             )}
           </button>
+
+          {!isNative && (
+            <a 
+              href="/timenest.apk"
+              download="timenest.apk"
+              className="mt-3 text-xs text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1.5 font-medium"
+            >
+              <DownloadCloud className="w-3.5 h-3.5" />
+              <span>Baixar arquivo APK Android (v{displayVersion})</span>
+            </a>
+          )}
           
           {!versionInfo?.forceUpdate && (
             <button 

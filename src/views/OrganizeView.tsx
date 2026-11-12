@@ -21,7 +21,9 @@ export const OrganizeView: React.FC = () => {
   const { events, updateEvent, updateEventTimes, deleteEvent } = useCalendar();
   const { projects, addProject, updateProject } = useProjects();
   const { startTimer } = useFocus();
-  const { setActiveTab: setGlobalActiveTab, openSmartInput } = useNavigation();
+  const { setActiveTab: setGlobalActiveTab, openSmartInput, isDrawerExpanded, isCleanMode, selectedEventId, selectedTaskId } = useNavigation();
+  const hasSelectedItem = !!(selectedEventId || selectedTaskId);
+  const isNavHidden = (hasSelectedItem && isDrawerExpanded) || isCleanMode;
   
   const [activeTab, setActiveTab] = useState<'feed' | 'projects'>('feed');
   const [swipeDirection, setSwipeDirection] = useState<number>(0);
@@ -491,13 +493,6 @@ export const OrganizeView: React.FC = () => {
             >
               <CheckSquare className="w-3.5 h-3.5" />
               <span>Feed</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold transition-colors ${
-                activeTab === 'feed'
-                  ? 'bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300'
-                  : 'bg-card-bg text-text-secondary border border-border-color'
-              }`}>
-                {feedItemsRaw.length}
-              </span>
             </button>
             <button
               onClick={() => switchTab('projects')}
@@ -509,13 +504,6 @@ export const OrganizeView: React.FC = () => {
             >
               <Folder className="w-3.5 h-3.5" />
               <span>Projetos</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold transition-colors ${
-                activeTab === 'projects'
-                  ? 'bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300'
-                  : 'bg-card-bg text-text-secondary border border-border-color'
-              }`}>
-                {projects.length}
-              </span>
             </button>
           </div>
 
@@ -588,7 +576,7 @@ export const OrganizeView: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: swipeDirection > 0 ? -40 : 40 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              className="absolute inset-0 overflow-y-auto px-5 pb-[110px] custom-scrollbar select-none sm:select-auto"
+              className="absolute inset-0 overflow-y-auto px-5 pb-[165px] custom-scrollbar select-none sm:select-auto"
             >
               {/* Daily summary pill */}
               <div className="flex justify-between items-center mb-4 px-2">
@@ -608,32 +596,6 @@ export const OrganizeView: React.FC = () => {
               ) : (
                 filteredFeed.map(renderFeedItem)
               )}
-
-              {/* Summary Bottom */}
-              <div className="mt-6 flex justify-between bg-card-bg p-3 rounded-2xl border border-border-color">
-                 <div className="flex items-center gap-2">
-                   <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-500 flex items-center justify-center"><CheckSquare className="w-4 h-4" /></div>
-                   <div>
-                     <p className="text-[10px] font-bold leading-tight">{feedItemsRaw.length} itens</p>
-                     <p className="text-[9px] text-text-secondary leading-tight">hoje</p>
-                   </div>
-                 </div>
-                 <div className="flex items-center gap-2 border-l border-border-color pl-4">
-                   <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center"><CalendarIcon className="w-4 h-4" /></div>
-                   <div>
-                     <p className="text-[10px] font-bold leading-tight">{todaysEventsCount} eventos</p>
-                     <p className="text-[9px] text-text-secondary leading-tight">hoje</p>
-                   </div>
-                 </div>
-                 <div className="flex items-center gap-2 border-l border-border-color pl-4">
-                   <div className="w-8 h-8 rounded-full bg-green-50 text-green-500 flex items-center justify-center"><CheckSquare className="w-4 h-4" /></div>
-                   <div>
-                     <p className="text-[10px] font-bold leading-tight">{pendingTasksCount} tarefas</p>
-                     <p className="text-[9px] text-text-secondary leading-tight">pendentes</p>
-                   </div>
-                 </div>
-              </div>
-
             </motion.div>
           ) : (
             <motion.div 
@@ -700,6 +662,77 @@ export const OrganizeView: React.FC = () => {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Resumo compacto acoplado acima do menu inferior (apenas com a aba feed aberta) */}
+      <AnimatePresence>
+        {activeTab === 'feed' && !isNavHidden && (
+          <motion.div
+            initial={{ opacity: 0, y: 14, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 14, scale: 0.98 }}
+            transition={{ duration: 0.2 }}
+            className="absolute bottom-[104px] left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[420px] z-40 pointer-events-auto"
+          >
+            <div className="bg-card-bg/95 dark:bg-[#1E1B2E]/95 backdrop-blur-md rounded-2xl border border-border-color shadow-[0_8px_25px_rgba(40,30,70,0.08),0_2px_6px_rgba(40,30,70,0.04)] py-1.5 px-2">
+              <div className="grid grid-cols-3 divide-x divide-border-color items-center">
+                {/* Itens hoje */}
+                <button
+                  type="button"
+                  onClick={() => { audio.playClick(); setFeedFilter('todos'); }}
+                  className={`flex items-center justify-center gap-2 py-1 px-1 rounded-xl transition-all active:scale-95 ${
+                    feedFilter === 'todos' ? 'bg-brand-50/70 dark:bg-brand-950/40 text-brand-600 dark:text-brand-300' : 'hover:bg-gray-50/50 dark:hover:bg-white/5 text-text-secondary'
+                  }`}
+                  title="Ver todos os itens de hoje"
+                >
+                  <div className="w-6 h-6 rounded-lg bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0">
+                    <CheckSquare className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="text-left leading-tight min-w-0">
+                    <p className="text-[10px] font-bold text-text-primary truncate">{feedItemsRaw.length} itens</p>
+                    <p className="text-[8.5px] text-text-secondary truncate">hoje</p>
+                  </div>
+                </button>
+
+                {/* Eventos hoje */}
+                <button
+                  type="button"
+                  onClick={() => { audio.playClick(); setFeedFilter('eventos'); }}
+                  className={`flex items-center justify-center gap-2 py-1 px-1 rounded-xl transition-all active:scale-95 ${
+                    feedFilter === 'eventos' ? 'bg-purple-50/70 dark:bg-purple-950/40 text-purple-600 dark:text-purple-300' : 'hover:bg-gray-50/50 dark:hover:bg-white/5 text-text-secondary'
+                  }`}
+                  title="Filtrar por eventos de hoje"
+                >
+                  <div className="w-6 h-6 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                    <CalendarIcon className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="text-left leading-tight min-w-0">
+                    <p className="text-[10px] font-bold text-text-primary truncate">{todaysEventsCount} eventos</p>
+                    <p className="text-[8.5px] text-text-secondary truncate">hoje</p>
+                  </div>
+                </button>
+
+                {/* Tarefas pendentes */}
+                <button
+                  type="button"
+                  onClick={() => { audio.playClick(); setFeedFilter('tarefas'); }}
+                  className={`flex items-center justify-center gap-2 py-1 px-1 rounded-xl transition-all active:scale-95 ${
+                    feedFilter === 'tarefas' ? 'bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300' : 'hover:bg-gray-50/50 dark:hover:bg-white/5 text-text-secondary'
+                  }`}
+                  title="Filtrar por tarefas pendentes"
+                >
+                  <div className="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <CheckSquare className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="text-left leading-tight min-w-0">
+                    <p className="text-[10px] font-bold text-text-primary truncate">{pendingTasksCount} tarefas</p>
+                    <p className="text-[8.5px] text-text-secondary truncate">pendentes</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Full Screen Item Detail Modal (Item 3.1) */}
       {detailItem && (

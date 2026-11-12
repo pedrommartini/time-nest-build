@@ -1,4 +1,4 @@
-import { registerPlugin } from '@capacitor/core';
+import { registerPlugin, Capacitor } from '@capacitor/core';
 
 export interface NativeAlarmPlugin {
   scheduleAlarm(options: { 
@@ -25,6 +25,8 @@ export const scheduleEventAlarm = async (
   eventTime?: string,
   timeLabel?: string
 ) => {
+  if (!Capacitor.isNativePlatform()) return;
+
   try {
     const timestamp = scheduledDate.getTime();
     if (timestamp <= Date.now()) return; // Past
@@ -53,6 +55,8 @@ export const scheduleEventAlarm = async (
 };
 
 export const cancelEventAlarm = async (taskId: string) => {
+  if (!Capacitor.isNativePlatform()) return;
+
   try {
     const id = Math.abs(hashCode(taskId));
     await NativeAlarm.cancelAlarm({ id });
@@ -67,7 +71,7 @@ function hashCode(str: string): number {
   for (let i = 0, len = str.length; i < len; i++) {
       let chr = str.charCodeAt(i);
       hash = (hash << 5) - hash + chr;
-      hash |= 0;
+      hash |= 0; // Convert to 32bit integer
   }
   return hash;
 }

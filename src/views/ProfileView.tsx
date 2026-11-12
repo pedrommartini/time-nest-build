@@ -22,7 +22,7 @@ import {
   Shield, Info, Moon, Palette, Check,
   Plus, Volume2, Globe, Crown, Cloud, Download, LogOut,
   Flame, Clock, Star, X, Pill, Trash2, Trophy, Coins, Sparkles, AlertCircle,
-  Sun, CheckCircle2, Zap, RefreshCw
+  Sun, CheckCircle2, Zap, RefreshCw, Smartphone
 } from 'lucide-react';
 import { APP_VERSION } from '../version';
 import { checkForUpdate } from '../utils/updater';
@@ -551,6 +551,22 @@ export const ProfileView: React.FC = () => {
                 </div>
                 <ChevronRight className="w-4 h-4 text-text-secondary" />
               </button>
+
+              <a 
+                href="/timenest.apk"
+                download="timenest.apk"
+                onClick={() => audio.playClick()}
+                className="p-3 flex items-center justify-between hover:bg-app-bg/50 transition-colors border-b border-border-color/50"
+              >
+                <div className="flex items-center gap-3">
+                  <Smartphone className="w-4 h-4 text-brand-500" />
+                  <div className="text-left">
+                    <span className="text-xs font-bold text-text-primary block">Baixar App Android (APK)</span>
+                    <span className="text-[10px] text-text-secondary">Versão instalador: v{APP_VERSION}</span>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-text-secondary" />
+              </a>
 
               <button 
                 onClick={handleManualUpdateCheck}
