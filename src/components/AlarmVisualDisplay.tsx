@@ -47,6 +47,20 @@ export const AlarmVisualDisplay: React.FC<AlarmVisualDisplayProps> = ({
 }) => {
   const [internalScreen, setInternalScreen] = useState<'main' | 'snooze' | 'difficulty'>('main');
   const [gamifiedProgress, setGamifiedProgress] = useState(0);
+  const [isExiting, setIsExiting] = useState(false);
+
+  React.useEffect(() => {
+    setIsExiting(false);
+  }, [alarm.id]);
+
+  const handleDismissWithExit = () => {
+    if (!interactive || isExiting) return;
+    setIsExiting(true);
+    audio.playClick();
+    setTimeout(() => {
+      if (onDismiss) onDismiss();
+    }, 380);
+  };
 
   const activeScreen = controlledScreen !== undefined ? controlledScreen : internalScreen;
 
@@ -194,9 +208,10 @@ export const AlarmVisualDisplay: React.FC<AlarmVisualDisplayProps> = ({
 
   return (
     <div 
-      className={`${containerBaseClass} ${bgClass} overflow-hidden select-none flex flex-col items-center justify-between ${haloThemeClass} ${isDark ? 'dark' : ''} ${isLowStimulation ? 'low-stim' : ''}`}
+      className={`${containerBaseClass} ${bgClass} overflow-hidden select-none flex flex-col items-center justify-between ${haloThemeClass} ${isDark ? 'dark' : ''} ${isLowStimulation ? 'low-stim' : ''} ${isExiting ? 'animate-alarm-exit' : ''}`}
       data-low-stim={isLowStimulation ? 'true' : undefined}
       data-theme={theme}
+      data-exiting={isExiting ? 'true' : undefined}
     >
       {/* Root Persistent Concentric Radial Halos Viewport */}
       {!isLowStimulation ? (
@@ -600,10 +615,11 @@ export const AlarmVisualDisplay: React.FC<AlarmVisualDisplayProps> = ({
                   const next = gamifiedProgress + 50;
                   setGamifiedProgress(next);
                   if (next >= 100) {
+                    setIsExiting(true);
                     setTimeout(() => {
                       if (onPrimaryAction) onPrimaryAction();
                       setGamifiedProgress(0);
-                    }, 200);
+                    }, 380);
                   }
                 }}
                 className="group relative w-full h-16 sm:h-[66px] rounded-full p-2 flex items-center justify-between transition-all duration-200 active:scale-[0.98] hover:scale-[1.01] cursor-pointer select-none"
@@ -620,9 +636,12 @@ export const AlarmVisualDisplay: React.FC<AlarmVisualDisplayProps> = ({
               <SlideToConfirm
                 text={ctaText}
                 isCritical={isCritical}
-                disabled={!interactive}
+                disabled={!interactive || isExiting}
                 iconColor={primaryIconColor}
                 style={primaryCtaStyle}
+                onConfirmStart={() => {
+                  setIsExiting(true);
+                }}
                 onConfirm={() => {
                   if (!interactive) return;
                   if (onPrimaryAction) onPrimaryAction();
@@ -650,11 +669,7 @@ export const AlarmVisualDisplay: React.FC<AlarmVisualDisplayProps> = ({
               <div className="flex flex-col items-center gap-1.5 w-full mt-0.5">
                 <button 
                   type="button"
-                  onClick={() => {
-                    if (!interactive) return;
-                    audio.playClick();
-                    if (onDismiss) onDismiss();
-                  }}
+                  onClick={handleDismissWithExit}
                   className={`w-full py-2 px-4 font-semibold text-sm tracking-wide text-center opacity-80 hover:opacity-100 hover:underline underline-offset-4 transition-all cursor-pointer ${tertiaryBtnClass}`}
                 >
                   {tertiaryText}
@@ -674,11 +689,7 @@ export const AlarmVisualDisplay: React.FC<AlarmVisualDisplayProps> = ({
             ) : (
               <button 
                 type="button"
-                onClick={() => {
-                  if (!interactive) return;
-                  audio.playClick();
-                  if (onDismiss) onDismiss();
-                }}
+                onClick={handleDismissWithExit}
                 className={`w-full py-2.5 px-4 font-semibold text-sm tracking-wide text-center opacity-75 hover:opacity-100 hover:underline underline-offset-4 transition-all cursor-pointer mt-0.5 ${tertiaryBtnClass}`}
               >
                 {tertiaryText}

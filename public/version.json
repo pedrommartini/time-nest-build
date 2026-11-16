@@ -1,12 +1,12 @@
 {
-  "version": "3.1.1",
-  "releaseDate": "2026-11-11",
-  "title": "TimeNest v3.1.1",
+  "version": "3.1.2",
+  "releaseDate": "2026-11-16",
+  "title": "TimeNest v3.1.2",
   "notes": [
-    "Menu com abas estilo swipe pro lado",
-    "Feed sempre ordenado do mais recente ao mais antigo",
-    "Remocao do botao Proximos"
+    "Novo Slide-to-Confirm nativo para confirmar alarmes com som mecânico iOS",
+    "Animação suave de saída e transição nos alarmes",
+    "Estúdio de Alarmes com preview interativo em smartphone"
   ],
-  "apkUrl": "https://time-nest-two.vercel.app/timenest.apk",
+  "apkUrl": "https://github.com/pedrommartini/time-nest-build/releases/download/v3.1.2/timenest_v3.1.2.apk",
   "forceUpdate": false
 }

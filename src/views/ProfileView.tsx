@@ -24,7 +24,7 @@ import {
   Flame, Clock, Star, X, Pill, Trash2, Trophy, Coins, Sparkles, AlertCircle,
   Sun, CheckCircle2, Zap, RefreshCw, Smartphone
 } from 'lucide-react';
-import { APP_VERSION } from '../version';
+import { APP_VERSION, DEFAULT_APK_DOWNLOAD_URL } from '../version';
 import { checkForUpdate } from '../utils/updater';
 import { 
   cleanUsernameInput, 
@@ -553,8 +553,8 @@ export const ProfileView: React.FC = () => {
               </button>
 
               <a 
-                href="/timenest.apk"
-                download="timenest.apk"
+                href={DEFAULT_APK_DOWNLOAD_URL}
+                download="timenest_v3.1.2.apk"
                 onClick={() => audio.playClick()}
                 className="p-3 flex items-center justify-between hover:bg-app-bg/50 transition-colors border-b border-border-color/50"
               >

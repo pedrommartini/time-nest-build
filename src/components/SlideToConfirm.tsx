@@ -4,6 +4,7 @@ import { audio } from '../utils/audio';
 
 export interface SlideToConfirmProps {
   onConfirm: () => void;
+  onConfirmStart?: () => void;
   text: string;
   isCritical?: boolean;
   disabled?: boolean;
@@ -15,6 +16,7 @@ export interface SlideToConfirmProps {
 
 export const SlideToConfirm: React.FC<SlideToConfirmProps> = ({
   onConfirm,
+  onConfirmStart,
   text,
   isCritical = false,
   disabled = false,
@@ -77,6 +79,9 @@ export const SlideToConfirm: React.FC<SlideToConfirmProps> = ({
     // Only respond to primary mouse button or touch
     if (e.button !== 0) return;
 
+    // Pre-warm Web Audio API context for Android & Mobile Web
+    audio.resume();
+
     activePointerIdRef.current = e.pointerId;
     startXRef.current = e.clientX;
     currentDragXRef.current = dragX;
@@ -118,13 +123,17 @@ export const SlideToConfirm: React.FC<SlideToConfirmProps> = ({
       // Completed! Snap all the way to the end
       setDragX(maxDrag);
       setIsCompleted(true);
-      audio.playClick();
+      audio.playIosUnlock();
       triggerHaptic();
 
-      // Trigger completion callback after smooth arrival animation
+      if (onConfirmStart) {
+        onConfirmStart();
+      }
+
+      // Trigger completion callback after exit transition
       setTimeout(() => {
         onConfirm();
-      }, 160);
+      }, 380);
     } else {
       // Released before threshold
       if (currentX <= 6) {
@@ -168,9 +177,10 @@ export const SlideToConfirm: React.FC<SlideToConfirmProps> = ({
           e.preventDefault();
           setDragX(maxDrag);
           setIsCompleted(true);
-          audio.playClick();
+          audio.playIosUnlock();
           triggerHaptic();
-          setTimeout(() => onConfirm(), 160);
+          if (onConfirmStart) onConfirmStart();
+          setTimeout(() => onConfirm(), 380);
         }
       }}
       onPointerDown={handlePointerDown}
@@ -221,11 +231,13 @@ export const SlideToConfirm: React.FC<SlideToConfirmProps> = ({
       {/* The Draggable White Thumb Disc */}
       <div
         ref={thumbRef}
-        className={`relative z-10 w-12 h-12 rounded-full bg-white flex items-center justify-center shrink-0 shadow-md ${
+        className={`relative z-10 w-12 h-12 rounded-full bg-white flex items-center justify-center shrink-0 shadow-md touch-none select-none ${
           isNudging ? 'animate-slide-nudge' : ''
         } ${isNearEnd ? 'ring-2 ring-emerald-400' : ''}`}
         style={{
-          transform: `translateX(${dragX}px)`,
+          transform: `translate3d(${dragX}px, 0, 0)`,
+          WebkitTransform: `translate3d(${dragX}px, 0, 0)`,
+          willChange: 'transform',
           transition: isDragging ? 'none' : 'transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s',
           boxShadow: isDragging 
             ? '0 8px 24px rgba(0,0,0,0.35)' 

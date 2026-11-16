@@ -262,6 +262,34 @@
     .animate-scale-in {
       animation: scaleIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
+
+    /* Zoom In & Opacity Fade Out (Transparece) Transition */
+    @keyframes alarmZoomFadeExit {
+      0% {
+        transform: scale3d(1, 1, 1);
+        -webkit-transform: scale3d(1, 1, 1);
+        opacity: 1;
+        filter: blur(0px);
+      }
+      30% {
+        opacity: 0.85;
+      }
+      100% {
+        transform: scale3d(1.18, 1.18, 1);
+        -webkit-transform: scale3d(1.18, 1.18, 1);
+        opacity: 0;
+        filter: blur(4px);
+      }
+    }
+
+    .animate-alarm-exit {
+      animation: alarmZoomFadeExit 0.40s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+      -webkit-animation: alarmZoomFadeExit 0.40s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+      pointer-events: none !important;
+      will-change: transform, opacity, filter;
+      transform-origin: center center;
+      -webkit-transform-origin: center center;
+    }
   </style>
 </head>
 <body class="bg-[#0B0913] text-[#ECE8F5] min-h-screen flex flex-col font-sans select-none overflow-x-hidden antialiased">
@@ -561,8 +589,82 @@
           <!-- Home Bar -->
           <div id="phoneHomeBar" class="absolute bottom-2 left-1/2 -translate-x-1/2 z-[550] w-32 h-1 bg-white/30 rounded-full pointer-events-none"></div>
 
+          <!-- UNDERLYING TIMENEST APP SCREEN (Revealed when alarm exits) -->
+          <div id="underlyingAppScreen" class="absolute inset-0 z-0 bg-[#0F0D1A] flex flex-col justify-between pt-12 pb-6 px-4 select-none pointer-events-auto transition-transform duration-500 ease-out" style="transform: scale(0.96);">
+            <!-- App Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-white/10">
+              <div>
+                <span class="text-[11px] font-bold text-brand-400 uppercase tracking-wider block">Hoje, 12 de Nov</span>
+                <h3 class="text-xl font-black text-white tracking-tight flex items-center gap-1.5">
+                  <span>TimeNest</span>
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                </h3>
+              </div>
+              <div class="w-9 h-9 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white/80 text-xs font-bold">
+                TN
+              </div>
+            </div>
+
+            <!-- Floating Unlocked Notification Toast -->
+            <div id="unlockedToast" class="opacity-0 transition-opacity duration-300 my-2 p-3 rounded-2xl bg-gradient-to-r from-emerald-950/80 to-purple-950/80 border border-emerald-500/40 backdrop-blur-md shadow-lg flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                  <svg class="w-4 h-4 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                </span>
+                <div class="text-[11px] leading-tight">
+                  <span class="font-bold text-white block">Alarme Desligado</span>
+                  <span id="toastCtaLabel" class="text-white/60">Ação confirmada</span>
+                </div>
+              </div>
+              <button onclick="renderAlarm()" class="px-2.5 py-1 rounded-full bg-brand-500 hover:bg-brand-600 text-white font-bold text-[10px] shadow cursor-pointer transition-all active:scale-95 shrink-0">
+                Testar ↺
+              </button>
+            </div>
+
+            <!-- Timeline Cards -->
+            <div class="flex-1 flex flex-col gap-2.5 overflow-hidden my-2">
+              <span class="text-[10px] uppercase font-bold text-white/40 tracking-wider">Próximos compromissos</span>
+              
+              <!-- Card 1 (Active/Completed) -->
+              <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex flex-col gap-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded-md">19:30</span>
+                  <span class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">✓ Concluído</span>
+                </div>
+                <h4 class="font-bold text-white text-sm" id="underlyingEventTitle">Jantar com Maria</h4>
+                <span class="text-[11px] text-white/50" id="underlyingEventMeta">Evento • Google Agenda</span>
+              </div>
+
+              <!-- Card 2 -->
+              <div class="p-3.5 rounded-2xl bg-white/5 border border-white/5 flex flex-col gap-1.5 opacity-75">
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] font-bold text-white/50 bg-white/5 px-2 py-0.5 rounded-md">21:30</span>
+                  <span class="text-[10px] text-white/40">45 min</span>
+                </div>
+                <h4 class="font-bold text-white/90 text-sm">Rotina Noturna & Relaxar</h4>
+                <span class="text-[11px] text-white/40">Rotina de sono</span>
+              </div>
+            </div>
+
+            <!-- Bottom Navigation Bar (simulated) -->
+            <div class="pt-2 border-t border-white/10 flex items-center justify-around text-white/40 text-[10px]">
+              <div class="flex flex-col items-center gap-0.5 text-brand-400 font-bold">
+                <svg class="w-4 h-4 stroke-[2.2]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/></svg>
+                <span>Timeline</span>
+              </div>
+              <div class="flex flex-col items-center gap-0.5">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span>Foco</span>
+              </div>
+              <div class="flex flex-col items-center gap-0.5">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 11 12 14 22 4"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                <span>Tarefas</span>
+              </div>
+            </div>
+          </div>
+
           <!-- ALARM VIEWPORT (Rendered by JS) -->
-          <div id="alarmViewport" class="w-full h-full relative overflow-hidden select-none">
+          <div id="alarmViewport" class="absolute inset-0 z-10 w-full h-full overflow-hidden select-none">
             <!-- Dynamically injected with TimeNest visual -->
           </div>
 
@@ -824,6 +926,74 @@
         gain.connect(ctx.destination);
         osc.start();
         osc.stop(ctx.currentTime + 0.05);
+      } catch (e) {}
+    }
+
+    function playIosUnlock() {
+      try {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const t = ctx.currentTime;
+
+        // Transient 1: Initial high mechanical latch tick (t = 0)
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        const filter1 = ctx.createBiquadFilter();
+
+        filter1.type = 'bandpass';
+        filter1.frequency.setValueAtTime(2600, t);
+        filter1.Q.setValueAtTime(4, t);
+
+        osc1.type = 'triangle';
+        osc1.frequency.setValueAtTime(2800, t);
+        osc1.frequency.exponentialRampToValueAtTime(1200, t + 0.012);
+
+        gain1.gain.setValueAtTime(0.45, t);
+        gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.015);
+
+        osc1.connect(filter1);
+        filter1.connect(gain1);
+        gain1.connect(ctx.destination);
+
+        osc1.start(t);
+        osc1.stop(t + 0.018);
+
+        // Transient 2: Main crisp acoustic unlock pop (t = 30ms)
+        const t2 = t + 0.030;
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        const filter2 = ctx.createBiquadFilter();
+
+        filter2.type = 'bandpass';
+        filter2.frequency.setValueAtTime(1400, t2);
+        filter2.Q.setValueAtTime(3.5, t2);
+
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1600, t2);
+        osc2.frequency.exponentialRampToValueAtTime(380, t2 + 0.035);
+
+        gain2.gain.setValueAtTime(0.85, t2);
+        gain2.gain.exponentialRampToValueAtTime(0.001, t2 + 0.04);
+
+        osc2.connect(filter2);
+        filter2.connect(gain2);
+        gain2.connect(ctx.destination);
+
+        osc2.start(t2);
+        osc2.stop(t2 + 0.045);
+
+        // Subtle low body thump for realism (t = 30ms)
+        const osc3 = ctx.createOscillator();
+        const gain3 = ctx.createGain();
+        osc3.type = 'sine';
+        osc3.frequency.setValueAtTime(280, t2);
+        osc3.frequency.exponentialRampToValueAtTime(80, t2 + 0.025);
+        gain3.gain.setValueAtTime(0.35, t2);
+        gain3.gain.exponentialRampToValueAtTime(0.001, t2 + 0.03);
+        osc3.connect(gain3);
+        gain3.connect(ctx.destination);
+        osc3.start(t2);
+        osc3.stop(t2 + 0.035);
       } catch (e) {}
     }
 
@@ -1133,6 +1303,29 @@
     // Render the alarm visual identical to TimeNest's AlarmVisualDisplay
     function renderAlarm() {
       const container = document.getElementById('alarmViewport');
+      const underlying = document.getElementById('underlyingAppScreen');
+      const toast = document.getElementById('unlockedToast');
+      const underTitle = document.getElementById('underlyingEventTitle');
+      const underMeta = document.getElementById('underlyingEventMeta');
+
+      // Reset underlying app screen state
+      if (underlying) {
+        underlying.style.transform = 'scale(0.96)';
+      }
+      if (toast) {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }
+      if (underTitle && currentAlarm.title) {
+        underTitle.textContent = currentAlarm.title;
+      }
+      if (underMeta && currentAlarm.metadata) {
+        underMeta.textContent = currentAlarm.metadata;
+      }
+      if (container) {
+        container.classList.remove('animate-alarm-exit');
+      }
+
       const isCritical = currentAlarm.intent === 'critical';
       const isTask = currentAlarm.type === 'task' || currentAlarm.intent === 'task-now';
       const isSleep = currentAlarm.type === 'sleep';
@@ -1652,17 +1845,35 @@
           isCompleted = true;
           currentDragX = maxDrag;
           thumb.style.transition = 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-          thumb.style.transform = `translateX(${maxDrag}px)`;
+          thumb.style.transform = `translate3d(${maxDrag}px, 0, 0)`;
           if (trail) {
             trail.style.transition = 'width 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
             trail.style.width = `${maxDrag + 56}px`;
           }
-          playClick();
+          
+          // Authentic iOS Unlock Click Sound & Haptic
+          playIosUnlock();
           if (navigator.vibrate) navigator.vibrate([25, 40, 30]);
+
+          // iOS-style Lockscreen Slide-Up Exit Transition on the Alarm Viewport
+          if (container) {
+            container.classList.add('animate-alarm-exit');
+          }
+          const underlying = document.getElementById('underlyingAppScreen');
+          if (underlying) {
+            underlying.style.transform = 'scale(1.0)';
+          }
 
           setTimeout(() => {
             handlePrimaryAction();
-          }, 160);
+            const toast = document.getElementById('unlockedToast');
+            const toastCta = document.getElementById('toastCtaLabel');
+            if (toast && toastCta) {
+              toastCta.textContent = `Ação: "${currentAlarm.ctaText || 'Confirmado'}"`;
+              toast.classList.remove('opacity-0');
+              toast.classList.add('opacity-100');
+            }
+          }, 420);
         } else {
           if (currentDragX <= 6) {
             // Tapped without drag -> hint nudge
@@ -1705,6 +1916,23 @@
     function handleDismiss() {
       playClick();
       setLog(`Alarme dispensado!`);
+      const container = document.getElementById('alarmViewport');
+      const underlying = document.getElementById('underlyingAppScreen');
+      if (container) {
+        container.classList.add('animate-alarm-exit');
+      }
+      if (underlying) {
+        underlying.style.transform = 'scale(1.0)';
+      }
+      setTimeout(() => {
+        const toast = document.getElementById('unlockedToast');
+        const toastCta = document.getElementById('toastCtaLabel');
+        if (toast && toastCta) {
+          toastCta.textContent = `Alarme dispensado`;
+          toast.classList.remove('opacity-0');
+          toast.classList.add('opacity-100');
+        }
+      }, 420);
     }
 
     function handleSnoozeClick(minutes) {

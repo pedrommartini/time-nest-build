@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { DownloadCloud, Sparkles, RefreshCw, X, CheckCircle2, ArrowRight } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { audio } from '../utils/audio';
-import type { VersionInfo } from '../version';
+import { DEFAULT_APK_DOWNLOAD_URL, type VersionInfo } from '../version';
 
 interface UpdateOverlayProps {
   onUpdate: () => void | Promise<void>;
@@ -126,8 +126,8 @@ export const UpdateOverlay: React.FC<UpdateOverlayProps> = ({
 
           {!isNative && (
             <a 
-              href="/timenest.apk"
-              download="timenest.apk"
+              href={versionInfo?.apkUrl || DEFAULT_APK_DOWNLOAD_URL}
+              download="timenest_v3.1.2.apk"
               className="mt-3 text-xs text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1.5 font-medium"
             >
               <DownloadCloud className="w-3.5 h-3.5" />

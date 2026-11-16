@@ -943,5 +943,34 @@ body {
   animation: scaleIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+/* Zoom In & Opacity Fade Out (Transparece) Transition */
+@keyframes alarmZoomFadeExit {
+  0% {
+    transform: scale3d(1, 1, 1);
+    -webkit-transform: scale3d(1, 1, 1);
+    opacity: 1;
+    filter: blur(0px);
+  }
+  30% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale3d(1.18, 1.18, 1);
+    -webkit-transform: scale3d(1.18, 1.18, 1);
+    opacity: 0;
+    filter: blur(4px);
+  }
+}
+
+.animate-alarm-exit {
+  animation: alarmZoomFadeExit 0.40s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  -webkit-animation: alarmZoomFadeExit 0.40s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  pointer-events: none !important;
+  will-change: transform, opacity, filter;
+  transform-origin: center center;
+  -webkit-transform-origin: center center;
+}
+
+
 
 

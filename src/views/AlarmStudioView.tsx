@@ -282,6 +282,8 @@ export const AlarmStudioView: React.FC<AlarmStudioViewProps> = ({ onClose }) => 
   const [showComparison, setShowComparison] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'presets' | 'customize' | 'screens' | 'reference'>('presets');
   const [lastActionLog, setLastActionLog] = useState<string>('');
+  const [isDismissed, setIsDismissed] = useState<boolean>(false);
+  const [alarmInstanceKey, setAlarmInstanceKey] = useState<number>(0);
 
   const activePreset = PRESETS.find(p => p.id === selectedPresetId) || PRESETS[0];
 
@@ -316,6 +318,8 @@ export const AlarmStudioView: React.FC<AlarmStudioViewProps> = ({ onClose }) => 
     setSelectedPresetId(preset.id);
     setCurrentAlarm({ ...preset.alarm });
     setScreen(preset.defaultScreen || 'main');
+    setIsDismissed(false);
+    setAlarmInstanceKey(k => k + 1);
     logAction(`Cenário alterado para: ${preset.name}`);
   };
 
@@ -1030,35 +1034,133 @@ export const AlarmStudioView: React.FC<AlarmStudioViewProps> = ({ onClose }) => 
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-[550] w-32 h-1 bg-white/30 rounded-full pointer-events-none" />
               )}
 
+              {/* Underlying Simulated TimeNest Timeline Screen (Revealed on Exit) */}
+              <div 
+                className="absolute inset-0 z-0 bg-[#0F0D1A] flex flex-col justify-between pt-12 pb-6 px-4 select-none pointer-events-auto transition-transform duration-500 ease-out"
+                style={{ transform: isDismissed ? 'scale(1)' : 'scale(0.96)' }}
+              >
+                {/* App Header */}
+                <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                  <div>
+                    <span className="text-[11px] font-bold text-brand-400 uppercase tracking-wider block">Hoje, 12 de Nov</span>
+                    <h3 className="text-xl font-black text-white tracking-tight flex items-center gap-1.5">
+                      <span>TimeNest</span>
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    </h3>
+                  </div>
+                  <div className="w-9 h-9 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white/80 text-xs font-bold">
+                    TN
+                  </div>
+                </div>
+
+                {/* Unlocked Toast Banner */}
+                <div 
+                  className={`my-2 p-3 rounded-2xl bg-gradient-to-r from-emerald-950/80 to-purple-950/80 border border-emerald-500/40 backdrop-blur-md shadow-lg flex items-center justify-between gap-2 transition-all duration-300 ${
+                    isDismissed ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                      <Check className="w-4 h-4 stroke-[3]" />
+                    </span>
+                    <div className="text-[11px] leading-tight">
+                      <span className="font-bold text-white block">Alarme Desligado</span>
+                      <span className="text-white/60">Ação: "{currentAlarm.ctaText}"</span>
+                    </div>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      audio.playClick();
+                      setIsDismissed(false);
+                      setAlarmInstanceKey(k => k + 1);
+                      logAction('Reiniciou teste do alarme');
+                    }}
+                    className="px-2.5 py-1 rounded-full bg-brand-500 hover:bg-brand-600 text-white font-bold text-[10px] shadow cursor-pointer transition-all active:scale-95 shrink-0"
+                  >
+                    Testar ↺
+                  </button>
+                </div>
+
+                {/* Timeline Cards */}
+                <div className="flex-1 flex flex-col gap-2.5 overflow-hidden my-2">
+                  <span className="text-[10px] uppercase font-bold text-white/40 tracking-wider">Linha do Tempo</span>
+                  
+                  {/* Card 1 */}
+                  <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded-md">
+                        {currentAlarm.durationOrTime || '19:30'}
+                      </span>
+                      <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                        {isDismissed ? '✓ Concluído' : 'Em andamento'}
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-white text-sm">{currentAlarm.title}</h4>
+                    <span className="text-[11px] text-white/50">{currentAlarm.metadata || 'Evento TimeNest'}</span>
+                  </div>
+
+                  {/* Card 2 */}
+                  <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 flex flex-col gap-1.5 opacity-70">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-white/50 bg-white/5 px-2 py-0.5 rounded-md">21:30</span>
+                      <span className="text-[10px] text-white/40">45 min</span>
+                    </div>
+                    <h4 className="font-bold text-white/90 text-sm">Rotina Noturna & Descanso</h4>
+                    <span className="text-[11px] text-white/40">Rotina de sono</span>
+                  </div>
+                </div>
+
+                {/* Bottom Navigation Bar */}
+                <div className="pt-2 border-t border-white/10 flex items-center justify-around text-white/40 text-[10px]">
+                  <div className="flex flex-col items-center gap-0.5 text-brand-400 font-bold">
+                    <Clock className="w-4 h-4 stroke-[2.2]" />
+                    <span>Timeline</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <Zap className="w-4 h-4" />
+                    <span>Foco</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <Check className="w-4 h-4" />
+                    <span>Tarefas</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Live TimeNest Alarm Renderer */}
-              <div className="relative w-full h-full overflow-hidden">
-                <AlarmVisualDisplay
-                  alarm={currentAlarm}
-                  theme={theme}
-                  isLowStimulation={isLowStimulation}
-                  screen={screen}
-                  onScreenChange={(s) => {
-                    setScreen(s);
-                    logAction(`Navegou para tela: ${s}`);
-                  }}
-                  onPrimaryAction={() => {
-                    logAction(`Ação principal executada: "${currentAlarm.ctaText}"`);
-                    if (soundEnabled) audio.playChimeDone();
-                  }}
-                  onSnooze={(minutes) => {
-                    logAction(`Alarme adiado em: ${minutes === 'task_end' ? 'Fim da tarefa' : `${minutes} min`}`);
-                    setScreen('main');
-                  }}
-                  onDifficulty={(reason) => {
-                    logAction(`Apoio selecionado: ${reason}`);
-                    setScreen('main');
-                  }}
-                  onDismiss={() => {
-                    logAction('Alarme dispensado!');
-                  }}
-                  containerMode="embedded"
-                  interactive={true}
-                />
+              <div className="absolute inset-0 z-10 w-full h-full overflow-hidden">
+                {!isDismissed && (
+                  <AlarmVisualDisplay
+                    key={`${currentAlarm.id}-${alarmInstanceKey}`}
+                    alarm={currentAlarm}
+                    theme={theme}
+                    isLowStimulation={isLowStimulation}
+                    screen={screen}
+                    onScreenChange={(s) => {
+                      setScreen(s);
+                      logAction(`Navegou para tela: ${s}`);
+                    }}
+                    onPrimaryAction={() => {
+                      logAction(`Ação principal executada: "${currentAlarm.ctaText}"`);
+                      setIsDismissed(true);
+                    }}
+                    onSnooze={(minutes) => {
+                      logAction(`Alarme adiado em: ${minutes === 'task_end' ? 'Fim da tarefa' : `${minutes} min`}`);
+                      setScreen('main');
+                    }}
+                    onDifficulty={(reason) => {
+                      logAction(`Apoio selecionado: ${reason}`);
+                      setScreen('main');
+                    }}
+                    onDismiss={() => {
+                      logAction('Alarme dispensado!');
+                      setIsDismissed(true);
+                    }}
+                    containerMode="embedded"
+                    interactive={true}
+                  />
+                )}
               </div>
 
             </div>

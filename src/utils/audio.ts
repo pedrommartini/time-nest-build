@@ -24,8 +24,15 @@ class AudioSystem {
     this.enabled = enabled;
   }
 
+  public resume() {
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
+  }
+
   public playClick() {
     if (!this.enabled || !this.ctx || !this.masterGain) return;
+    this.resume();
     
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
@@ -64,6 +71,80 @@ class AudioSystem {
     
     osc.start(t);
     osc.stop(t + 0.01);
+  }
+
+  /**
+   * Authentic iOS-Style Unlock Sound
+   * Synthesizes the iconic mechanical dual-impulse polymer/wood latch click
+   */
+  public playIosUnlock() {
+    if (!this.enabled || !this.ctx || !this.masterGain) return;
+    const ctx = this.ctx;
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    const t = ctx.currentTime;
+
+    // Transient 1: Initial high mechanical latch tick (t = 0)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    const filter1 = ctx.createBiquadFilter();
+
+    filter1.type = 'bandpass';
+    filter1.frequency.setValueAtTime(2600, t);
+    filter1.Q.setValueAtTime(4, t);
+
+    osc1.type = 'triangle';
+    osc1.frequency.setValueAtTime(2800, t);
+    osc1.frequency.exponentialRampToValueAtTime(1200, t + 0.012);
+
+    gain1.gain.setValueAtTime(0.45, t);
+    gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.015);
+
+    osc1.connect(filter1);
+    filter1.connect(gain1);
+    gain1.connect(this.masterGain);
+
+    osc1.start(t);
+    osc1.stop(t + 0.018);
+
+    // Transient 2: Main crisp acoustic unlock pop (t = 30ms)
+    const t2 = t + 0.030;
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    const filter2 = ctx.createBiquadFilter();
+
+    filter2.type = 'bandpass';
+    filter2.frequency.setValueAtTime(1400, t2);
+    filter2.Q.setValueAtTime(3.5, t2);
+
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(1600, t2);
+    osc2.frequency.exponentialRampToValueAtTime(380, t2 + 0.035);
+
+    gain2.gain.setValueAtTime(0.85, t2);
+    gain2.gain.exponentialRampToValueAtTime(0.001, t2 + 0.04);
+
+    osc2.connect(filter2);
+    filter2.connect(gain2);
+    gain2.connect(this.masterGain);
+
+    osc2.start(t2);
+    osc2.stop(t2 + 0.045);
+
+    // Subtle low body thump for realism (t = 30ms)
+    const osc3 = ctx.createOscillator();
+    const gain3 = ctx.createGain();
+    osc3.type = 'sine';
+    osc3.frequency.setValueAtTime(280, t2);
+    osc3.frequency.exponentialRampToValueAtTime(80, t2 + 0.025);
+    gain3.gain.setValueAtTime(0.35, t2);
+    gain3.gain.exponentialRampToValueAtTime(0.001, t2 + 0.03);
+    osc3.connect(gain3);
+    gain3.connect(this.masterGain);
+    osc3.start(t2);
+    osc3.stop(t2 + 0.035);
   }
 
   public playChimeDone() {
